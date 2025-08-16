@@ -1,34 +1,13 @@
 #![allow(warnings)]
-
-// uncomment for release
+/// uncomment for release
 //#![windows_subsystem = "windows"]
 
-mod gl {
-    include!(concat!(env!("OUT_DIR"), "\\gl_bindings.rs"));
-}
-
-//use opengl::Gl as gl;
-
-use std::task::Context;
-
-//use crate::camera::camera::Camera;
-/// Simple loading example
-/// 
-use crate::gl::Gl;
-//use crate::window_loader::window_loader::init_window_and_opengl;
 
 
-//extern crate glfw;
-//use glfw::ffi::GLFW_MOUSE_BUTTON_LEFT;
-////use glfw;
-//use glfw::{Action, Context, Key, MouseButton, WindowEvent};
-//use glfw::Context;
-//use glfw::fail_on_errors;
+
 
 
 use ndarray;
-//use ndarray::prelude::*;
-//use ndarray_linalg;
 
 
 mod camera;
@@ -60,11 +39,7 @@ fn main() {
     //println!("{:?}", m1);
 
     let mut window = init_window_and_opengl();
-    //window.gl_enables();
-
     let mut camera = Camera::new();
-
-
     let mut render = Render::new(window, camera);
     render.setup_render();
 

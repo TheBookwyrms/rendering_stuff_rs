@@ -1,14 +1,9 @@
 extern crate gl_generator;
-//
+
 use gl_generator::{Registry, Api, Profile, Fallbacks};
 use std::env;
 use std::fs::File;
 use std::path::Path;
-
-//use std::process::Command;
-//use std::env;
-//use std::path::Path;
-
 
 fn main() {
     
@@ -23,16 +18,5 @@ fn main() {
     .write_bindings(gl_generator::StructGenerator, &mut file)
     .unwrap();
 
-     println!("cargo:rustc-link-lib=static=glfw3");
-
-//    let out_dir = env::var("OUT_DIR").unwrap();
-//
-//    cc::Build::new()
-//
-//        .file("glfw3.dll")
-//        .compile("glfw");
-//    println!("cargo::rerun-if-changed=src/glfw3.dll");
-//}
-//
-//fn main() {
+    println!("cargo:rustc-link-lib=static=glfw3");
 }

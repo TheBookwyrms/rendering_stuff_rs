@@ -28,52 +28,20 @@ pub mod shaders {
     }
 
     impl ShaderProgram<'_> {
+
         pub fn new<'b>(opengl:&'b Gl)  -> Result<ShaderProgram, String> {
-            let program_id : gl::types::GLuint;
             let vertex = Shader::new(opengl, get_vertex_shader_text(), Shaders::Vertex).expect("failed to compile");
             let fragment = Shader::new(opengl, get_fragment_shader_text(), Shaders::Fragment).expect("failed to compile");
-            unsafe {
-                program_id = opengl.CreateProgram();
-                opengl.AttachShader(program_id,   vertex.shader_id);
-                opengl.AttachShader(program_id, fragment.shader_id);
-                opengl.LinkProgram(program_id);
-                //opengl.DetachShader(program_id, vertex.shader_id);
-                //opengl.DetachShader(program_id, fragment.shader_id);
-                opengl.DeleteShader(vertex.shader_id);
-                opengl.DeleteShader(fragment.shader_id);
-            }
-
-            let shader_program = ShaderProgram { opengl:opengl, program_id:program_id };
-
-
-            //let mut success: gl::types::GLint = 1;
-            //unsafe { opengl.GetProgramiv(program_id, gl::LINK_STATUS, &mut success) }
-            //println!("d {:?} {:?}", success, success);
+            let program_id = create_program(opengl, vertex.shader_id, fragment.shader_id);
 
             let error = get_gl_error_msg(
-                opengl,
-                 &get_program_iv,
-                &get_program_info_log,
-                program_id,
-            ErrorChecks::LinkStatus);
+                opengl, &get_program_iv, &get_program_info_log, program_id, ErrorChecks::LinkStatus
+            );
 
             match error {
                 Err(msg) => Err(msg),
-                Ok(_) => Ok(shader_program),
+                Ok(_) => Ok( ShaderProgram { opengl:opengl, program_id:program_id } ),
             }
-
-            //let mut link_success: gl::types::GLint = 1;
-            //unsafe {
-            //    gl::GetProgramiv(program_id, gl::LINK_STATUS, &mut link_success);
-            //}
-    //
-            //match link_success {
-            //    0 => {let error_msg = shader.get_error_message();
-            //        Err(error_msg).expect("failed to compile shader")},
-            //    1 => shader,
-            //    _ => Err("shader compilation_success is neither 1 nor 0".to_string()).expect("failed to compile shader"),
-            //}
-
         }
 
         pub fn use_program(&self) {
@@ -97,22 +65,9 @@ pub mod shaders {
     }
 
     impl Shader<'_> {
-        //fn get_error_message(&self) -> String {
-        //    let mut log_len : gl::types::GLint = 0;
-        //
-        //    let mut buffer: Vec<u8> = Vec::with_capacity(log_len as usize + 1);
-        //    buffer.extend([b' '].iter().cycle().take(log_len as usize));
-        //    unsafe {
-        //        let error: CString = CString::from_vec_unchecked(buffer);
-        //        self.opengl.GetShaderiv(self.shader_id, gl::INFO_LOG_LENGTH, &mut log_len);
-        //        self.opengl.GetShaderInfoLog(
-        //                self.shader_id, log_len, std::ptr::null_mut(), 
-        //                error.as_ptr() as *mut gl::types::GLchar);
-        //        error.to_string_lossy().into_owned()
-        //    }
-        //}
 
-        pub fn new<'a>(opengl:&'a Gl, shader_text:&'a str, shader_type : Shaders) -> Result<Shader<'a>, String> {
+        pub fn new<'a>(opengl:&'a Gl, shader_text:&'a str, shader_type : Shaders
+                            ) -> Result<Shader<'a>, String> {
 
             let binding = CString::new(shader_text)
                                                 .expect("failed to turn &str into CString");
@@ -126,20 +81,9 @@ pub mod shaders {
                     Shaders::Vertex => shader_id = opengl.CreateShader(gl::VERTEX_SHADER),
                     Shaders::Fragment => shader_id = opengl.CreateShader(gl::FRAGMENT_SHADER),
                 }
-                //opengl.ShaderSource(shader_id, 1, &source.as_ptr() as *const *const i8, std::ptr::null());
                 opengl.ShaderSource(shader_id, 1, &source.as_ptr(), std::ptr::null());
                 opengl.CompileShader(shader_id);
-                //opengl.GetShaderiv(shader_id, gl::COMPILE_STATUS, &mut compilation_success);
             }
-
-            let shader = Shader {opengl:opengl, shader_type:shader_type, shader_id:shader_id};
-
-
-            //let mut success: gl::types::GLint = 1;
-            //unsafe { opengl.GetShaderiv(shader_id, gl::COMPILE_STATUS, &mut success) }
-
-            //let mut success: gl::types::GLint = 1;
-            //unsafe { opengl.GetShaderiv(shader_id, checking_status, &mut success) }
 
             let error = get_gl_error_msg(
                 opengl,
@@ -150,15 +94,8 @@ pub mod shaders {
 
             match error {
                 Err(msg) => Err(msg),
-                Ok(_) => Ok(shader),
+                Ok(_) => Ok( Shader {opengl:opengl, shader_type:shader_type, shader_id:shader_id} ),
             }
-
-            //match compilation_success {
-            //    0 => {let error_msg = shader.get_error_message();
-            //        Err(error_msg).expect("failed to compile shader")},
-            //    1 => shader,
-            //    _ => Err("shader compilation_success is neither 1 nor 0".to_string()).expect("failed to compile shader"),
-            //}
         }
     }
 
@@ -223,5 +160,17 @@ pub mod shaders {
     pub fn get_fragment_shader_text() -> &'static str {
         let frag_shader_text = include_str!("shaders_glsl/fragment_shader.glsl");
         frag_shader_text
+    }
+
+    fn create_program<'b>(opengl:&'b Gl vertex_id:u32, fragment_id:u32) -> u32 {
+        unsafe {
+            let program_id = opengl.CreateProgram();
+            opengl.AttachShader(program_id,   vertex.shader_id);
+            opengl.AttachShader(program_id, fragment.shader_id);
+            opengl.LinkProgram(program_id);
+            opengl.DeleteShader(vertex.shader_id);
+            opengl.DeleteShader(fragment.shader_id);
+            program_id
+        }
     }
 }

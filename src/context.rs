@@ -4,7 +4,7 @@ pub mod Context {
 
     use crate::window_loader::WindowLoader::Window;
     use crate::camera::Camera::Camera;
-    use crate::gl;
+    use crate::window_loader::gl;
 
     pub struct Render {
         pub window:Window,
@@ -12,14 +12,15 @@ pub mod Context {
     }
     impl Render {
         pub fn render_over(&self) -> bool { self.window.window.should_close() }
-        pub fn new(window:Window, camera:Camera) -> Render {
-            Render { window, camera }
-        }
+
+        pub fn new(window:Window, camera:Camera) -> Render { Render { window, camera } }
+
         pub fn setup_render(&mut self) {
             self.window.gl_enables();
             self.window.make_current();
             self.window.set_polling();
         }
+
         pub fn begin_render_actions(&self) {
             let (cr, cg, cb) = self.camera.background_colour;
             unsafe {
@@ -27,6 +28,7 @@ pub mod Context {
                 self.window.opengl.Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT)
             }
         }
+        
         pub fn end_render_actions(&mut self) {
             let end = Instant::now();
             let dt = end.duration_since(self.camera.current).as_secs();

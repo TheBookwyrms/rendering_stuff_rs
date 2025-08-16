@@ -2,7 +2,7 @@ pub mod gl {
     include!(concat!(env!("OUT_DIR"), "\\gl_bindings.rs"));
 
     use std::fmt;
-    use crate::gl;
+    use crate::window_loader::gl;
 
     impl fmt::Debug for gl::Gl {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -13,7 +13,7 @@ pub mod gl {
 
 pub mod WindowLoader {
 
-    use crate::gl;
+    use crate::window_loader::gl;
     use glfw::Glfw;
     
     extern crate glfw;
@@ -64,14 +64,19 @@ pub mod WindowLoader {
             for (_, event) in glfw::flush_messages(&self.events) {
                 match event {
                     glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                        &self.window.set_should_close(true);
-                    },
+                        &self.window.set_should_close(true); },
+                    glfw::WindowEvent::Close => { &self.window.set_should_close(true); },
                     glfw::WindowEvent::Key(_, _, _, _) => {},
                     glfw::WindowEvent::Char(_) => {},
                     glfw::WindowEvent::CharModifiers(_, _) => {},
                     glfw::WindowEvent::Focus(_) => {},
                     glfw::WindowEvent::MouseButton(_, _, _) => {},
                     glfw::WindowEvent::Scroll(_, _) => {},
+                    glfw::WindowEvent::Pos(_, _) => {},
+                    glfw::WindowEvent::Size(_, _) => {},
+                    glfw::WindowEvent::FramebufferSize(_, _) => {},
+                    glfw::WindowEvent::Iconify(_) => {},
+                    glfw::WindowEvent::Maximize(_) => {},
                     glfw::WindowEvent::Refresh => {},
                     glfw::WindowEvent::CursorPos(_, _) => {},
                     glfw::WindowEvent::CursorEnter(bool) => {},
