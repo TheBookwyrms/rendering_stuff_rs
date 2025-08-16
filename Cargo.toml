@@ -6,8 +6,8 @@ build = "build.rs"
 
 [build-dependencies]
 gl_generator = "0.14"
-khronos_api = "3.1.0"
 
 [dependencies]
 glfw = "0.60"
-ndarray = { version = "0.10", default-features = false}
+ndarray = { version = "0.10", default-features = false }
+rust-embed = { version = "8.7.2", default-features = false }

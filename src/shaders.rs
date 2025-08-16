@@ -1,11 +1,38 @@
 pub mod shaders {
 
-    use crate::{gl, shaders};
-    use crate::gl::Gl;
-    use std::ffi::{CString, CStr};
+    //use crate::{gl, shaders};
+    use crate::window_loader::gl;
+    use crate::window_loader::gl::Gl;
+    use std::ffi::{CStr, CString};
+
+    use std::{error::Error, fmt};
+
+    use rust_embed::Embed;
+    
+
+    #[derive(Embed)]
+    #[folder = "src/shaders_glsl/"]
+    struct Asset;
+    
 
     #[derive(Debug)]
-    pub enum Shaders {
+    pub struct ShaderError {
+        msg:String
+    }
+
+    impl fmt::Display for ShaderError {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "{}", self.msg)
+        }
+    }
+
+    #[derive(Debug)]
+    pub enum ProgramType {
+        Object,
+        Lighting,
+    }
+    #[derive(Debug)]
+    pub enum ShaderType {
         Vertex,
         Fragment,
     }
@@ -17,21 +44,33 @@ pub mod shaders {
     #[derive(Debug)]
     pub struct Shader<'a> {
         pub opengl : &'a Gl,
-        pub shader_type : Shaders,
+        pub shader_type : ShaderType,
         pub shader_id : u32,
     }
 
     #[derive(Debug)]
-    pub struct ShaderProgram<'b> {
-        pub opengl : &'b Gl,
+    pub struct ShaderProgram {
         pub program_id : u32,
+        pub program_type : ProgramType,
     }
 
-    impl ShaderProgram<'_> {
+    impl ShaderProgram {
+        pub fn new<'b>(opengl:&'b Gl, program_type:ProgramType)  -> ShaderProgram {
 
-        pub fn new<'b>(opengl:&'b Gl)  -> Result<ShaderProgram, String> {
-            let vertex = Shader::new(opengl, get_vertex_shader_text(), Shaders::Vertex).expect("failed to compile");
-            let fragment = Shader::new(opengl, get_fragment_shader_text(), Shaders::Fragment).expect("failed to compile");
+            let vertex:Shader<'_>;
+            let fragment:Shader<'_>;
+
+            match program_type {
+                ProgramType::Object=> {
+                    vertex   = Shader::new(opengl, get_shader_text("object_vertex_shader"), ShaderType::Vertex).expect("failed to compile");
+                    fragment = Shader::new(opengl, get_shader_text("object_fragment_shader"), ShaderType::Fragment).expect("failed to compile");
+                },
+                ProgramType::Lighting=> {
+                    vertex   = Shader::new(opengl, get_shader_text("lighting_vertex_shader"), ShaderType::Vertex).expect("failed to compile");
+                    fragment = Shader::new(opengl, get_shader_text("lighting_fragment_shader"), ShaderType::Fragment).expect("failed to compile");
+                },
+            }
+
             let program_id = create_program(opengl, vertex.shader_id, fragment.shader_id);
 
             let error = get_gl_error_msg(
@@ -39,14 +78,11 @@ pub mod shaders {
             );
 
             match error {
-                Err(msg) => Err(msg),
-                Ok(_) => Ok( ShaderProgram { opengl:opengl, program_id:program_id } ),
+                Ok(_) => {ShaderProgram { program_id:program_id, program_type:program_type }},
+                Err(err) => {Err(err.msg).expect("failed to compile")},
             }
         }
 
-        pub fn use_program(&self) {
-            unsafe { self.opengl.UseProgram(self.program_id) };
-        }
     }
 
     impl Drop for Shader<'_> {
@@ -56,21 +92,13 @@ pub mod shaders {
             }
         }
     }
-    impl Drop for ShaderProgram<'_> {
-        fn drop(&mut self) {
-            unsafe {
-                self.opengl.DeleteProgram(self.program_id);
-            }
-        }
-    }
 
     impl Shader<'_> {
+        pub fn new<'a>(opengl:&'a Gl, shader_text:String, shader_type : ShaderType
+                            ) -> Result<Shader<'a>, ShaderError> {
 
-        pub fn new<'a>(opengl:&'a Gl, shader_text:&'a str, shader_type : Shaders
-                            ) -> Result<Shader<'a>, String> {
-
-            let binding = CString::new(shader_text)
-                                                .expect("failed to turn &str into CString");
+            let str_text = shader_text.as_str();
+            let binding = CString::new(str_text).expect("failed to &CStr");
             let source = binding.as_c_str();
 
             let shader_id : gl::types::GLuint;
@@ -78,8 +106,8 @@ pub mod shaders {
 
             unsafe {
                 match shader_type {
-                    Shaders::Vertex => shader_id = opengl.CreateShader(gl::VERTEX_SHADER),
-                    Shaders::Fragment => shader_id = opengl.CreateShader(gl::FRAGMENT_SHADER),
+                    ShaderType::Vertex => shader_id = opengl.CreateShader(gl::VERTEX_SHADER),
+                    ShaderType::Fragment => shader_id = opengl.CreateShader(gl::FRAGMENT_SHADER),
                 }
                 opengl.ShaderSource(shader_id, 1, &source.as_ptr(), std::ptr::null());
                 opengl.CompileShader(shader_id);
@@ -90,12 +118,9 @@ pub mod shaders {
                 &get_shader_iv,
                 &get_shader_info_log,
                 shader_id,
-            ErrorChecks::CompileStatus);
+            ErrorChecks::CompileStatus)?;
 
-            match error {
-                Err(msg) => Err(msg),
-                Ok(_) => Ok( Shader {opengl:opengl, shader_type:shader_type, shader_id:shader_id} ),
-            }
+            Ok( Shader {opengl:opengl, shader_type:shader_type, shader_id:shader_id} )
         }
     }
 
@@ -104,7 +129,7 @@ pub mod shaders {
                         iv_func: &dyn Fn(&Gl, u32, u32, *mut i32) -> (),
                         log_func: &dyn Fn(&Gl, u32, i32, *mut i32, *mut i8) -> (),
                         id:u32, 
-                        checking_status:ErrorChecks) -> Result<&'static str, String> {
+                        checking_status:ErrorChecks) -> Result<&'static str, ShaderError> {
         let mut success: gl::types::GLint = 1;
         unsafe {
             match checking_status {
@@ -129,11 +154,11 @@ pub mod shaders {
                     error
                 };
                 let string_msg = error_msg.to_string_lossy().into_owned();
-                let msg:&str = string_msg.as_str();
+                //let msg:&str = string_msg.as_str();
 
-                Err(msg).expect("failed to compile")},
+                Err(ShaderError { msg: string_msg })},
             1 => Ok("no error"),
-            _ => Err("compilation_success is neither 1 nor 0".to_owned()).expect("failed to compile"),
+            _ => Err(ShaderError { msg: "compilation_success is neither 1 nor 0".to_owned() }),
 
         }
     }
@@ -152,24 +177,24 @@ pub mod shaders {
         unsafe { opengl.GetProgramInfoLog(program, bufsize, length, infolog); } ;
     }
 
-    pub fn get_vertex_shader_text() -> &'static str {
-        let vert_shader_text = include_str!("shaders_glsl/vertex_shader.glsl");
-        vert_shader_text
+    pub fn get_shader_text(filename:&str) -> String {
+        let mut file = filename.to_owned();
+        file.push_str(".glsl");
+        let file = file.as_str();
+
+        let glsl = Asset::get(file).unwrap();
+        let shader_text = std::str::from_utf8(glsl.data.as_ref()).unwrap().to_owned();
+        shader_text
     }
 
-    pub fn get_fragment_shader_text() -> &'static str {
-        let frag_shader_text = include_str!("shaders_glsl/fragment_shader.glsl");
-        frag_shader_text
-    }
-
-    fn create_program<'b>(opengl:&'b Gl vertex_id:u32, fragment_id:u32) -> u32 {
+    fn create_program<'b>(opengl:&'b Gl, vertex_id:u32, fragment_id:u32) -> u32 {
         unsafe {
             let program_id = opengl.CreateProgram();
-            opengl.AttachShader(program_id,   vertex.shader_id);
-            opengl.AttachShader(program_id, fragment.shader_id);
+            opengl.AttachShader(program_id,   vertex_id);
+            opengl.AttachShader(program_id, fragment_id);
             opengl.LinkProgram(program_id);
-            opengl.DeleteShader(vertex.shader_id);
-            opengl.DeleteShader(fragment.shader_id);
+            opengl.DeleteShader(vertex_id);
+            opengl.DeleteShader(fragment_id);
             program_id
         }
     }

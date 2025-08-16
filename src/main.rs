@@ -5,22 +5,31 @@
 
 
 
-
-
 use ndarray;
 
 
 mod camera;
 mod window_loader;
 mod context;
+mod shaders;
 
 use crate::window_loader::WindowLoader::init_window_and_opengl;
-//mod shaders;
+use crate::shaders::shaders::ProgramType;
 use crate::camera::Camera::Camera;
 use crate::context::Context::Render;
 
 
+
+// #[derive(Embed)]
+// #[folder = "src/shaders_glsl/"]
+// struct Asset;
+
+
 fn main() {
+
+    //let index_html = Asset::get("object_vertex_shader.glsl").unwrap();
+    //println!("{:?}", std::str::from_utf8(index_html.data.as_ref()).unwrap());
+    //println!("");
 
     //let a = nalgebra::matrix
 
@@ -40,8 +49,15 @@ fn main() {
 
     let mut window = init_window_and_opengl();
     let mut camera = Camera::new();
-    let mut render = Render::new(window, camera);
+
+    println!("{:?}", window.window.get_size());
+
+    // implement use_program for Render
+    //let object_program = ShaderProgram::new(&window.opengl, ProgramType::Object);
+    
+    let mut render = Render::new(window, camera, vec![ProgramType::Object, ProgramType::Lighting]);
     render.setup_render();
+
 
     
     while !render.render_over() {
