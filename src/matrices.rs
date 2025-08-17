@@ -1,11 +1,11 @@
 pub mod matrices {
     use ndarray;
 
-    pub fn translate(tx:f32, ty:f32, tz:f32) -> ndarray::ArrayBase {
+    pub fn translate(t:(f32, f32, f32)) -> ndarray::ArrayBase {
         ndarray::array![
-            [1, 0, 0, tx],
-            [0, 1, 0, ty],
-            [0, 0, 1, tz],
+            [1, 0, 0, t.0],
+            [0, 1, 0, t.1],
+            [0, 0, 1, t.2],
             [0, 0, 0, 1],
         ]
     }
@@ -50,5 +50,42 @@ pub mod matrices {
         let rotate = rotate(r);
 
         &return_to_pos.dot(&rotate.dot(&translate_to_zero))
+    }
+
+    pub fn get_orthographic_projection(width:u32, height:u32, zoom:f32, render_distance:u32)
+                 -> ndarray::ArrayBase {
+        let l = -1 * width / height * zoom;
+        let r = width / height * zoom;
+        let b = -1 * zoom;
+        let t = zoom;
+        let n = -1 * render_distance;
+        let f = render_distance;
+
+        let orthographic_projection = ndarray::array![
+            [2/(r-l), 0, 0, 0],
+            [0, 2/(t-b), 0, 0],
+            [0, 0, 2/(f-n), 0],
+            [-(r+l)/(r-l), -(t+b)/(t-b), -(f+n)/(f-n), 1],
+        ];
+
+        orthographic_projection
+    }
+
+    pub fn get_camera_transform(angle:(f32, f32, f32), pan:(f32, f32, f32)) -> ndarray::ArrayBase {
+        let camera_rotation = rotate_around_p((0.0, 0.0, 0.0), angle);
+        let camera_pan = translate(pan);
+        &camera_pan.dot(&camera_rotation)
+    }
+
+    pub fn get_world_transform() -> ndarray::ArrayBase {
+        let right_handed = ndarray::array![
+            [1,0,0,0],
+            [0,0,1,0],
+            [0,1,0,0],
+            [0,0,0,1],
+            ];
+
+        let world_transform = right_handed;
+        return world_transform
     }
 }

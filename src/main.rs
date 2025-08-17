@@ -12,9 +12,10 @@ mod camera;
 mod window_loader;
 mod context;
 mod shaders;
+mod gl_abstractions;
 
 use crate::window_loader::WindowLoader::init_window_and_opengl;
-use crate::shaders::shaders::ProgramType;
+use crate::shaders::shaders::{ProgramHolder, ProgramType};
 use crate::camera::Camera::Camera;
 use crate::context::Context::Render;
 
@@ -53,9 +54,13 @@ fn main() {
     println!("{:?}", window.window.get_size());
 
     // implement use_program for Render
+    let program_holder = ProgramHolder::new(
+        &window.opengl,
+        vec![ProgramType::Object, ProgramType::Lighting]
+    );
     //let object_program = ShaderProgram::new(&window.opengl, ProgramType::Object);
     
-    let mut render = Render::new(window, camera, vec![ProgramType::Object, ProgramType::Lighting]);
+    let mut render = Render::new(window, camera, program_holder);
     render.setup_render();
 
 

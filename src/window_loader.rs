@@ -1,25 +1,22 @@
-pub mod gl {
-    include!(concat!(env!("OUT_DIR"), "\\gl_bindings.rs"));
-
-    use std::fmt;
-    use crate::window_loader::gl;
-
-    impl fmt::Debug for gl::Gl {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "opengl fmt")
-        }
-    }
-}
-
 pub mod WindowLoader {
 
-    use crate::window_loader::gl;
+    use crate::gl_abstractions::{gl, OpenGl};
+    use crate::gl_abstractions::OpenGl::{GlError, GlSettings};
+
     use glfw::Glfw;
     
     extern crate glfw;
     use glfw::{Action, Context, Key, WindowEvent};
     use glfw::{PWindow, GlfwReceiver};
     use glfw::fail_on_errors;
+
+
+    //pub enum GlSettings {
+    //    DepthTest,
+    //    Multisample,
+    //    Blend,
+    //    BlendFunc_SRCAlpha_OneMinusSRCAlpha,
+    //}
 
     pub struct Window {
         pub glfw:Glfw,
@@ -37,14 +34,11 @@ pub mod WindowLoader {
         let (mut window, events) = glfw.create_window(
             width,
             height,
-            window_name,
+            &window_name,
             glfw::WindowMode::Windowed
         ).expect("Failed to create GLFW window.");
 
-        let opengl = gl::Gl::load_with(
-            |window_name: &'static str| window.get_proc_address(&window_name).unwrap() as *const _
-        );
-
+        let opengl = OpenGl::load_with(get_glfw_loadfn(window_name, &mut window));
 
         Window { glfw, window, events, opengl }
     }
@@ -52,22 +46,30 @@ pub mod WindowLoader {
     impl Window {
         // relabel subaspect functions to Window functions        
         pub fn poll_events(&mut self) { self.glfw.poll_events(); }
-        pub fn swap_buffers(&mut self) { self.window.swap_buffers(); }
-        pub fn make_current(&mut self) { self.window.make_current(); }
-        pub fn clear_colour(&self, r:f32, g:f32, b:f32, a:f32) {
-            unsafe { self.opengl.ClearColor(r, g, b, 1.0) } }
-        pub fn clear(&self, mask:u32) { unsafe { self.opengl.Clear(mask)} }
 
         pub fn set_polling(&mut self) { self.window.set_all_polling(true); }
+        pub fn swap_buffers(&mut self) { self.window.swap_buffers(); }
+        pub fn make_current(&mut self) { self.window.make_current(); }
+        pub fn width(&self)  -> u32 { self.window.get_size().0.try_into().unwrap() }
+        pub fn height(&self) -> u32 { self.window.get_size().1.try_into().unwrap() }
+
         
-        pub fn gl_enables(&self) {
-            unsafe {
-                self.opengl.Enable(gl::DEPTH_TEST);
-                self.opengl.Enable(gl::MULTISAMPLE);
-                //self.opengl.Enable(gl::POINT_SMOOTH); // not in rust ??
-                self.opengl.BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
-                self.opengl.Enable(gl::BLEND);
-            }
+        pub fn clear_colour(&self, r:f32, g:f32, b:f32, a:f32) {
+            OpenGl::clear_colour(&self.opengl, r, g, b, a)}
+        pub fn clear(&self, masks:Vec<GlSettings>) {
+            OpenGl::clear(&self.opengl, masks)}
+
+
+        pub fn default_gl_settings(&self) {
+            OpenGl::gl_enable(&self.opengl, GlSettings::DepthTest);
+            OpenGl::gl_enable(&self.opengl, GlSettings::Multisample);
+            OpenGl::gl_enable(&self.opengl, GlSettings::Blend);
+            OpenGl::gl_blendfunc(&self.opengl, GlSettings::BlendFunc_SRCAlpha_OneMinusSRCAlpha);
         }
+    }
+    
+    fn get_glfw_loadfn<T>(window_name:&'static str, window:&mut PWindow)
+                    -> impl FnMut(&'static str) -> *const T {
+        |window_name: &'static str| window.get_proc_address(&window_name).unwrap() as *const _
     }
 }

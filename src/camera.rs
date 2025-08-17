@@ -4,8 +4,8 @@ pub mod Camera {
 
     pub struct Camera {
         pub render_distance:u32,
-        pub angle_x:f32, pub angle_y:f32, pub angle_z:f32,
-        pub pan_x:f32,   pub pan_y:f32,   pub pan_z:f32,
+        pub angle_xyz:(f32, f32, f32),
+        pub pan_xyz:(f32, f32, f32),
         pub zoom:f32,
         pub pan_sensitivity:f32,
         pub angle_sensitivity:f32,
@@ -18,8 +18,8 @@ pub mod Camera {
         pub fn new() -> Camera {
             Camera {
                 render_distance:512,
-                angle_x:0.0, angle_y:0.0, angle_z:0.0,
-                pan_x:0.0, pan_y:0.0, pan_z:0.0,
+                angle_xyz:(0.0, 0.0, 0.0),
+                pan_xyz:(0.0, 0.0, 0.0),
                 zoom:20.0,
                 pan_sensitivity:0.001,
                 angle_sensitivity:0.01,
