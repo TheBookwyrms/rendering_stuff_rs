@@ -1,7 +1,7 @@
 pub mod WindowLoader {
 
-    use crate::gl_abstractions::{gl, OpenGl};
-    use crate::gl_abstractions::OpenGl::{GlError, GlSettings};
+    use crate::gl_abstractions::OpenGl;
+    use crate::gl_abstractions::OpenGl::{GlError, GlSettings, Gl};
 
     use glfw::Glfw;
     
@@ -10,19 +10,11 @@ pub mod WindowLoader {
     use glfw::{PWindow, GlfwReceiver};
     use glfw::fail_on_errors;
 
-
-    //pub enum GlSettings {
-    //    DepthTest,
-    //    Multisample,
-    //    Blend,
-    //    BlendFunc_SRCAlpha_OneMinusSRCAlpha,
-    //}
-
     pub struct Window {
         pub glfw:Glfw,
         pub window:PWindow,
         pub events:GlfwReceiver<(f64, WindowEvent)>,
-        pub opengl:gl::Gl,
+        pub opengl:Gl,
     }
 
     pub fn init_window_and_opengl() -> Window {

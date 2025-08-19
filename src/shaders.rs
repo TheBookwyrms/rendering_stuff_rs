@@ -1,30 +1,49 @@
 pub mod shaders {
 
-    use crate::gl_abstractions::{gl, OpenGl};
-    use crate::gl_abstractions::gl::Gl;
-    use crate::gl_abstractions::OpenGl::{ShaderType, ShaderVariant};
+    use crate::gl_abstractions::OpenGl;
+    use crate::gl_abstractions::OpenGl::{Gl, ShaderType, ShaderVariant};
+    use crate::gl_abstractions::OpenGl::{WithObject, GlSettings};
+    use crate::ndarray_abstractions::MyArray::{Arr1D, Arr2D, Arr3D, Arr4D};
+    use crate::ndarray_abstractions::MyArray::N as nd_trait;
 
     use std::vec;
     use std::{error::Error, fmt};
+    use std::os::raw;
 
     use rust_embed::Embed;
+
     
 
     #[derive(Embed)]
     #[folder = "src/shaders_glsl/"]
     struct Asset;
+
+
+    pub fn create_vao_vbo<N:nd_trait>(opengl:&Gl, store_normals:bool, data:N) -> (u32, u32) {
+        let vao = OpenGl::gen_vertex_arrays(opengl);
+        let vbo = OpenGl::gen_buffers(opengl);
+
+        let with_vao = WithObject::vao(opengl, vao); // unbinds object after use finished
+        let with_vbo = WithObject::vbo(opengl, vbo); // unbinds object after use finished
+
+        with_vbo.buffer_data(GlSettings::ArrayBuffer, &data, GlSettings::DynamicDraw);
+        with_vao.set_vertex_attribs(true);
+
+        (vao, vbo)
+    }
+    pub fn update_vbo<N:nd_trait>(opengl:&Gl, vbo:u32, data:N) {
+        let with_vbo = WithObject::vbo(opengl, vbo);
+        with_vbo.buffer_sub_data(GlSettings::ArrayBuffer, &data);
+    }
+    pub fn draw_vao<N:nd_trait>(opengl:&Gl, vao:u32, data:N) {
+        let with_vao = WithObject::vao(opengl, vao);
+        with_vao.draw_vao(GlSettings::DynamicDraw, &data);
+    }
+
+
+
+
     
-
-    #[derive(Debug)]
-    pub struct ShaderError {
-        msg:String
-    }
-
-    impl fmt::Display for ShaderError {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "{}", self.msg)
-        }
-    }
 
     #[derive(Debug)]
     pub enum ProgramType {
@@ -89,20 +108,20 @@ pub mod shaders {
             OpenGl::set_uniform_float(opengl, self.program_id, uniform_name, float);
         }
         pub fn set_uniform_vec3(&self, opengl:&Gl, uniform_name:&str, vec3:(f32, f32, f32)) {
-            let vec3_ptr = ndarray::array![vec3.0, vec3.1, vec3.2].as_ptr();
+            let vec3_ptr = Arr1D::from([vec3.0, vec3.1, vec3.2]).as_ptr();
             OpenGl::set_uniform_vec3(opengl, self.program_id, uniform_name, vec3_ptr);
         }
-        pub fn set_uniform_mat4(&self, opengl:&Gl, uniform_name:&str, mat4:ndarray::ArrayBase<ndarray::OwnedRepr<f32>, ndarray::Dim<[usize; 1]>>) {
+        pub fn set_uniform_mat4(&self, opengl:&Gl, uniform_name:&str, mat4:Arr2D) {
             let mat4_ptr = mat4.as_ptr();
             OpenGl::set_uniform_mat4(opengl, self.program_id, uniform_name, mat4_ptr);
         }
     }
 
-    impl Drop for Shader<'_> {
-        fn drop(&mut self) {
-            OpenGl::delete_shader(self.opengl, self.shader_id);
-        }
-    }
+    //impl Drop for Shader<'_> {
+    //    fn drop(&mut self) {
+    //        OpenGl::delete_shader(self.opengl, self.shader_id);
+    //    }
+    //}
 
     impl Shader<'_> {
         pub fn new<'a>(opengl:&'a Gl, shader_text:String, shader_type : ShaderType
@@ -133,8 +152,8 @@ pub mod shaders {
         OpenGl::attach_shader(opengl, program_id,   vertex_id);
         OpenGl::attach_shader(opengl, program_id, fragment_id);
         OpenGl::link_program(opengl, program_id);
-        OpenGl::delete_shader(opengl, vertex_id);
-        OpenGl::delete_shader(opengl, fragment_id);
+        //OpenGl::delete_shader(opengl, vertex_id);
+        //OpenGl::delete_shader(opengl, fragment_id);
         program_id
     }
 }

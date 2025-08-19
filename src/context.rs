@@ -3,8 +3,7 @@ pub mod Context {
     use std::time::{Duration, Instant};
 
     use crate::window_loader::WindowLoader::Window;
-    use crate::camera::Camera::Camera;
-    use crate::gl_abstractions::gl;
+    use crate::camera::Camera::{Camera, Lighting};
     use crate::gl_abstractions::OpenGl::GlSettings;
 
     use crate::shaders::shaders::ProgramHolder;

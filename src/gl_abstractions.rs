@@ -1,26 +1,36 @@
-pub mod gl {
-    include!(concat!(env!("OUT_DIR"), "\\gl_bindings.rs"));
+pub mod OpenGl {
+    mod gl {
+        include!(concat!(env!("OUT_DIR"), "\\gl_bindings.rs"));
 
-    use std::fmt;
-    use crate::gl_abstractions::gl;
+        use std::fmt;
+        //use crate::gl_abstractions::OpenGl::gl;
+        //use crate::gl_abstractions::OpenGl::Gl;
 
-    impl fmt::Debug for gl::Gl {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "opengl fmt")
+        pub(super) mod Hack {
+            pub use super::Gl;
+        }
+
+        impl fmt::Debug for Gl {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "opengl fmt")
+            }
         }
     }
-}
 
-pub mod OpenGl {
+    pub use gl::Hack::Gl;
 
-    use std::{fmt, u32, ffi::{CStr, CString}};
-    use std::os::raw;
-    use ndarray;
+    use std::{ffi::{CStr, CString}, fmt, os::raw::c_void, u32};
 
-    use crate::gl_abstractions::gl;
-    use crate::gl_abstractions::gl::Gl;
+    use crate::gl_abstractions;
+    use crate::ndarray_abstractions::MyArray::N as nd_trait;
 
-        #[derive(Debug)]
+
+    const F32_SIZE : usize = std::mem::size_of::<f32>();
+
+
+    
+
+    #[derive(Debug)]
     pub struct ShaderError {
         msg:String
     }
@@ -31,6 +41,7 @@ pub mod OpenGl {
         }
     }
 
+    #[derive(Debug)]
     pub enum ShaderVariant {
         Shader,
         Program
@@ -50,6 +61,12 @@ pub mod OpenGl {
         BlendFunc_SRCAlpha_OneMinusSRCAlpha,
         ColourBufferBit,
         DepthBufferBit,
+        ArrayBuffer,
+        VertexArrayObject,
+        VertexBufferObject,
+        StaticDraw,
+        StreamDraw,
+        DynamicDraw,
     }
 
     pub struct GlError{
@@ -67,7 +84,7 @@ pub mod OpenGl {
     }
 
     pub fn load_with<T>(mut loadfn: T) -> Gl
-            where T:  FnMut(&'static str) -> *const raw::c_void {
+            where T:  FnMut(&'static str) -> *const c_void {
         gl::Gl::load_with(loadfn)
     }
     pub fn clear_colour(opengl:&Gl, r:f32, g:f32, b:f32, a:f32) {
@@ -185,11 +202,11 @@ pub mod OpenGl {
         let mut success = 1; // 1 is good, 0 is bad
         let error_msg = match shader_variant {
             ShaderVariant::Shader => {
-                get_shader_iv(opengl, id, gl::LINK_STATUS, &mut success);
+                get_shader_iv(opengl, id, gl::COMPILE_STATUS, &mut success);
                 read_info_log_error(opengl, &get_shader_iv, &get_shader_info_log, id)
             },
             ShaderVariant::Program => {
-                get_shader_iv(opengl, id, gl::COMPILE_STATUS, &mut success);
+                get_shader_iv(opengl, id, gl::LINK_STATUS, &mut success);
                 read_info_log_error(opengl, &get_program_iv, &get_program_info_log, id)
             },
         };
@@ -204,4 +221,150 @@ pub mod OpenGl {
         unsafe { opengl.AttachShader(program_id, shader_id) } }
     pub fn link_program(opengl:&Gl, program_id:u32) { unsafe { opengl.LinkProgram(program_id) } }
     pub fn delete_shader(opengl:&Gl, shader_id:u32) { unsafe { opengl.DeleteShader(shader_id) } }
+    pub fn gen_vertex_arrays(opengl:&Gl) -> u32 {
+        let mut vao = 0;
+        unsafe { opengl.GenVertexArrays(1, &mut vao) }
+        vao
+    }
+    pub fn gen_buffers(opengl:&Gl) -> u32 {
+        let mut vbo = 0;
+        unsafe { opengl.GenBuffers(1, &mut vbo) }
+        vbo
+    }
+    pub fn bind_vertex_array(opengl:&Gl, vao:u32) { unsafe { opengl.BindVertexArray(vao) } }
+    pub fn bind_buffer(opengl:&Gl, target:GlSettings, buffer:u32) {
+        match target {
+            GlSettings::ArrayBuffer => unsafe {
+                opengl.BindBuffer(gl::ARRAY_BUFFER, buffer)
+            },
+            _ => Err("invalid buffer type".to_owned()).unwrap(),
+        }
+    }
+    pub fn buffer_data(
+        opengl:&Gl,
+        target:GlSettings,
+        size:gl::types::GLsizeiptr,
+        data_ptr:*const gl::types::GLvoid,
+        draw_type:GlSettings,
+    ) {
+        match target {
+            GlSettings::ArrayBuffer => {
+                match draw_type {
+                    GlSettings::StaticDraw => unsafe {
+                        opengl.BufferData(gl::ARRAY_BUFFER, size, data_ptr, gl::STATIC_DRAW)
+                    },
+                    GlSettings::StreamDraw => unsafe {
+                        opengl.BufferData(gl::ARRAY_BUFFER, size, data_ptr, gl::STREAM_DRAW)
+                    },
+                    GlSettings::DynamicDraw => unsafe {
+                        opengl.BufferData(gl::ARRAY_BUFFER, size, data_ptr, gl::DYNAMIC_DRAW)
+                    },
+                    _ => Err("invalid draw usage type").unwrap(),
+                }
+            },
+            _ => Err("invalid buffer_data target").unwrap(),
+        }
+    }
+
+
+    pub struct WithObject<'l> {
+        pub opengl:&'l Gl,
+        pub object_type:GlSettings,
+        pub object_id:u32,
+    }
+    impl WithObject<'_> {
+        pub fn vao(opengl:&Gl, vao:u32) -> WithObject {
+            bind_vertex_array(opengl, vao);
+            WithObject { opengl, object_type:GlSettings::VertexArrayObject, object_id:vao }
+        }
+        pub fn vbo(opengl:&Gl, vbo:u32) -> WithObject {
+            bind_buffer(opengl, GlSettings::ArrayBuffer, vbo);
+            WithObject { opengl, object_type:GlSettings::VertexBufferObject, object_id:vbo }
+        }
+        pub fn buffer_data<N:nd_trait>(&self, target:GlSettings, data:&N, draw_type:GlSettings) {
+            let data_size = (data.shape() * F32_SIZE) as isize;
+            let data_ptr = data.as_ptr_void();
+            buffer_data(self.opengl, target, data_size, data_ptr, draw_type);
+        }
+        pub fn buffer_sub_data<N:nd_trait>(&self, target:GlSettings, data:&N) {
+            let data_size = (data.shape() * F32_SIZE) as isize;
+            let data_ptr = data.as_ptr_void();
+            buffer_sub_data(self.opengl, GlSettings::ArrayBuffer, data_size, data_ptr);
+        }
+        pub fn set_vertex_attribs(&self, store_normals:bool) {
+            set_vertex_attrib(self.opengl, 0, store_normals);
+            set_vertex_attrib(self.opengl, 1, store_normals);
+            set_vertex_attrib(self.opengl, 2, store_normals);
+            if store_normals { set_vertex_attrib(self.opengl, 3, store_normals); }
+        }
+        pub fn draw_vao<N:nd_trait>(&self, mode:GlSettings, data:&N) {
+            let num_shapes = data.dimension0();
+            draw_arrays(self.opengl, mode, num_shapes);
+        }
+    }
+    impl Drop for WithObject<'_> {
+        fn drop(&mut self) {
+            match self.object_type {
+                GlSettings::VertexArrayObject => bind_vertex_array(self.opengl, 0),
+                GlSettings::VertexBufferObject => bind_buffer(self.opengl, GlSettings::ArrayBuffer, 0),
+                _ => Err("invalid object type".to_owned()).unwrap(),
+            }
+        }
+    }
+    pub fn set_vertex_attrib(opengl:&Gl, layout_location:u32, store_normals:bool) {
+        let n_per_vertice : usize = 3;
+        let n_per_colour : usize = 3;
+        let n_per_opacity : usize = 1;
+        let n_per_normal : usize = 3;
+        let stride = if store_normals {
+            n_per_vertice+n_per_colour+n_per_opacity+n_per_normal
+        } else {n_per_vertice+n_per_colour+n_per_opacity} as i32;
+        let loc_info = match layout_location {
+            0 => Ok([n_per_vertice, (0) * F32_SIZE]),
+            1 => Ok([n_per_colour, (n_per_vertice) * F32_SIZE]),
+            2 => Ok([n_per_opacity, (n_per_vertice + n_per_colour) * F32_SIZE]),
+            3 => if store_normals {
+                    Ok([n_per_normal, (n_per_vertice + n_per_colour + n_per_normal) * F32_SIZE])
+                } else {Err("normals are not included")},
+            _ => Err("invalid layout location"),
+        }.unwrap();
+        let num_items : i32 = loc_info[0].try_into().unwrap();
+        let offset = loc_info[1] as *const gl::types::GLvoid;
+        enable_vertex_attrib_array(opengl, layout_location);
+        vertex_attrib_pointer(opengl, layout_location, num_items, stride, offset);
+    }
+    pub fn enable_vertex_attrib_array(opengl:&Gl, layout_location:u32) {
+        unsafe { opengl.EnableVertexAttribArray(layout_location) }
+    }
+    pub fn vertex_attrib_pointer(
+        opengl:&Gl,
+        layout_location:u32,
+        num_items_in_location:i32,
+        stride_between_points:i32,
+        ptr_to_location_in_point:*const c_void) {
+        unsafe {
+            opengl.VertexAttribPointer(
+                layout_location,
+                num_items_in_location,
+                gl::FLOAT,
+                gl::FALSE,
+                stride_between_points,
+                ptr_to_location_in_point)
+        }
+    }
+    pub fn buffer_sub_data(opengl:&Gl, target:GlSettings, size:isize, data:*const c_void) {
+        match target {
+            GlSettings::ArrayBuffer => unsafe {
+                opengl.BufferSubData(gl::ARRAY_BUFFER, 0, size, data)},
+            _ => Err("invalid buffer target").unwrap(),
+        }
+    }
+    pub fn draw_arrays(opengl:&Gl, mode:GlSettings, num_shapes:i32) {
+        match mode {
+            GlSettings::StaticDraw => unsafe {opengl.DrawArrays(gl::STATIC_DRAW, 0, num_shapes)},
+            GlSettings::StreamDraw => unsafe {opengl.DrawArrays(gl::STREAM_DRAW, 0, num_shapes)},
+            GlSettings::DynamicDraw => unsafe {opengl.DrawArrays(gl::DYNAMIC_DRAW, 0, num_shapes)},
+            _ => Err("invalid draw mode").unwrap(),
+        }
+    }
 }
