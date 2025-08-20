@@ -36,10 +36,8 @@ pub mod Context {
 
         pub fn begin_render_actions(&self) {
             let (cr, cg, cb) = self.camera.background_colour;
-            self.window.clear_colour(cr, cg, cb, 1.0);
-            self.window.clear(
-                vec![GlSettings::ColourBufferBit, GlSettings::DepthBufferBit]
-            );
+            self.window.clear_to_colour(cr, cg, cb, 1.0);
+            self.window.clear(vec![GlSettings::ColourBufferBit, GlSettings::DepthBufferBit]);
         }
         
         pub fn end_render_actions(&mut self) {

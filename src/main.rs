@@ -5,7 +5,6 @@
 
 
 
-use ndarray;
 
 
 mod camera;
@@ -26,25 +25,21 @@ use crate::ndarray_abstractions::{MyArray};
 fn main() {
 
     
-    let mut abc = ndarray::array![[1, 2], [3, 4], [5, 6]].into_shared();
-    let mut def = ndarray::array![[7, 8, 9], [10, 11, 12]];
-
-    let b = abc.clone();
-
-    // println!("{:?}", &abc);
-    // println!("{:?}", &abc);
-    // //let b = abc.clone()+1;
-    // println!("{:?}", &abc.dot(&def));
-    // //let m1 = abc.dot(&def);
-    // //println!("{:?}", m1);
 
     let mut window = init_window_and_opengl();
     let mut camera = Camera::new();
     let mut lighting = Lighting::new();
 
-    // println!("{:?}", window.window.get_size());
+
 
     // implement use_program for Render
+    // function to set shader uniforms
+    // object class
+    // stores draw mode, which is then fed into draw_vao and update_vbo !!
+    
+
+
+
     let program_types = vec![ProgramType::Object, ProgramType::Lighting];
     let program_holder = ProgramHolder::new(&window.opengl, program_types);
     

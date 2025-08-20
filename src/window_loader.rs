@@ -1,7 +1,7 @@
 pub mod WindowLoader {
 
     use crate::gl_abstractions::OpenGl;
-    use crate::gl_abstractions::OpenGl::{GlError, GlSettings, Gl};
+    use crate::gl_abstractions::OpenGl::{GlSettings, Gl};
 
     use glfw::Glfw;
     
@@ -37,21 +37,19 @@ pub mod WindowLoader {
 
     impl Window {
         // relabel subaspect functions to Window functions        
-        pub fn poll_events(&mut self) { self.glfw.poll_events(); }
+        pub fn poll_events(&mut self)  { self.glfw.poll_events(); }
 
-        pub fn set_polling(&mut self) { self.window.set_all_polling(true); }
+        pub fn set_polling(&mut self)  { self.window.set_all_polling(true); }
         pub fn swap_buffers(&mut self) { self.window.swap_buffers(); }
         pub fn make_current(&mut self) { self.window.make_current(); }
-        pub fn width(&self)  -> u32 { self.window.get_size().0.try_into().unwrap() }
-        pub fn height(&self) -> u32 { self.window.get_size().1.try_into().unwrap() }
+        pub fn width(&self)  -> u32    { self.window.get_size().0.try_into().unwrap() }
+        pub fn height(&self) -> u32    { self.window.get_size().1.try_into().unwrap() }
 
         
-        pub fn clear_colour(&self, r:f32, g:f32, b:f32, a:f32) {
+        pub fn clear_to_colour(&self, r:f32, g:f32, b:f32, a:f32) {
             OpenGl::clear_colour(&self.opengl, r, g, b, a)}
         pub fn clear(&self, masks:Vec<GlSettings>) {
             OpenGl::clear(&self.opengl, masks)}
-
-
         pub fn default_gl_settings(&self) {
             OpenGl::gl_enable(&self.opengl, GlSettings::DepthTest);
             OpenGl::gl_enable(&self.opengl, GlSettings::Multisample);
