@@ -9,15 +9,16 @@
 
 mod camera;
 mod window_loader;
-mod context;
+mod render_context;
 mod shaders;
 mod gl_abstractions;
 mod ndarray_abstractions;
+mod matrices;
 
 use crate::window_loader::WindowLoader::init_window_and_opengl;
 use crate::shaders::shaders::{ProgramHolder, ProgramType};
 use crate::camera::Camera::{Camera, Lighting};
-use crate::context::Context::Render;
+use crate::render_context::RenderContext::Render;
 use crate::ndarray_abstractions::{MyArray};
 
 
@@ -40,10 +41,10 @@ fn main() {
 
 
 
-    let program_types = vec![ProgramType::Object, ProgramType::Lighting];
+    let program_types = vec![ProgramType::ForObject, ProgramType::ForLighting];
     let program_holder = ProgramHolder::new(&window.opengl, program_types);
     
-    let mut render = Render::new(window, camera, program_holder);
+    let mut render = Render::new(window, camera, lighting, program_holder);
     render.setup_render();
 
 

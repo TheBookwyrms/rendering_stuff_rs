@@ -9,7 +9,6 @@ out float point_opacity;
 
 uniform mat4 orthographic_projection;
 uniform mat4 camera_transformation;
-uniform mat4 inv_cam_transform;
 uniform mat4 world_transform;
 
 void main() {

@@ -3,6 +3,7 @@ pub mod Camera {
     use std::time::{Duration, Instant};
     //use ndarray;
     use crate::ndarray_abstractions::MyArray::{Arr1D, Arr2D, Arr3D, Arr4D};
+    use crate::matrices::Matrices;
     
 
     pub struct Lighting {

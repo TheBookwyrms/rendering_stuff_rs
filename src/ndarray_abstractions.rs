@@ -164,7 +164,12 @@ pub mod MyArray {
 
 
 
-
+    impl N for f32 {
+        fn shape(&self) -> usize { 1 }
+        fn as_ptr(&self) -> *const f32 { self as *const f32 }
+        fn as_ptr_void(&self) -> *const c_void { self as *const f32 as *const c_void }
+        fn dimension0(&self) -> (i32) { 1 }
+    }
 
 
 
