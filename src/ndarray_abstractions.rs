@@ -73,7 +73,6 @@ pub mod MyArray {
         println!("{:?}", k.arr);
     }
 
-
     pub struct Arr1D {
         pub arr:N1
     }
@@ -114,7 +113,7 @@ pub mod MyArray {
         fn shape(&self) -> usize {self.arr.len()}
         fn as_ptr(&self) -> *const f32 {self.arr.as_ptr() as *const f32}
         fn as_ptr_void(&self) -> *const c_void {self.arr.as_ptr() as *const c_void}
-        fn dimension0(&self) -> (i32) {i32::try_from(self.arr.dim().0).unwrap()}
+        fn dimension0(&self) -> i32 {i32::try_from(self.arr.dim().0).unwrap()}
     }
 
 

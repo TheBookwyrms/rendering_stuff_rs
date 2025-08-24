@@ -46,8 +46,8 @@ pub mod WindowLoader {
         pub fn height(&self) -> u32    { self.window.get_size().1.try_into().unwrap() }
 
         
-        pub fn clear_to_colour(&self, r:f32, g:f32, b:f32, a:f32) {
-            OpenGl::clear_colour(&self.opengl, r, g, b, a)}
+        pub fn clear_to_colour(&self, rgb:(f32, f32, f32), a:f32) {
+            OpenGl::clear_colour(&self.opengl, rgb.0, rgb.1, rgb.2, a)}
         pub fn clear(&self, masks:Vec<GlSettings>) {
             OpenGl::clear(&self.opengl, masks)}
         pub fn default_gl_settings(&self) {
@@ -55,6 +55,30 @@ pub mod WindowLoader {
             OpenGl::gl_enable(&self.opengl, GlSettings::Multisample);
             OpenGl::gl_enable(&self.opengl, GlSettings::Blend);
             OpenGl::gl_blendfunc(&self.opengl, GlSettings::BlendFunc_SRCAlpha_OneMinusSRCAlpha);
+        }
+        pub fn perform_polled_events(&mut self) {
+            for (_, event) in glfw::flush_messages(&self.events) {
+                match event {
+                    glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+                        &self.window.set_should_close(true); },
+                    glfw::WindowEvent::Close => { &self.window.set_should_close(true); },
+                    glfw::WindowEvent::Key(_, _, _, _) => {},
+                    glfw::WindowEvent::Char(_) => {},
+                    glfw::WindowEvent::CharModifiers(_, _) => {},
+                    glfw::WindowEvent::Focus(_) => {},
+                    glfw::WindowEvent::MouseButton(_, _, _) => {},
+                    glfw::WindowEvent::Scroll(_, _) => {},
+                    glfw::WindowEvent::Pos(_, _) => {},
+                    glfw::WindowEvent::Size(_, _) => {},
+                    glfw::WindowEvent::FramebufferSize(_, _) => {},
+                    glfw::WindowEvent::Iconify(_) => {},
+                    glfw::WindowEvent::Maximize(_) => {},
+                    glfw::WindowEvent::Refresh => {},
+                    glfw::WindowEvent::CursorPos(_, _) => {},
+                    glfw::WindowEvent::CursorEnter(bool) => {},
+                    _ => { println!("new even detected! {:?}", event); },
+                }
+            }
         }
     }
     

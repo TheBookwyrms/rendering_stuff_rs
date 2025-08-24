@@ -5,6 +5,7 @@ pub mod shaders {
     use crate::gl_abstractions::OpenGl::{WithObject, GlSettings, UniformType};
     use crate::ndarray_abstractions::MyArray::{Arr1D, Arr2D, Arr3D, Arr4D};
     use crate::ndarray_abstractions::MyArray::N as nd_trait;
+    use crate::vertices::Vertices::{self, Vertex, V10, V7};
 
     use std::vec;
     use std::{error::Error, fmt};
@@ -19,23 +20,44 @@ pub mod shaders {
     struct Asset;
 
 
-    pub fn create_vao_vbo<N:nd_trait>(opengl:&Gl, store_normals:bool, data:N) -> (u32, u32) {
+    //pub fn create_vao_vbo<Vertex:Vertices::Vertex>(opengl:&Gl, store_normals:bool, data:&Vec<Vertex>) -> (u32, u32) {
+    pub fn create_vao_vbo(opengl:&Gl, store_normals:bool, data:&Vec<f32>) -> (u32, u32) {
         let (vao, with_vao) = WithObject::new_vao(opengl);
         let (vbo, with_vbo) = WithObject::new_vbo(opengl);
-
-        with_vbo.buffer_data(GlSettings::ArrayBuffer, &data, GlSettings::DynamicDraw);
-        with_vao.set_vertex_attribs(true);
-
+//  
+        with_vbo.buffer_data(GlSettings::ArrayBuffer, data, GlSettings::DynamicDraw);
+        //with_vbo.buffer_data(GlSettings::ArrayBuffer, data, GlSettings::StaticDraw);
+        with_vao.set_vertex_attribs(store_normals);
+//  
         (vao, vbo)
     }
-    pub fn update_vbo<N:nd_trait>(opengl:&Gl, vbo:u32, data:N) {
+    //pub fn update_vbo<Vertex:Vertices::Vertex>(opengl:&Gl, vbo:u32, data:&Vec<Vertex>) {
+    pub fn update_vbo(opengl:&Gl, vbo:u32, data:&Vec<f32>) {
         let with_vbo = WithObject::vbo(opengl, vbo);
-        with_vbo.buffer_sub_data(GlSettings::ArrayBuffer, &data);
+        with_vbo.buffer_sub_data(GlSettings::ArrayBuffer, data);
     }
-    pub fn draw_vao<N:nd_trait>(opengl:&Gl, vao:u32, data:N) {
+    pub fn draw_vao(opengl:&Gl, draw_mode:GlSettings, vao:u32, data:&Vec<f32>) {
+    //pub fn draw_vao<Vertex:Vertices::Vertex>(opengl:&Gl, draw_mode:GlSettings, vao:u32, data:&Vec<Vertex>) {
         let with_vao = WithObject::vao(opengl, vao);
-        with_vao.draw_vao(GlSettings::DynamicDraw, &data);
+        with_vao.draw_vao(draw_mode, data);
     }
+    //pub fn create_vao_vbo<N:nd_trait>(opengl:&Gl, store_normals:bool, data:&N) -> (u32, u32) {
+    //    let (vao, vbo, with_vao_vbo) = WithObject::new_vao_vbo(opengl);
+//
+    //    with_vao_vbo.buffer_data(GlSettings::ArrayBuffer, data, GlSettings::DynamicDraw);
+    //    //with_vbo.buffer_data(GlSettings::ArrayBuffer, data, GlSettings::StaticDraw);
+    //    with_vao_vbo.set_vertex_attribs(store_normals);
+//
+    //    (vao, vbo)
+    //}
+    //pub fn update_vbo<N:nd_trait>(opengl:&Gl, vbo:u32, data:&N) {
+    //    let with_vbo = WithObject::vbo(opengl, vbo);
+    //    with_vbo.buffer_sub_data(GlSettings::ArrayBuffer, data);
+    //}
+    //pub fn draw_vao<N:nd_trait>(opengl:&Gl, draw_mode:GlSettings, vao:u32, data:&N) {
+    //    let with_vao = WithObject::vao(opengl, vao);
+    //    with_vao.draw_vao(draw_mode, data);
+    //}
 
 
 
@@ -64,24 +86,59 @@ pub mod shaders {
         pub fn add(&mut self, program:ShaderProgram) {
             self.programs.push(program);
         }
-        pub fn set_program_uniform<N:nd_trait>(&self,
-                                   opengl:&Gl,
-                                   program_type:ProgramType,
-                                   uniform_name:&str,
-                                   uniform_type:UniformType,
-                                   value:&N) {
+        pub fn get_program_id(&self, program_type:ProgramType) -> Result<u32, &str> {
             let mut valid_programs = vec![];
             for program in &self.programs {
                 if program_type==program.program_type { valid_programs.push(program); }
             }
             match valid_programs.len() {
-                0 => { Err::<N, &str>("no valid programs of proper type"); },
+                0 => Err("no valid programs of proper type"),
+                1 => {
+                    let program_id = valid_programs[0].program_id;
+                    Ok(program_id)
+                },
+                _ => Err("too many program of proper type"),
+            }
+        }
+        pub fn use_program(&self, opengl:&Gl, program_type:ProgramType) {
+            let mut valid_programs = vec![];
+            for program in &self.programs {
+                if program_type==program.program_type { valid_programs.push(program); }
+            }
+            let use_result = match valid_programs.len() {
+                0 => { Err("no valid programs of proper type") },
+                1 => {
+                    let program_id = valid_programs[0].program_id;
+                    OpenGl::use_program(opengl, program_id);
+                    Ok("all correct")
+                },
+                _ => { Err("too many program of proper type") },
+            };
+
+            use_result.unwrap();
+        }
+        //pub fn set_program_uniform<N:nd_trait>(&self,
+        pub fn set_program_uniform(&self,
+                                   opengl:&Gl,
+                                   program_type:ProgramType,
+                                   uniform_name:&str,
+                                   uniform_type:UniformType,
+                                   //value:&N) {
+                                   value:&Vec<f32>) {
+            let mut valid_programs = vec![];
+            for program in &self.programs {
+                if program_type==program.program_type { valid_programs.push(program); }
+            }
+            let uniform_set = match valid_programs.len() {
+                0 => { Err("no valid programs of proper type") },
                 1 => {
                     let program_id = valid_programs[0].program_id;
                     OpenGl::set_uniform(opengl, program_id, uniform_name, uniform_type, value.as_ptr());
+                    Ok("all good")
                 },
-                _ => { Err::<N, &str>("too many program of proper type").unwrap(); },
-            }
+                _ => { Err("too many program of proper type") },
+            };
+            uniform_set.unwrap();
         }
     }
 
@@ -107,6 +164,10 @@ pub mod shaders {
             };
 
             let program_id = OpenGl::create_shader_program(opengl, vertex.shader_id, fragment.shader_id);
+
+            println!("{:?}, {}", program_type, program_id);
+
+
 
             ShaderProgram { program_id:program_id, program_type:program_type }
         }

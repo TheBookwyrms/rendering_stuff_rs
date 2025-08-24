@@ -1,6 +1,6 @@
 [package]
 name = "rendering_stuff_rs"
-version = "0.4.0"
+version = "0.8.0"
 edition = "2024"
 build = "build.rs"
 
