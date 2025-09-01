@@ -18,5 +18,5 @@ fn main() {
     .write_bindings(gl_generator::StructGenerator, &mut file)
     .unwrap();
 
-    println!("cargo:rustc-link-lib=static=glfw3");
+    //println!("cargo:rustc-link-lib=static=glfw3");
 }

@@ -1,0 +1,4 @@
+[package]
+name = "matrices"
+version = "0.8.0"
+edition = "2024"

@@ -1,10 +1,8 @@
 pub mod Camera {
 
     use std::time::{Duration, Instant};
-    //use ndarray;
-    use crate::ndarray_abstractions::MyArray::{Arr1D, Arr2D, Arr3D, Arr4D};
-    use crate::matrices::Matrices;
-    
+
+    use matrices::{Matrix2d, rotate_around_p, translate};
 
     pub struct Lighting {
         pub ambient_strength:f32,
@@ -17,7 +15,7 @@ pub mod Camera {
         pub view_vec:(f32, f32, f32, f32), // what the hell is this ???
         //pub camera_viewpos:(f32, f32, f32),
         pub specular_power:u32,
-        pub light_y_transform:Arr2D, // mat4
+        pub light_y_transform:Matrix2d, // mat4
     }
     impl Lighting {
         pub fn new() -> Lighting {
@@ -32,7 +30,7 @@ pub mod Camera {
                 view_vec: (0.0, 0.0, 32.0, 1.0),
                 //camera_viewpos: (),
                 specular_power: 2,
-                light_y_transform: Arr2D::from([
+                light_y_transform: Matrix2d::from([
                     [-1.0,  0.0, 0.0, 0.0],
                     [ 0.0, -1.0, 0.0, 0.0],
                     [ 0.0,  0.0, 1.0, 0.0],
@@ -67,6 +65,30 @@ pub mod Camera {
                 pause_time:Instant::now(), current:Instant::now(), dt:0,
                 background_colour:(0.5, 0.5, 0.5),
             }
+        }
+        pub fn get_orthographic_projection(&self, width:u32, height:u32)
+                    -> Matrix2d {
+            let l = -1.0 * (width / height) as f32 * self.zoom;
+            let r = (width / height) as f32 * self.zoom;
+            let b = -1.0 * self.zoom as f32;
+            let t = self.zoom as f32;
+            let n = -1.0 * self.render_distance as f32;
+            let f = self.render_distance as f32;
+
+            let orthographic_projection = Matrix2d::from([
+                [2.0/(r-l), 0.0, 0.0, 0.0],
+                [0.0, 2.0/(t-b), 0.0, 0.0],
+                [0.0, 0.0, 2.0/(f-n), 0.0],
+                [-1.0*(r+l)/(r-l), -1.0*(t+b)/(t-b), -1.0*(f+n)/(f-n), 1.0],
+            ]);
+
+            orthographic_projection
+        }
+
+        pub fn get_camera_transform(&self) -> Matrix2d {
+            let camera_rotation = rotate_around_p((0.0, 0.0, 0.0), self.angle_xyz);
+            let camera_pan = translate(self.pan_xyz);
+            camera_pan.matmul(&camera_rotation)
         }
     }
 }

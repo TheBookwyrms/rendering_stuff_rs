@@ -2,14 +2,13 @@
 name = "rendering_stuff_rs"
 version = "0.8.0"
 edition = "2024"
-build = "build.rs"
 
 # run cargo depgraph --all-deps to get graphviz source which can graph all dependencies
 
-[build-dependencies]
-gl_generator = "0.14"
 
 [dependencies]
-glfw = { version = "0.60", default-features = false, features = ["prebuilt-libs", "raw-window-handle-v0-6"]}
-ndarray = { version = "0.10", default-features = false }
 rust-embed = { version = "8.7.2", default-features = false }
+
+matrices = {path = "lib/matrices"}
+opengl = {path = "lib/opengl_abstractions"}
+window = {path = "lib/window"}

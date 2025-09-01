@@ -1,11 +1,13 @@
 pub mod shaders {
 
-    use crate::gl_abstractions::OpenGl;
-    use crate::gl_abstractions::OpenGl::{Gl, ShaderType};
-    use crate::gl_abstractions::OpenGl::{WithObject, GlSettings, UniformType};
-    use crate::ndarray_abstractions::MyArray::{Arr1D, Arr2D, Arr3D, Arr4D};
-    use crate::ndarray_abstractions::MyArray::N as nd_trait;
-    use crate::vertices::Vertices::{self, Vertex, V10, V7};
+    use opengl;
+    use opengl::{Gl, ShaderType};
+    use opengl::{WithObject, GlSettings, UniformType};
+    use matrices::Matrix2d;
+    //use crate::ndarray_abstractions::MyArray::{Arr1D, Arr2D, Arr3D, Arr4D};
+    //use crate::ndarray_abstractions::MyArray::N as nd_trait;
+
+    //use crate::vertices::Vertices::Matrix2d;
 
     use std::vec;
     use std::{error::Error, fmt};
@@ -21,7 +23,7 @@ pub mod shaders {
 
 
     //pub fn create_vao_vbo<Vertex:Vertices::Vertex>(opengl:&Gl, store_normals:bool, data:&Vec<Vertex>) -> (u32, u32) {
-    pub fn create_vao_vbo(opengl:&Gl, store_normals:bool, data:&Vec<f32>) -> (u32, u32) {
+    pub fn create_vao_vbo(opengl:&Gl, store_normals:bool, data:&Matrix2d) -> (u32, u32) {
         let (vao, with_vao) = WithObject::new_vao(opengl);
         let (vbo, with_vbo) = WithObject::new_vbo(opengl);
 //  
@@ -36,7 +38,7 @@ pub mod shaders {
         let with_vbo = WithObject::vbo(opengl, vbo);
         with_vbo.buffer_sub_data(GlSettings::ArrayBuffer, data);
     }
-    pub fn draw_vao(opengl:&Gl, draw_mode:GlSettings, vao:u32, data:&Vec<f32>) {
+    pub fn draw_vao(opengl:&Gl, draw_mode:GlSettings, vao:u32, data:&Matrix2d) {
     //pub fn draw_vao<Vertex:Vertices::Vertex>(opengl:&Gl, draw_mode:GlSettings, vao:u32, data:&Vec<Vertex>) {
         let with_vao = WithObject::vao(opengl, vao);
         with_vao.draw_vao(draw_mode, data);
@@ -66,15 +68,15 @@ pub mod shaders {
 
     #[derive(Debug, PartialEq, Clone, Copy)]
     pub enum ProgramType {
-        ForObject,
-        ForLighting,
+        BlinnPhongOrthographic,
+        SimpleOrthographic,
     }
 
     pub struct ProgramHolder {
         pub programs:Vec<ShaderProgram>
     }
     impl ProgramHolder {
-        pub fn new(opengl:&Gl, program_types:Vec<ProgramType>) -> ProgramHolder {
+        pub fn new<const K:usize>(opengl:&Gl, program_types:[ProgramType;K]) -> ProgramHolder {
 
             let mut programs = vec![];
             for ptype in program_types {
@@ -100,22 +102,22 @@ pub mod shaders {
                 _ => Err("too many program of proper type"),
             }
         }
-        pub fn use_program(&self, opengl:&Gl, program_type:ProgramType) {
+        pub fn use_program<'a>(&self, opengl:&'a Gl, program_type:ProgramType) -> WithObject<'a> {
             let mut valid_programs = vec![];
             for program in &self.programs {
                 if program_type==program.program_type { valid_programs.push(program); }
             }
-            let use_result = match valid_programs.len() {
+            let use_result: WithObject = match valid_programs.len() {
                 0 => { Err("no valid programs of proper type") },
                 1 => {
                     let program_id = valid_programs[0].program_id;
-                    OpenGl::use_program(opengl, program_id);
-                    Ok("all correct")
+                    let with_program = WithObject::program(opengl, program_id);
+                    Ok(with_program)
                 },
                 _ => { Err("too many program of proper type") },
-            };
+            }.unwrap();
 
-            use_result.unwrap();
+            use_result
         }
         //pub fn set_program_uniform<N:nd_trait>(&self,
         pub fn set_program_uniform(&self,
@@ -124,7 +126,8 @@ pub mod shaders {
                                    uniform_name:&str,
                                    uniform_type:UniformType,
                                    //value:&N) {
-                                   value:&Vec<f32>) {
+                                   //value:&Vec<f32>) {
+                                   value:Matrix2d) {
             let mut valid_programs = vec![];
             for program in &self.programs {
                 if program_type==program.program_type { valid_programs.push(program); }
@@ -133,7 +136,7 @@ pub mod shaders {
                 0 => { Err("no valid programs of proper type") },
                 1 => {
                     let program_id = valid_programs[0].program_id;
-                    OpenGl::set_uniform(opengl, program_id, uniform_name, uniform_type, value.as_ptr());
+                    opengl::set_uniform(opengl, program_id, uniform_name, uniform_type, value.as_ptr());
                     Ok("all good")
                 },
                 _ => { Err("too many program of proper type") },
@@ -153,21 +156,17 @@ pub mod shaders {
         pub fn new(opengl:&Gl, program_type:ProgramType)  -> ShaderProgram {
 
             let (vertex, fragment) = match program_type {
-                ProgramType::ForObject => (
-                    Shader::new(opengl, get_shader_text("object_vertex_shader"), ShaderType::VertexShader),
-                    Shader::new(opengl, get_shader_text("object_fragment_shader"), ShaderType::FragmentShader)
+                ProgramType::BlinnPhongOrthographic => (
+                    Shader::new(opengl, get_shader_text("blinn_phong_orthographic_vertex"), ShaderType::VertexShader),
+                    Shader::new(opengl, get_shader_text("blinn_phong_orthographic_fragment"), ShaderType::FragmentShader)
                 ),
-                ProgramType::ForLighting => (
-                    Shader::new(opengl, get_shader_text("lighting_vertex_shader"), ShaderType::VertexShader),
-                    Shader::new(opengl, get_shader_text("lighting_fragment_shader"), ShaderType::FragmentShader)
+                ProgramType::SimpleOrthographic => (
+                    Shader::new(opengl, get_shader_text("simple_orthographic_vertex"), ShaderType::VertexShader),
+                    Shader::new(opengl, get_shader_text("simple_orthographic_fragment"), ShaderType::FragmentShader)
                 ),
             };
 
-            let program_id = OpenGl::create_shader_program(opengl, vertex.shader_id, fragment.shader_id);
-
-            println!("{:?}, {}", program_type, program_id);
-
-
+            let program_id = opengl::create_shader_program(opengl, vertex.shader_id, fragment.shader_id);
 
             ShaderProgram { program_id:program_id, program_type:program_type }
         }
@@ -183,7 +182,7 @@ pub mod shaders {
         pub fn new(opengl:&Gl, shader_text:String, shader_type : ShaderType) -> Shader {
             let str_text = shader_text.as_str();
 
-            let shader_id = OpenGl::create_shader_variant(opengl, str_text, shader_type);
+            let shader_id = opengl::create_shader_variant(opengl, str_text, shader_type);
 
             Shader {shader_type:shader_type, shader_id:shader_id}
         }

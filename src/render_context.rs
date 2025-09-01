@@ -2,15 +2,17 @@ pub mod RenderContext {
 
     use std::time::{Duration, Instant};
 
-    use crate::matrices::Matrices;
-    use crate::ndarray_abstractions::MyArray::{Arr1D, Arr2D, Arr3D, Arr4D};
-    use crate::window_loader::WindowLoader::Window;
+    //use crate::window_loader::WindowLoader::Window;
+    use window::Window;
     use crate::camera::Camera::{Camera, Lighting};
-    use crate::gl_abstractions::OpenGl::{GlSettings, UniformType};
+
+    use opengl::{GlSettings, UniformType, WithObject};
+    use matrices::{Matrix2d, right_handed};
 
     use crate::shaders::shaders::{ProgramHolder, ProgramType};
 
-    use glfw::{Key, Action};
+    use window::glfw;
+    use window::glfw::{Key, Action};
 
 
 
@@ -42,10 +44,25 @@ pub mod RenderContext {
             self.window.clear(vec![GlSettings::ColourBufferBit, GlSettings::DepthBufferBit]);
 
         }
+
+        fn clear_bindings(&self) {
+            WithObject::vao(    &self.window.opengl, 0);
+            WithObject::vbo(    &self.window.opengl, 0);
+            WithObject::program(&self.window.opengl, 0);
+        }
         
         pub fn end_render_actions(&mut self) {
+            
 
-            let dt = match Instant::now().duration_since(self.camera.current).as_secs() {
+            self.clear_bindings();
+
+            //let dt = match Instant::now().duration_since(self.camera.current).as_secs() {
+            //    0 => 0,
+            //    t => t,};
+            //self.camera.current = Instant::now();
+            
+
+            let dt = match Instant::now().duration_since(self.camera.current).as_micros() {
                 0 => 0,
                 t => t,};
             self.camera.current = Instant::now();
@@ -58,102 +75,57 @@ pub mod RenderContext {
 
 
 
+        pub fn use_program(&self, program_type:ProgramType) {
+            let with_program = self.programs.use_program(&self.window.opengl, program_type);
+            match program_type {
+                ProgramType::SimpleOrthographic => {
+                    self.set_orthographic_camera_uniforms(&with_program);
+                },
+                ProgramType::BlinnPhongOrthographic => {
+                    self.set_orthographic_camera_uniforms(&with_program);
+                    self.set_blinn_phong_uniforms(&with_program);
+                    Err("uniforms for Blinn-Phong are not fully yet implemented").unwrap()
+                },
+            }
+        }
+
+        fn set_orthographic_camera_uniforms(&self, with_program:&WithObject<'_>) {
+            with_program.set_uniform("world_transform", UniformType::Mat4, right_handed());
+            with_program.set_uniform("orthographic_projection", UniformType::Mat4,
+                self.camera.get_orthographic_projection(self.window.width(), self.window.height()));
+            with_program.set_uniform("camera_transformation", UniformType::Mat4,
+                self.camera.get_camera_transform());
+        }
 
 
 
+        fn set_blinn_phong_uniforms(&self, with_program:&WithObject<'_>) {
+            with_program.set_uniform("ambient_strength", UniformType::Float,
+                Matrix2d::from_float(self.lighting.ambient_strength));
+            with_program.set_uniform("ambient_colour", UniformType::Vec3, 
+                Matrix2d::from_1darray(self.lighting.ambient_colour.into()));
+            with_program.set_uniform("diffuse_strength", UniformType::Float,
+                Matrix2d::from_float(self.lighting.diffuse_strength));
+            with_program.set_uniform("diffuse_base", UniformType::Float,
+                Matrix2d::from_float(self.lighting.diffuse_base));
+            with_program.set_uniform("light_source_pos", UniformType::Vec3,
+                Matrix2d::from_1darray(self.lighting.light_source_pos.into()));
+            with_program.set_uniform("light_source_colour", UniformType::Vec3,
+                Matrix2d::from_1darray(self.lighting.light_source_colour.into()));
+            with_program.set_uniform("specular_strength", UniformType::Float,
+                Matrix2d::from_float(self.lighting.specular_strength));
+            with_program.set_uniform("specular_power", UniformType::Float,
+                Matrix2d::from_float(self.lighting.specular_power as f32));
+            let view_vec = self.lighting.view_vec;
+            let view_vec3 = (view_vec.0, view_vec.1, view_vec.2);
+            with_program.set_uniform("camera_viewpos", UniformType::Vec3,
+                Matrix2d::from_1darray(view_vec3.into()));
+            with_program.set_uniform("light_y_transform", UniformType::Mat4,
+                self.lighting.light_y_transform.clone());
+        }
 
-        //pub fn set_camera_uniforms(&self, program_type:ProgramType) {
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "orthographic_projection",
-        //        UniformType::Mat4,
-        //        &Matrices::get_orthographic_projection(
-        //                self.window.width(),
-        //                self.window.height(),
-        //                self.camera.zoom,
-        //                self.camera.render_distance));
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "camera_transform",
-        //        UniformType::Mat4,
-        //        &Matrices::get_camera_transform(
-        //                self.camera.angle_xyz,
-        //                self.camera.pan_xyz));
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "world_transform",
-        //        UniformType::Mat4,
-        //        &Matrices::get_world_transform());
-        //}
-//
-//
-        //pub fn set_lighting_uniforms(&self, program_type:ProgramType) {
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "ambient_strength",
-        //        UniformType::Float,
-        //        &self.lighting.ambient_strength);
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "ambient_colour",
-        //        UniformType::Vec3,
-        //        &Arr1D::from(self.lighting.ambient_colour.into()));
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "diffuse_strength",
-        //        UniformType::Float,
-        //        &self.lighting.diffuse_strength);
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "diffuse_base",
-        //        UniformType::Float,
-        //        &self.lighting.diffuse_base);
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "light_source_pos",
-        //        UniformType::Vec3,
-        //        &Arr1D::from(self.lighting.light_source_pos.into()));
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "light_source_colour",
-        //        UniformType::Vec3,
-        //        &Arr1D::from(self.lighting.light_source_colour.into()));
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "specular_strength",
-        //        UniformType::Float,
-        //        &self.lighting.specular_strength);
-        //    let camera_viewpos_vec = Arr1D::from(self.lighting.view_vec.into()).arr.to_vec();
-        //    let camera_viewpos = (camera_viewpos_vec[0], camera_viewpos_vec[1], camera_viewpos_vec[2]);
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "camera_viewpos",
-        //        UniformType::Vec3,
-        //        &Arr1D::from(camera_viewpos.try_into().expect("failed conversion")));
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "specular_power",
-        //        UniformType::Float,
-        //        &(self.lighting.specular_power as f32));
-        //    &self.programs.set_program_uniform(
-        //        &self.window.opengl,
-        //        program_type,
-        //        "light_y_transform",
-        //        UniformType::Mat4,
-        //        &self.lighting.light_y_transform);
-        //}
+
+
 
 
 
@@ -163,13 +135,15 @@ pub mod RenderContext {
                 match event {
                     glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
                         &self.window.window.set_should_close(true); },
-                    glfw::WindowEvent::Close => { &self.window.window.set_should_close(true); },
+                    glfw::WindowEvent::Close => {
+                        &self.window.window.set_should_close(true); },
                     glfw::WindowEvent::Key(_, _, _, _) => {},
                     glfw::WindowEvent::Char(_) => {},
                     glfw::WindowEvent::CharModifiers(_, _) => {},
                     glfw::WindowEvent::Focus(_) => {},
                     glfw::WindowEvent::MouseButton(_, _, _) => {},
-                    glfw::WindowEvent::Scroll(_, _) => {},
+                    glfw::WindowEvent::Scroll(xoffset, yoffset) => {
+                        self.camera.zoom -= (0.24*yoffset) as f32},
                     glfw::WindowEvent::Pos(_, _) => {},
                     glfw::WindowEvent::Size(_, _) => {},
                     glfw::WindowEvent::FramebufferSize(_, _) => {},

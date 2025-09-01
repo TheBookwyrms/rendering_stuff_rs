@@ -1,0 +1,12 @@
+[package]
+name = "window"
+version = "0.8.0"
+edition = "2024"
+build = "build.rs"
+
+
+
+[dependencies]
+glfw = { version = "0.60", default-features = false, features = ["prebuilt-libs", "raw-window-handle-v0-6"]}
+
+opengl = {path = "../../lib/opengl_abstractions"}
