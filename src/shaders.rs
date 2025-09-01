@@ -119,14 +119,11 @@ pub mod shaders {
 
             use_result
         }
-        //pub fn set_program_uniform<N:nd_trait>(&self,
         pub fn set_program_uniform(&self,
                                    opengl:&Gl,
                                    program_type:ProgramType,
                                    uniform_name:&str,
                                    uniform_type:UniformType,
-                                   //value:&N) {
-                                   //value:&Vec<f32>) {
                                    value:Matrix2d) {
             let mut valid_programs = vec![];
             for program in &self.programs {
