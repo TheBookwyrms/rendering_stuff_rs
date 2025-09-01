@@ -226,10 +226,14 @@ impl WithObject<'_> {
         let vbo = gen_buffers(opengl);
         (vbo, WithObject::vbo(opengl, vbo))
     }
-    pub fn new_vao_vbo(opengl:&Gl) -> (u32, u32, WithObject) {
-        let vao = gen_vertex_arrays(opengl);
-        let vbo = gen_buffers(opengl);
-        (vao, vbo, WithObject::vao_vbo(opengl, vao, vbo))
+    pub fn new_vao_vbo(opengl:&Gl, store_normals:bool, data:&Matrix2d) -> (u32, u32) {
+        let (vao, with_vao) = WithObject::new_vao(opengl);
+        let (vbo, with_vbo) = WithObject::new_vbo(opengl);
+
+        with_vbo.buffer_data(GlSettings::ArrayBuffer, data, GlSettings::DynamicDraw);
+        with_vao.set_vertex_attribs(store_normals);
+
+        (vao, vbo)
     }
     pub fn vao_vbo(opengl:&Gl, vao:u32, vbo:u32) -> WithObject {
         bind_vertex_array(opengl, vao);
@@ -247,34 +251,22 @@ impl WithObject<'_> {
         WithObject { opengl, object_type:GlSettings::VertexBufferObject,
                      vao_id:0, vbo_id:vbo, program_id:0 }
     }
+    pub fn update_vbo(&self, data:&Vec<f32>) {
+        self.buffer_sub_data(GlSettings::ArrayBuffer, data);
+    }
     pub fn program(opengl:&Gl, program:u32) -> WithObject {
         use_program(opengl, program);
         WithObject { opengl, object_type:GlSettings::Program,
                      vao_id:0, vbo_id:0, program_id:program }
     }
-    //pub fn buffer_data<N:nd_trait>(&self, target:GlSettings, data:&N, draw_type:GlSettings) {
-    //pub fn buffer_data<Vertex:vertices::Vertices::Vertex>(&self, target:GlSettings, data:&Vec<Vertex>, draw_type:GlSettings) {
     pub fn buffer_data(&self, target:GlSettings, data:&Matrix2d, draw_type:GlSettings) {
         let data_size = (data.size() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr;
-        //let data_size = std::mem::size_of_val(&data).try_into().unwrap();
-
-        //bind_buffer(self.opengl, GlSettings::ArrayBuffer, self.vbo_id);
-
-        //let data_size = (data.shape() * F32_SIZE).try_into().unwrap();
-        //println!("{:?}, {:?}", std::mem::size_of_val(&data), data_size);
         let data_ptr = data.clone().as_ptr() as *const c_void;
-        //let data_ptr = data.as_ptr_void();
         buffer_data(self.opengl, target, data_size, data_ptr, draw_type);
-        //bind_buffer(self.opengl, GlSettings::ArrayBuffer, 0);
     }
-    //pub fn buffer_sub_data<N:nd_trait>(&self, target:GlSettings, data:&N) {
-    //pub fn buffer_sub_data<Vertex:vertices::Vertices::Vertex>(&self, target:GlSettings, data:&Vec<Vertex>) {
     pub fn buffer_sub_data(&self, target:GlSettings, data:&Vec<f32>) {
         let data_size = (data.len() * std::mem::size_of::<f32>()).try_into().unwrap();
-        //bind_buffer(self.opengl, GlSettings::ArrayBuffer, self.object_id);
-        //let data_size = (data.shape() * F32_SIZE).try_into().unwrap();
         let data_ptr = data.as_ptr() as *const c_void;
-        //let data_ptr = data.as_ptr_void();
         match target {
             GlSettings::ArrayBuffer => buffer_sub_data(
                                             self.opengl,
@@ -283,7 +275,6 @@ impl WithObject<'_> {
                                             data_ptr),
             _ => {},
         }
-        //bind_buffer(self.opengl, GlSettings::ArrayBuffer, 0);
     }
     pub fn set_vertex_attribs(&self, store_normals:bool) {
         set_vertex_attrib(self.opengl, 0, store_normals);
@@ -291,15 +282,11 @@ impl WithObject<'_> {
         set_vertex_attrib(self.opengl, 2, store_normals);
         if store_normals { set_vertex_attrib(self.opengl, 3, store_normals); }
     }
-    //pub fn draw_vao<N:nd_trait>(&self, mode:GlSettings, data:&N) {
-    //pub fn draw_vao<Vertex>(&self, mode:GlSettings, data:&Vec<Vertex>) {
     pub fn draw_vao(&self, mode:GlSettings, data:&Matrix2d) {
-        //let num_shapes = data.dimension0();
-        //bind_vertex_array(self.opengl, self.object_id);
-        let num_shapes = 1;
-        let num_shapes = 3;
+        //let num_shapes = 1;
+        //let num_shapes = 3;
+        let num_shapes = data.nrows.try_into().unwrap();
         draw_arrays(self.opengl, mode, num_shapes);
-        //bind_vertex_array(self.opengl, 0);
     }
     pub fn set_uniform(&self, uniform_name:&str, uniform_type:UniformType, value:Matrix2d) {
         set_uniform(self.opengl, self.program_id, uniform_name, uniform_type, value.as_ptr());

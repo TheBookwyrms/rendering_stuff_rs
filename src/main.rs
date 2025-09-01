@@ -11,13 +11,11 @@ mod camera;
 mod render_context;
 mod shaders;
 
-//use crate::window_loader::WindowLoader::init_window_and_opengl;
 use crate::shaders::shaders::{ProgramHolder, ProgramType};
-use crate::shaders::shaders::{create_vao_vbo, update_vbo, draw_vao};
 use crate::camera::Camera::{Camera, Lighting};
 use crate::render_context::RenderContext::Render;
-use opengl::{clear_colour, GlSettings};
-use opengl;
+use opengl::{GlSettings, WithObject};
+//use opengl;
 use matrices::Matrix2d;
 use window::init_window_and_opengl;
 
@@ -49,21 +47,23 @@ fn main() {
     let mut render = Render::new(window, camera, lighting, program_holder);
     render.setup_render();
 
-    //window.set_polling();
-    //window.make_current();
-    //window.default_gl_settings();
-
-
 
     let triangle = Matrix2d::from([
         [5.0,   1.0, 0.0, 0.9, 0.5, 0.1, 1.0],
         [1.0,   0.0, 2.0, 0.1, 0.9, 0.5, 1.0],
         [0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0],
     ]);
+    //let triangle_normals = Matrix2d::from([
+    //    [5.0,   1.0, 0.0, 0.9, 0.5, 0.1, 1.0, 0.5, 0.5, 0.5],
+    //    [1.0,   0.0, 2.0, 0.1, 0.9, 0.5, 1.0, 0.5, 0.5, 0.5],
+    //    [0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0, 0.5, 0.5, 0.5],
+    //]);
 
 
 
-    let (t_vao, t_vbo) = create_vao_vbo(&render.window.opengl, false, &triangle);
+    //let (t_vao, t_vbo) = WithObject::new_vao_vbo(&render.window.opengl, false, &triangle);
+    let (t_vao, t_vbo) = render.create_vao_vbo(&triangle);
+    //let (tn_vao, tn_vbo) = WithObject::new_vao_vbo(&render.window.opengl, true, &triangle_normals);
 
 
     let mut world_transform = Matrix2d::from([
@@ -92,27 +92,23 @@ fn main() {
 
 
 
-        //let with_program = render.programs.use_program(&render.window.opengl, ProgramType::SimpleOrthographic);
+        
         render.use_program(ProgramType::SimpleOrthographic);
         //render.use_program(ProgramType::BlinnPhongOrthographic);
 
 
+        //let with_vao = WithObject::vao(&render.window.opengl, tn_vao);
+        //let with_vao = WithObject::vao(&render.window.opengl, t_vao);
+        //with_vao.draw_vao(GlSettings::GlTriangles, &triangle);
+        render.draw_vao(GlSettings::GlTriangles, t_vao, &triangle);
+        //with_vao.draw_vao(GlSettings::GlTriangles, &triangle_normals);
 
-        draw_vao(&render.window.opengl, GlSettings::GlTriangles, t_vao, &triangle);
 
+
+        //drop(with_vao);
+        //drop(with_program);
         render.end_render_actions();
     }
 
 
-}
-
-
-fn get_shader_text(filename:&str) -> String {
-    let mut file = filename.to_owned();
-    file.push_str(".glsl");
-    let file = file.as_str();
-
-    let glsl = Asset::get(file).unwrap();
-    let shader_text = std::str::from_utf8(glsl.data.as_ref()).unwrap().to_owned();
-    shader_text
 }

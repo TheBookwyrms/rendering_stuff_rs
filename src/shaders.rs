@@ -21,49 +21,6 @@ pub mod shaders {
     #[folder = "src/shaders_glsl/"]
     struct Asset;
 
-
-    //pub fn create_vao_vbo<Vertex:Vertices::Vertex>(opengl:&Gl, store_normals:bool, data:&Vec<Vertex>) -> (u32, u32) {
-    pub fn create_vao_vbo(opengl:&Gl, store_normals:bool, data:&Matrix2d) -> (u32, u32) {
-        let (vao, with_vao) = WithObject::new_vao(opengl);
-        let (vbo, with_vbo) = WithObject::new_vbo(opengl);
-//  
-        with_vbo.buffer_data(GlSettings::ArrayBuffer, data, GlSettings::DynamicDraw);
-        //with_vbo.buffer_data(GlSettings::ArrayBuffer, data, GlSettings::StaticDraw);
-        with_vao.set_vertex_attribs(store_normals);
-//  
-        (vao, vbo)
-    }
-    //pub fn update_vbo<Vertex:Vertices::Vertex>(opengl:&Gl, vbo:u32, data:&Vec<Vertex>) {
-    pub fn update_vbo(opengl:&Gl, vbo:u32, data:&Vec<f32>) {
-        let with_vbo = WithObject::vbo(opengl, vbo);
-        with_vbo.buffer_sub_data(GlSettings::ArrayBuffer, data);
-    }
-    pub fn draw_vao(opengl:&Gl, draw_mode:GlSettings, vao:u32, data:&Matrix2d) {
-    //pub fn draw_vao<Vertex:Vertices::Vertex>(opengl:&Gl, draw_mode:GlSettings, vao:u32, data:&Vec<Vertex>) {
-        let with_vao = WithObject::vao(opengl, vao);
-        with_vao.draw_vao(draw_mode, data);
-    }
-    //pub fn create_vao_vbo<N:nd_trait>(opengl:&Gl, store_normals:bool, data:&N) -> (u32, u32) {
-    //    let (vao, vbo, with_vao_vbo) = WithObject::new_vao_vbo(opengl);
-//
-    //    with_vao_vbo.buffer_data(GlSettings::ArrayBuffer, data, GlSettings::DynamicDraw);
-    //    //with_vbo.buffer_data(GlSettings::ArrayBuffer, data, GlSettings::StaticDraw);
-    //    with_vao_vbo.set_vertex_attribs(store_normals);
-//
-    //    (vao, vbo)
-    //}
-    //pub fn update_vbo<N:nd_trait>(opengl:&Gl, vbo:u32, data:&N) {
-    //    let with_vbo = WithObject::vbo(opengl, vbo);
-    //    with_vbo.buffer_sub_data(GlSettings::ArrayBuffer, data);
-    //}
-    //pub fn draw_vao<N:nd_trait>(opengl:&Gl, draw_mode:GlSettings, vao:u32, data:&N) {
-    //    let with_vao = WithObject::vao(opengl, vao);
-    //    with_vao.draw_vao(draw_mode, data);
-    //}
-
-
-
-
     
 
     #[derive(Debug, PartialEq, Clone, Copy)]

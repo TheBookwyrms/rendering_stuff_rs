@@ -75,6 +75,23 @@ pub mod RenderContext {
 
 
 
+        pub fn create_vao_vbo(&self, data:&Matrix2d) -> (u32, u32) {
+            let store_normals = match data.ncols {
+                7 => Ok(false),
+                10 => Ok(true),
+                _ => Err("data length neither 7 nor 10 items"),
+            }.unwrap();
+
+            let (vao, vbo) = WithObject::new_vao_vbo(&self.window.opengl, store_normals, data);
+            (vao, vbo)
+        }
+
+        pub fn draw_vao(&self, mode:GlSettings, vao:u32, data:&Matrix2d) {
+            let with_vao = WithObject::vao(&self.window.opengl, vao);
+            with_vao.draw_vao(mode, data);
+        }
+
+
         pub fn use_program(&self, program_type:ProgramType) {
             let with_program = self.programs.use_program(&self.window.opengl, program_type);
             match program_type {

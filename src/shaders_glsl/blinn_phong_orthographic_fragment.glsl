@@ -54,4 +54,5 @@ void main() {
     vec3 result = point_colour * (ambient_light + diffuse_light + specular_light);
 
     fragment_colour = vec4(result, point_opacity);
+    //fragment_colour = vec4(point_colour, point_opacity);
 }
