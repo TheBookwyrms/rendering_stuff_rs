@@ -76,27 +76,27 @@ pub mod shaders {
 
             use_result
         }
-        pub fn set_program_uniform(&self,
-                                   opengl:&Gl,
-                                   program_type:ProgramType,
-                                   uniform_name:&str,
-                                   uniform_type:UniformType,
-                                   value:Matrix2d) {
-            let mut valid_programs = vec![];
-            for program in &self.programs {
-                if program_type==program.program_type { valid_programs.push(program); }
-            }
-            let uniform_set = match valid_programs.len() {
-                0 => { Err("no valid programs of proper type") },
-                1 => {
-                    let program_id = valid_programs[0].program_id;
-                    opengl::set_uniform(opengl, program_id, uniform_name, uniform_type, value.as_ptr());
-                    Ok("all good")
-                },
-                _ => { Err("too many program of proper type") },
-            };
-            uniform_set.unwrap();
-        }
+        //pub fn set_program_uniform(&self,
+        //                           opengl:&Gl,
+        //                           program_type:ProgramType,
+        //                           uniform_name:&str,
+        //                           uniform_type:UniformType,
+        //                           value:Matrix2d) {
+        //    let mut valid_programs = vec![];
+        //    for program in &self.programs {
+        //        if program_type==program.program_type { valid_programs.push(program); }
+        //    }
+        //    let uniform_set = match valid_programs.len() {
+        //        0 => { Err("no valid programs of proper type") },
+        //        1 => {
+        //            let program_id = valid_programs[0].program_id;
+        //            opengl::set_uniform(opengl, program_id, uniform_name, uniform_type, value.as_ptr());
+        //            Ok("all good")
+        //        },
+        //        _ => { Err("too many program of proper type") },
+        //    };
+        //    uniform_set.unwrap();
+        //}
     }
 
 
@@ -112,7 +112,9 @@ pub mod shaders {
             let (vertex, fragment) = match program_type {
                 ProgramType::BlinnPhongOrthographic => (
                     Shader::new(opengl, get_shader_text("blinn_phong_orthographic_vertex"), ShaderType::VertexShader),
+                    //Shader::new(opengl, get_shader_text("simple_orthographic_vertex"), ShaderType::VertexShader),
                     Shader::new(opengl, get_shader_text("blinn_phong_orthographic_fragment"), ShaderType::FragmentShader)
+                    //Shader::new(opengl, get_shader_text("simple_orthographic_fragment"), ShaderType::FragmentShader)
                 ),
                 ProgramType::SimpleOrthographic => (
                     Shader::new(opengl, get_shader_text("simple_orthographic_vertex"), ShaderType::VertexShader),

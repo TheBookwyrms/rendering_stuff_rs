@@ -260,7 +260,7 @@ impl WithObject<'_> {
                      vao_id:0, vbo_id:0, program_id:program }
     }
     pub fn buffer_data(&self, target:GlSettings, data:&Matrix2d, draw_type:GlSettings) {
-        let data_size = (data.size() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr;
+        let data_size = (data.size() * F32_SIZE) as gl::types::GLsizeiptr;
         let data_ptr = data.clone().as_ptr() as *const c_void;
         buffer_data(self.opengl, target, data_size, data_ptr, draw_type);
     }

@@ -76,11 +76,14 @@ pub mod RenderContext {
 
 
         pub fn create_vao_vbo(&self, data:&Matrix2d) -> (u32, u32) {
+            println!("{:?}", data.ncols);
             let store_normals = match data.ncols {
                 7 => Ok(false),
                 10 => Ok(true),
                 _ => Err("data length neither 7 nor 10 items"),
             }.unwrap();
+            println!("{:?}", store_normals);
+
 
             let (vao, vbo) = WithObject::new_vao_vbo(&self.window.opengl, store_normals, data);
             (vao, vbo)
@@ -101,7 +104,7 @@ pub mod RenderContext {
                 ProgramType::BlinnPhongOrthographic => {
                     self.set_orthographic_camera_uniforms(&with_program);
                     self.set_blinn_phong_uniforms(&with_program);
-                    Err("uniforms for Blinn-Phong are not fully yet implemented").unwrap()
+                    //Err("uniforms for Blinn-Phong are not fully yet implemented").unwrap()
                 },
             }
         }
@@ -119,26 +122,26 @@ pub mod RenderContext {
         fn set_blinn_phong_uniforms(&self, with_program:&WithObject<'_>) {
             with_program.set_uniform("ambient_strength", UniformType::Float,
                 Matrix2d::from_float(self.lighting.ambient_strength));
-            with_program.set_uniform("ambient_colour", UniformType::Vec3, 
-                Matrix2d::from_1darray(self.lighting.ambient_colour.into()));
-            with_program.set_uniform("diffuse_strength", UniformType::Float,
-                Matrix2d::from_float(self.lighting.diffuse_strength));
-            with_program.set_uniform("diffuse_base", UniformType::Float,
-                Matrix2d::from_float(self.lighting.diffuse_base));
-            with_program.set_uniform("light_source_pos", UniformType::Vec3,
-                Matrix2d::from_1darray(self.lighting.light_source_pos.into()));
-            with_program.set_uniform("light_source_colour", UniformType::Vec3,
-                Matrix2d::from_1darray(self.lighting.light_source_colour.into()));
-            with_program.set_uniform("specular_strength", UniformType::Float,
-                Matrix2d::from_float(self.lighting.specular_strength));
-            with_program.set_uniform("specular_power", UniformType::Float,
-                Matrix2d::from_float(self.lighting.specular_power as f32));
-            let view_vec = self.lighting.view_vec;
-            let view_vec3 = (view_vec.0, view_vec.1, view_vec.2);
-            with_program.set_uniform("camera_viewpos", UniformType::Vec3,
-                Matrix2d::from_1darray(view_vec3.into()));
-            with_program.set_uniform("light_y_transform", UniformType::Mat4,
-                self.lighting.light_y_transform.clone());
+            //with_program.set_uniform("ambient_colour", UniformType::Vec3, 
+            //    Matrix2d::from_1darray(self.lighting.ambient_colour.into()));
+            //with_program.set_uniform("diffuse_strength", UniformType::Float,
+            //    Matrix2d::from_float(self.lighting.diffuse_strength));
+            //with_program.set_uniform("diffuse_base", UniformType::Float,
+            //    Matrix2d::from_float(self.lighting.diffuse_base));
+            //with_program.set_uniform("light_source_pos", UniformType::Vec3,
+            //    Matrix2d::from_1darray(self.lighting.light_source_pos.into()));
+            //with_program.set_uniform("light_source_colour", UniformType::Vec3,
+            //    Matrix2d::from_1darray(self.lighting.light_source_colour.into()));
+            //with_program.set_uniform("specular_strength", UniformType::Float,
+            //    Matrix2d::from_float(self.lighting.specular_strength));
+            //with_program.set_uniform("specular_power", UniformType::Float,
+            //    Matrix2d::from_float(self.lighting.specular_power as f32));
+            //let view_vec = self.lighting.view_vec;
+            //let view_vec3 = (view_vec.0, view_vec.1, view_vec.2);
+            //with_program.set_uniform("camera_viewpos", UniformType::Vec3,
+            //    Matrix2d::from_1darray(view_vec3.into()));
+            //with_program.set_uniform("light_y_transform", UniformType::Mat4,
+            //    self.lighting.light_y_transform.clone());
         }
 
 

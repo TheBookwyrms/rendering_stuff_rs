@@ -20,7 +20,9 @@ pub mod Camera {
     impl Lighting {
         pub fn new() -> Lighting {
             Lighting {
-                ambient_strength: 0.1,
+                //ambient_strength: 0.9,
+                ambient_strength: 0.25,
+                //ambient_strength: 0.1,
                 ambient_colour: (24.0/255.0, 128.0/255.0, 0.0),
                 diffuse_strength: 0.5,
                 diffuse_base: 0.2,

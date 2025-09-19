@@ -48,21 +48,22 @@ fn main() {
     render.setup_render();
 
 
-    let triangle = Matrix2d::from([
-        [5.0,   1.0, 0.0, 0.9, 0.5, 0.1, 1.0],
-        [1.0,   0.0, 2.0, 0.1, 0.9, 0.5, 1.0],
-        [0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0],
-    ]);
-    //let triangle_normals = Matrix2d::from([
-    //    [5.0,   1.0, 0.0, 0.9, 0.5, 0.1, 1.0, 0.5, 0.5, 0.5],
-    //    [1.0,   0.0, 2.0, 0.1, 0.9, 0.5, 1.0, 0.5, 0.5, 0.5],
-    //    [0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0, 0.5, 0.5, 0.5],
+    //let triangle = Matrix2d::from([
+    //    [5.0,   1.0, 0.0, 0.9, 0.5, 0.1, 1.0],
+    //    [1.0,   0.0, 2.0, 0.1, 0.9, 0.5, 1.0],
+    //    [0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0],
     //]);
+    let triangle_normals = Matrix2d::from([
+        [5.0,   1.0, 0.0, 0.9, 0.5, 0.1, 1.0, 0.5, 0.5, 0.5],
+        [1.0,   0.0, 2.0, 0.1, 0.9, 0.5, 1.0, 0.5, 0.5, 0.5],
+        [0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0, 0.5, 0.5, 0.5],
+    ]);
 
 
 
     //let (t_vao, t_vbo) = WithObject::new_vao_vbo(&render.window.opengl, false, &triangle);
-    let (t_vao, t_vbo) = render.create_vao_vbo(&triangle);
+    //let (t_vao, t_vbo) = render.create_vao_vbo(&triangle);
+    let (t_vao, t_vbo) = render.create_vao_vbo(&triangle_normals);
     //let (tn_vao, tn_vbo) = WithObject::new_vao_vbo(&render.window.opengl, true, &triangle_normals);
 
 
@@ -93,14 +94,15 @@ fn main() {
 
 
         
-        render.use_program(ProgramType::SimpleOrthographic);
-        //render.use_program(ProgramType::BlinnPhongOrthographic);
+        //render.use_program(ProgramType::SimpleOrthographic);
+        render.use_program(ProgramType::BlinnPhongOrthographic);
 
 
         //let with_vao = WithObject::vao(&render.window.opengl, tn_vao);
         //let with_vao = WithObject::vao(&render.window.opengl, t_vao);
         //with_vao.draw_vao(GlSettings::GlTriangles, &triangle);
-        render.draw_vao(GlSettings::GlTriangles, t_vao, &triangle);
+        //render.draw_vao(GlSettings::GlTriangles, t_vao, &triangle);
+        render.draw_vao(GlSettings::GlTriangles, t_vao, &triangle_normals);
         //with_vao.draw_vao(GlSettings::GlTriangles, &triangle_normals);
 
 
