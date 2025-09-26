@@ -5,16 +5,20 @@ pub mod RenderContext {
 
     //use crate::window_loader::WindowLoader::Window;
     use window::Window;
-    use crate::camera::Camera::{Camera, Lighting};
+    
 
     use opengl::{GlSettings, UniformType, WithObject};
     use matrices::{Matrix2d, right_handed};
 
-    use crate::shaders::shaders::{ProgramHolder, ProgramType};
 
     use window::glfw;
     use window::glfw::{Key, Action};
 
+
+    use crate::shaders::shaders::{ProgramHolder, ProgramType};
+    use crate::camera::Camera::{Camera, Lighting};
+    use crate::render_context::RenderContext::Render;
+    use window::init_window_and_opengl;
 
 
     pub struct Render {
@@ -22,6 +26,18 @@ pub mod RenderContext {
         pub camera:Camera,
         pub lighting:Lighting,
         pub programs:ProgramHolder,
+    }
+    impl Default for Render {
+        fn default() -> Self {
+            let mut window = init_window_and_opengl();
+            let mut camera = Camera::new();
+            let mut lighting = Lighting::new();
+            let program_holder = ProgramHolder::new(
+                &window.opengl,
+                [ProgramType::SimpleOrthographic, ProgramType::BlinnPhongOrthographic]
+            );
+            Self { window, camera, lighting, program_holder }
+        }
     }
     impl Render {
         pub fn render_over(&self) -> bool { self.window.window.should_close() }

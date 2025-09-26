@@ -44,16 +44,17 @@ fn main() {
     }.unwrap();
     
 
-    let mut window = init_window_and_opengl();
-    let mut camera = Camera::new();
-    let mut lighting = Lighting::new();
-    let program_holder = ProgramHolder::new(
-        &window.opengl,
-        [ProgramType::SimpleOrthographic, ProgramType::BlinnPhongOrthographic]
-    );
+    //let mut window = init_window_and_opengl();
+    //let mut camera = Camera::new();
+    //let mut lighting = Lighting::new();
+    //let program_holder = ProgramHolder::new(
+        //&window.opengl,
+        //[ProgramType::SimpleOrthographic, ProgramType::BlinnPhongOrthographic]
+    //);
 
 
-    let mut render = Render::new(window, camera, lighting, program_holder);
+    let mut render = Render::Default::default()
+    //let mut render = Render::new(window, camera, lighting, program_holder);
     render.setup_render();
 
 
