@@ -20,8 +20,8 @@ pub mod Camera {
     impl Lighting {
         pub fn new() -> Lighting {
             Lighting {
-                //ambient_strength: 0.9,
-                ambient_strength: 0.25,
+                ambient_strength: 0.9,
+                //ambient_strength: 0.25,
                 //ambient_strength: 0.1,
                 ambient_colour: (24.0/255.0, 128.0/255.0, 0.0),
                 diffuse_strength: 0.5,
@@ -32,7 +32,7 @@ pub mod Camera {
                 view_vec: (0.0, 0.0, 32.0, 1.0),
                 //camera_viewpos: (),
                 specular_power: 2,
-                light_y_transform: Matrix2d::from([
+                light_y_transform: Matrix2d::from_array([
                     [-1.0,  0.0, 0.0, 0.0],
                     [ 0.0, -1.0, 0.0, 0.0],
                     [ 0.0,  0.0, 1.0, 0.0],
@@ -77,7 +77,7 @@ pub mod Camera {
             let n = -1.0 * self.render_distance as f32;
             let f = self.render_distance as f32;
 
-            let orthographic_projection = Matrix2d::from([
+            let orthographic_projection = Matrix2d::from_array([
                 [2.0/(r-l), 0.0, 0.0, 0.0],
                 [0.0, 2.0/(t-b), 0.0, 0.0],
                 [0.0, 0.0, 2.0/(f-n), 0.0],

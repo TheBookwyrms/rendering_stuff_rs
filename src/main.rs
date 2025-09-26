@@ -10,6 +10,7 @@
 mod camera;
 mod render_context;
 mod shaders;
+mod _ray_tracer;
 
 use crate::shaders::shaders::{ProgramHolder, ProgramType};
 use crate::camera::Camera::{Camera, Lighting};
@@ -33,6 +34,14 @@ struct Asset;
 
 fn main() {
 
+
+    _ray_tracer::hello_ppm();
+
+    let a = true;
+    let a = match a {
+        true =>Err("a"),
+        false =>Ok("a"),
+    }.unwrap();
     
 
     let mut window = init_window_and_opengl();
@@ -53,7 +62,7 @@ fn main() {
     //    [1.0,   0.0, 2.0, 0.1, 0.9, 0.5, 1.0],
     //    [0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0],
     //]);
-    let triangle_normals = Matrix2d::from([
+    let triangle_normals = Matrix2d::from_array([
         [5.0,   1.0, 0.0, 0.9, 0.5, 0.1, 1.0, 0.5, 0.5, 0.5],
         [1.0,   0.0, 2.0, 0.1, 0.9, 0.5, 1.0, 0.5, 0.5, 0.5],
         [0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0, 0.5, 0.5, 0.5],
@@ -67,7 +76,7 @@ fn main() {
     //let (tn_vao, tn_vbo) = WithObject::new_vao_vbo(&render.window.opengl, true, &triangle_normals);
 
 
-    let mut world_transform = Matrix2d::from([
+    let mut world_transform = Matrix2d::from_array([
             [1.,0.,0.,0.],
             [0.,0.,1.,0.],
             [0.,1.,0.,0.],
@@ -75,7 +84,7 @@ fn main() {
             ]);
 
 
-    let m = Matrix2d::from([
+    let m = Matrix2d::from_array([
         [1., 2., 3.],
         [4., 5., 6.],
         [7., 8., 9.]

@@ -302,7 +302,7 @@ impl Drop for WithObject<'_> {
                 bind_buffer(self.opengl, GlSettings::ArrayBuffer, 0);
             },
             GlSettings::Program => {
-                /* this is being done in render clear_bindings by binding to 0*/
+                /* this is being done in render clear_bindings by binding to 0 */
                 //use_program(self.opengl, 0)
             },
             _ => Err("invalid object type".to_owned()).unwrap(),

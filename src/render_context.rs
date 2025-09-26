@@ -1,5 +1,6 @@
 pub mod RenderContext {
 
+    use std::os::raw::c_void;
     use std::time::{Duration, Instant};
 
     //use crate::window_loader::WindowLoader::Window;
@@ -122,8 +123,8 @@ pub mod RenderContext {
         fn set_blinn_phong_uniforms(&self, with_program:&WithObject<'_>) {
             with_program.set_uniform("ambient_strength", UniformType::Float,
                 Matrix2d::from_float(self.lighting.ambient_strength));
-            //with_program.set_uniform("ambient_colour", UniformType::Vec3, 
-            //    Matrix2d::from_1darray(self.lighting.ambient_colour.into()));
+            with_program.set_uniform("ambient_colour", UniformType::Vec3, 
+                Matrix2d::from_1darray(self.lighting.ambient_colour.into()));
             //with_program.set_uniform("diffuse_strength", UniformType::Float,
             //    Matrix2d::from_float(self.lighting.diffuse_strength));
             //with_program.set_uniform("diffuse_base", UniformType::Float,

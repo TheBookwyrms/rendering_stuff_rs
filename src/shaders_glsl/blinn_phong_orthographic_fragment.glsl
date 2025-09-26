@@ -10,7 +10,7 @@ in float point_opacity;
 
 
 uniform float ambient_strength;
-//uniform vec3 ambient_colour;
+uniform vec3 ambient_colour;
 
 //uniform float diffuse_strength;
 //// uniform float diffuse_base;
@@ -31,7 +31,7 @@ void main() {
 
     //vec3 a = gl_FragCoord.xyz;
 
-    //vec3 ambient_light = ambient_strength * ambient_colour;
+    vec3 ambient_light = ambient_strength * ambient_colour;
 
 
     //vec3 light_dir = normalize(light_source_pos - fragment_position);
@@ -56,8 +56,8 @@ void main() {
     //vec3 specular_light = specular_strength * specular_magnitude * light_source_colour;
 
     //vec3 result = point_colour * (ambient_light + diffuse_light + specular_light);
-    //vec3 result = point_colour * (ambient_light); // doesn't work
-    vec3 result = vec3(ambient_strength, ambient_strength, ambient_strength);
+    vec3 result = point_colour * (ambient_light); // doesn't work
+    //vec3 result = vec3(ambient_strength, ambient_strength, ambient_strength);
     //vec3 result = point_colour; // works
     //vec3 result = point_colour * diffuse_light; // doesn't work
     //vec3 result = point_colour * specular_light; // doesn't work
