@@ -1,4 +1,4 @@
 /target
-/hidden
-/old
+/_hidden
+/_old
 **glfw3.dll

@@ -1,4 +1,4 @@
-use std::ops::{Index, Add, Sub};
+use std::ops::{Add, Index, IndexMut, Sub};
 
 
 
@@ -13,6 +13,11 @@ impl Index<usize> for Vector {
 
     fn index(&self, idx:usize) -> &Self::Output {
         &self.vec[idx]
+    }
+}
+impl IndexMut<usize> for Vector {
+    fn index_mut(&mut self, idx:usize) -> &mut f32 {
+        &mut self.vec[idx]
     }
 }
 

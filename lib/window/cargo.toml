@@ -9,4 +9,4 @@ build = "build.rs"
 [dependencies]
 glfw = { version = "0.60", default-features = false, features = ["prebuilt-libs", "raw-window-handle-v0-6"]}
 
-opengl = {path = "../../lib/opengl_abstractions"}
+opengl = {path = "../opengl_abstractions"}

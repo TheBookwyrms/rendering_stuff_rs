@@ -10,5 +10,9 @@ edition = "2024"
 rust-embed = { version = "8.7.2", default-features = false }
 
 matrices = {path = "lib/matrices"}
-opengl = {path = "lib/opengl_abstractions"}
-window = {path = "lib/window"}
+opengl   = {path = "lib/opengl_abstractions"}
+window   = {path = "lib/window"}
+ppm_viewer = {path = "lib/ppm_viewer"}
+render_context   = {path = "lib/render_context"}
+camera   = {path = "lib/camera"}
+shaders = {path = "lib/shaders"}

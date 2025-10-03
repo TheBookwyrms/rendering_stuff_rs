@@ -7,56 +7,36 @@
 
 
 
-//pub mod camera;
-//pub mod render_context;
-//pub mod shaders;
-//pub mod _ray_tracer;
-
 use shaders::{ProgramHolder, ProgramType};
-//use crate::shaders::shaders::{ProgramHolder, ProgramType};
-//use crate::camera::Camera::{Camera, Lighting};
 use render_context::Render;
-//use crate::render_context::RenderContext::Render;
 use opengl::{GlSettings, WithObject};
-//use opengl;
 use matrices::Matrix2d;
-//use window::init_window_and_opengl;
 
-use ppm_viewer;
-
+use std::fs;
 
 
 
-//use rust_embed::Embed;
-//#[derive(Embed)]
-//#[folder = "src/shaders_glsl/"]
-//struct Asset;
+fn view_ppm(ppm_path:&'static str) {
 
+    let ppm = fs::read_to_string(ppm_path).expect("failed to read ppm file");
 
-fn main() {
-
-
-    //_ray_tracer::hello_ppm();
-    //let a = true;
-    //let a = match a {
-    //    true =>Err("a"),
-    //    false =>Ok("a"),
-    //}.unwrap();
+    // first line is P3, denotes it's RBG in ASCII
+    // second line is width by height
+    // third line is max colour value
+    // beyond that is colours, iterating:
+    //      for i in width {
+    //          for j in height {
+    //              r, g, b
+    //          }
+    //      }
     
 
-    //let mut window = init_window_and_opengl();
-    //let mut camera = Camera::new();
-    //let mut lighting = Lighting::new();
-    //let program_holder = ProgramHolder::new(
-        //&window.opengl,
-        //[ProgramType::SimpleOrthographic, ProgramType::BlinnPhongOrthographic]
-    //);
-
-
-    //let mut render = Render::Default::default();
     let mut render = Render::default();
-    //let mut render = Render::new(window, camera, lighting, program_holder);
     render.setup_render();
+
+
+
+
 
 
     //let triangle = Matrix2d::from([
@@ -86,15 +66,12 @@ fn main() {
             ]);
 
 
-    let mut m = Matrix2d::from_array([
+    let m = Matrix2d::from_array([
         [1., 2., 3.],
         [4., 5., 6.],
-        [7., 8., 8.],
+        [7., 8., 9.]
         ]);
-    println!("m1 {:?}", m.multiply_by_constant(5.0));
-    println!("m2, {:?}", m.determinant());
-    println!("m3, {:?}", m.inverse());
-    println!("m2, {:?}", m.determinant());
+    println!("{:?}", m.transpose());
 
 
 

@@ -9,4 +9,4 @@ build = "build.rs"
 gl_generator = "0.14"
 
 [dependencies]
-matrices = {path = "../../lib/matrices"}
+matrices = {path = "../matrices"}
