@@ -133,8 +133,7 @@ pub fn clear(opengl:&Gl, masks:Vec<GlSettings>) {
                     _ => start,
                 };
             }
-            unsafe { opengl.Clear(start) };
-            
+            unsafe { opengl.Clear(start) }; 
         },
         _ => Err("invalid clear masks".to_owned()).unwrap(),
     }

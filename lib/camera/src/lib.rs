@@ -19,9 +19,9 @@ pub struct Lighting {
 impl Lighting {
     pub fn new() -> Lighting {
         Lighting {
-            ambient_strength: 0.9,
             //ambient_strength: 0.25,
             //ambient_strength: 0.1,
+            ambient_strength: 0.9,
             ambient_colour: (24.0/255.0, 128.0/255.0, 0.0),
             diffuse_strength: 0.5,
             diffuse_base: 0.2,
@@ -57,7 +57,7 @@ impl Camera {
     pub fn new() -> Camera {
         Camera {
             render_distance:512,
-            angle_xyz:(0.0, 0.0, 0.0),
+            angle_xyz:(90.0, -90.0, 0.0),
             pan_xyz:(0.0, 0.0, 0.0),
             zoom:20.0,
             pan_sensitivity:0.001,

@@ -1,11 +1,12 @@
-use std::time::Instant;
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 //use crate::window_loader::WindowLoader::Window;
 use window::Window;
 
 
 use opengl::{GlSettings, UniformType, WithObject};
-use matrices::{Matrix2d, MatrixError};
+use matrices::Matrix2d;
 
 
 use window::glfw;
@@ -70,9 +71,13 @@ impl Render {
         self.clear_bindings();
 
 
-        let _dt = match Instant::now().duration_since(self.camera.current).as_micros() {
-            0 => 0,
+        //let dt = match Instant::now().duration_since(self.camera.current).as_micros() {
+        let dt = match Instant::now().duration_since(self.camera.current).as_secs_f32() {
+            0.0 => 0.0,
             t => t,};
+        //println!("dt {}", dt);
+        let fps = 1.0/dt;
+        println!("fps {}", fps);
         self.camera.current = Instant::now();
 
 
@@ -80,18 +85,21 @@ impl Render {
         self.window.swap_buffers();
 
         self.poll_and_perform_polled_events();
+
+        //let interval = Duration::from_millis(100);
+        //sleep(interval);
     }
 
 
 
     pub fn create_vao_vbo(&self, data:&Matrix2d) -> (u32, u32) {
-        println!("{:?}", data.ncols);
+        //println!("{:?}", data.ncols);
         let store_normals = match data.ncols {
             7 => Ok(false),
             10 => Ok(true),
             _ => Err("data length neither 7 nor 10 items"),
         }.unwrap();
-        println!("{:?}", store_normals);
+        //println!("{:?}", store_normals);
 
 
         let (vao, vbo) = WithObject::new_vao_vbo(&self.window.opengl, store_normals, data);
@@ -161,26 +169,73 @@ impl Render {
     fn poll_and_perform_polled_events(&mut self) {
         self.poll_events();
         for (_, event) in glfw::flush_messages(&self.window.events) {
+            //println!("{}", self.camera.zoom);
+            //println!("{:?}", self.camera.pan_xyz);
             match event {
+
                 glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                    let _ = &self.window.window.set_should_close(true); },
+                    let _ = &self.window.window.set_should_close(true);
+                },
+
                 glfw::WindowEvent::Close => {
-                    let _ = &self.window.window.set_should_close(true); },
+                    let _ = &self.window.window.set_should_close(true);
+                },
+                
+                glfw::WindowEvent::MouseButton(button, action, _mods) => {
+                    match action {
+                        Action::Press => {
+                            match button {
+                                glfw::MouseButton::Button1 => {self.camera.panning = true}, // left button
+                                glfw::MouseButton::Button2 => {self.camera.angling = true}, // right button
+                                _ => {},
+                            }
+                        },
+                        Action::Release => {
+                            match button {
+                                glfw::MouseButton::Button1 => {self.camera.panning = false}, // left button
+                                glfw::MouseButton::Button2 => {self.camera.angling = false}, // right button
+                                _ => {},
+                            }
+                        },
+                        Action::Repeat => {},
+                    }
+                },
+
+                glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
+                    self.camera.zoom -= ((0.24*yoffset) as f32) * self.camera.zoom*0.25
+                },
+
+                glfw::WindowEvent::CursorPos(xpos, ypos) => {
+                    let dx = xpos as f32 - self.window.last_cursor_pos[0];
+                    let dy = ypos as f32 - self.window.last_cursor_pos[1];
+
+                    if self.camera.panning {
+                        self.camera.pan_xyz.0 += dx * self.camera.pan_sensitivity * self.camera.zoom;
+                            // add dx
+                        self.camera.pan_xyz.1 -= dy * self.camera.pan_sensitivity * self.camera.zoom;
+                            // subtract dy
+                    }
+                    if self.camera.angling {
+                        self.camera.angle_xyz.0 += dy * self.camera.pan_sensitivity * self.camera.zoom;
+                            // y and x are swapped
+                        self.camera.angle_xyz.1 += dx * self.camera.pan_sensitivity * self.camera.zoom;
+                            // y and x are swapped
+                    }
+
+                    self.window.last_cursor_pos = [xpos as f32, ypos as f32];
+                },
+
                 glfw::WindowEvent::Key(_, _, _, _) => {},
                 glfw::WindowEvent::Char(_) => {},
                 glfw::WindowEvent::CharModifiers(_, _) => {},
                 glfw::WindowEvent::Focus(_) => {},
-                glfw::WindowEvent::MouseButton(_, _, _) => {},
-                glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
-                    self.camera.zoom -= (0.24*yoffset) as f32},
                 glfw::WindowEvent::Pos(_, _) => {},
                 glfw::WindowEvent::Size(_, _) => {},
                 glfw::WindowEvent::FramebufferSize(_, _) => {},
                 glfw::WindowEvent::Iconify(_) => {},
                 glfw::WindowEvent::Maximize(_) => {},
                 glfw::WindowEvent::Refresh => {},
-                glfw::WindowEvent::CursorPos(_, _) => {},
-                glfw::WindowEvent::CursorEnter(bool) => {},
+                glfw::WindowEvent::CursorEnter(_) => {},
                 _ => { println!("new even detected! {:?}", event); },
             }
         }

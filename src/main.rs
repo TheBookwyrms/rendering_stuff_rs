@@ -36,7 +36,10 @@ use ppm_viewer;
 fn main() {
 
 
-    //_ray_tracer::hello_ppm();
+    //println!("a");
+    //ppm_viewer::view_ppm_from_path("C://Users//black//Documents//code_and_related_stuff//my_code//assorted_rust//rendering_stuff_rs//lib//ppm_viewer//src//test.ppm");
+    //println!("b");
+    ////_ray_tracer::hello_ppm();
     //let a = true;
     //let a = match a {
     //    true =>Err("a"),
@@ -65,9 +68,10 @@ fn main() {
     //    [0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0],
     //]);
     let triangle_normals = Matrix2d::from_array([
-        [5.0,   1.0, 0.0, 0.9, 0.5, 0.1, 1.0, 0.5, 0.5, 0.5],
-        [1.0,   0.0, 2.0, 0.1, 0.9, 0.5, 1.0, 0.5, 0.5, 0.5],
-        [0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0, 0.5, 0.5, 0.5],
+        [5.0,  1.0, 0.0, 0.9, 0.5, 0.1, 1.0, 0.5, 0.5, 0.5],
+        [1.0,  0.0, 0.0, 0.1, 0.9, 0.5, 1.0, 0.5, 0.5, 0.5],
+        //[0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0, 0.5, 0.5, 0.5],
+        [0.0, -5.0, 0.0, 0.5, 0.1, 0.9, 1.0, 0.5, 0.5, 0.5],
     ]);
 
 
@@ -77,36 +81,11 @@ fn main() {
     let (t_vao, t_vbo) = render.create_vao_vbo(&triangle_normals);
     //let (tn_vao, tn_vbo) = WithObject::new_vao_vbo(&render.window.opengl, true, &triangle_normals);
 
-
-    let mut world_transform = Matrix2d::from_array([
-            [1.,0.,0.,0.],
-            [0.,0.,1.,0.],
-            [0.,1.,0.,0.],
-            [0.,0.,0.,1.],
-            ]);
-
-
-    let mut m = Matrix2d::from_array([
-        [1., 2., 3.],
-        [4., 5., 6.],
-        [7., 8., 8.],
-        ]);
-    println!("m1 {:?}", m.multiply_by_constant(5.0));
-    println!("m2, {:?}", m.determinant());
-    println!("m3, {:?}", m.inverse());
-    println!("m2, {:?}", m.determinant());
-
-
-
     while !render.render_over() {
         render.begin_render_actions();
 
 
         //render.camera.zoom -= 0.001;
-
-
-
-
         
         //render.use_program(ProgramType::SimpleOrthographic);
         render.use_program(ProgramType::BlinnPhongOrthographic);

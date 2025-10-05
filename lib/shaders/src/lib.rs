@@ -1,15 +1,8 @@
 use opengl;
 use opengl::{Gl, ShaderType};
-use opengl::{WithObject, GlSettings, UniformType};
-use matrices::Matrix2d;
-//use crate::ndarray_abstractions::MyArray::{Arr1D, Arr2D, Arr3D, Arr4D};
-//use crate::ndarray_abstractions::MyArray::N as nd_trait;
-
-//use crate::vertices::Vertices::Matrix2d;
+use opengl::WithObject;//{WithObject, GlSettings, UniformType};
 
 use std::vec;
-use std::{error::Error, fmt};
-use std::os::raw;
 
 use rust_embed::Embed;
 
@@ -74,27 +67,6 @@ impl ProgramHolder {
 
         use_result
     }
-    //pub fn set_program_uniform(&self,
-    //                           opengl:&Gl,
-    //                           program_type:ProgramType,
-    //                           uniform_name:&str,
-    //                           uniform_type:UniformType,
-    //                           value:Matrix2d) {
-    //    let mut valid_programs = vec![];
-    //    for program in &self.programs {
-    //        if program_type==program.program_type { valid_programs.push(program); }
-    //    }
-    //    let uniform_set = match valid_programs.len() {
-    //        0 => { Err("no valid programs of proper type") },
-    //        1 => {
-    //            let program_id = valid_programs[0].program_id;
-    //            opengl::set_uniform(opengl, program_id, uniform_name, uniform_type, value.as_ptr());
-    //            Ok("all good")
-    //        },
-    //        _ => { Err("too many program of proper type") },
-    //    };
-    //    uniform_set.unwrap();
-    //}
 }
 
 

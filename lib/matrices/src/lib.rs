@@ -1,7 +1,10 @@
 mod vector;
 mod matrix;
-mod matrix_error;
+mod errors;
+
+//mod tests;
+//use crate::tests::vector;
 
 pub use vector::Vector;
 pub use matrix::Matrix2d;
-pub use matrix_error::MatrixError;
+pub use errors::MatrixError;

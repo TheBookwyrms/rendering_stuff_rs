@@ -1,7 +1,7 @@
 use std::ops::{Index, Add, Sub};
 
-use crate::vector::Vector;
-use crate::errors::MatrixError;
+use crate::tests::vector::Vector;
+use crate::matrix_error::MatrixError;
 
 
 #[derive(Debug, Clone)]
@@ -49,10 +49,6 @@ impl Sub for Matrix2d {
 }
 
 impl Matrix2d {
-    pub fn new_empty(nrows:usize, ncols:usize) -> Matrix2d {
-        Matrix2d { nrows:nrows, ncols:ncols, array: vec![Vector {vec:vec![]}] }
-    }
-
     pub fn from_float(f:f32) -> Matrix2d {
         Matrix2d::from_array([[f]])
     }
@@ -323,19 +319,6 @@ impl Matrix2d {
         match determinant {
             0.0 => Err(MatrixError::DeterminantIsZero),
             _ => Ok(self.clone().multiply_by_constant(determinant)),
-        }
-    }
-
-    pub fn expand_along_dims(mut self, other:Matrix2d) -> Result<Matrix2d, MatrixError> {
-        if self.ncols != other.ncols {
-            Err(MatrixError::InvalidShapes([self.shape(), other.shape()]))
-        } else {
-            self.nrows += other.nrows;
-            self.array.extend(other.array);
-            //for v in other.array {
-            //    self.array.push(v);
-            //}
-            Ok(self)
         }
     }
 }

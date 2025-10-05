@@ -14,6 +14,7 @@ pub struct Window {
     pub window:PWindow,
     pub events:GlfwReceiver<(f64, WindowEvent)>,
     pub opengl:Gl,
+    pub last_cursor_pos : [f32; 2],
 }
 
 pub fn init_window_and_opengl() -> Window {
@@ -32,7 +33,7 @@ pub fn init_window_and_opengl() -> Window {
     //let opengl = opengl::load_with(get_glfw_loadfn(window_name, &mut window));
     let opengl = opengl::load_with(get_glfw_loadfn(&mut window));
 
-    Window { glfw, window, events, opengl }
+    Window { glfw, window, events, opengl, last_cursor_pos:[0.0, 0.0] }
 }
 
 impl Window {
@@ -45,11 +46,11 @@ impl Window {
     pub fn width(&self)  -> u32    { self.window.get_size().0.try_into().unwrap() }
     pub fn height(&self) -> u32    { self.window.get_size().1.try_into().unwrap() }
 
-    
+    pub fn clear(&self, masks:Vec<GlSettings>) { opengl::clear(&self.opengl, masks) }
     pub fn clear_to_colour(&self, rgb:(f32, f32, f32), a:f32) {
-        opengl::clear_colour(&self.opengl, rgb.0, rgb.1, rgb.2, a)}
-    pub fn clear(&self, masks:Vec<GlSettings>) {
-        opengl::clear(&self.opengl, masks)}
+        opengl::clear_colour(&self.opengl, rgb.0, rgb.1, rgb.2, a)
+    }    
+
     pub fn default_gl_settings(&self) {
         opengl::gl_enable(&self.opengl, GlSettings::DepthTest);
         opengl::gl_enable(&self.opengl, GlSettings::Multisample);

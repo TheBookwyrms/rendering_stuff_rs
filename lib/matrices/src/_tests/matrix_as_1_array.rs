@@ -1,23 +1,64 @@
 use std::ops::{Index, Add, Sub};
+use std::convert::From;
 
 use crate::vector::Vector;
-use crate::errors::MatrixError;
+use crate::matrix_error::MatrixError;
+
+fn reverse_array<const L:usize>(array:[usize;L]) -> [usize;L] {
+    let mut rev_arr : [usize;L] = [0;L];
+    for (i, j) in array.into_iter().rev().enumerate() {
+        rev_arr[i] = j;
+    }
+    rev_arr
+}
+
+
+fn error() {
+    let a = true;
+    let a = match a {
+        true =>Err("a"),
+        false =>Ok("a"),
+    }.unwrap();
+}
 
 
 #[derive(Debug, Clone)]
-pub struct Matrix2d {
-    pub nrows:usize,
-    pub ncols:usize,
-    pub array:Vec<Vector>,
+pub struct Matrix2d<const K:usize, const M:usize> {
+    pub ndims:usize,
+    pub shape:[usize;M], // goes from inner to outer dimensions (ex ncols before nrows for 2D)
+    pub array:[f32;K],
 }
-impl Index<[usize;2]> for Matrix2d {
-    type Output = f32;
 
-    fn index(&self, idx:[usize;2]) -> &Self::Output {
-        &self.array[idx[0]][idx[1]]
+impl<const K:usize, const M:usize> Matrix2d<K, M> {
+    pub fn turn_indices_into_linear_index(ndims:usize, shape:[usize;M], indices:[usize;K]) -> usize {
+        let mut linear_idx = 0;
+        let rev_ind = reverse_array(indices);
+        for i in (0..ndims).into_iter().rev() {
+            let mut idx_max = 1;
+            for j in i..(ndims-1) {
+                idx_max *= shape[j];
+            }
+            linear_idx += rev_ind[i]*idx_max;
+        }
+        linear_idx
     }
 }
-impl Add for Matrix2d {
+
+impl<const K:usize, const M:usize> Index<[usize;K]> for Matrix2d<K, M> {
+    type Output = f32;
+
+    fn index(&self, idx:[usize;K]) -> &Self::Output {
+        &self.array[Matrix2d::turn_indices_into_linear_index(self.ndims, self.shape, idx)]
+    }
+}
+
+impl<const K:usize> From<T> where T:[usize; 2] for [usize; K] {
+    fn from(value: [usize; 2]) -> Self {
+        value.into()
+    }
+}
+
+impl<const K:usize, const M:usize> Add for Matrix2d<K, M> {
     type Output = Result<Self, MatrixError>;
 
     fn add(self, other: Self) -> Result<Self, MatrixError> {
@@ -25,14 +66,14 @@ impl Add for Matrix2d {
             let mut arr: Vec<Vec<f32>> = vec![vec![0.0;self.shape()[0]]; self.shape()[1]];
             for i in 0..self.shape()[0] {
                 for j in 0..self.shape()[1] {
-                    arr[i][j] = self[[i, j]] + other[[i, j]]
+                    arr[i][j] = self[[i, j].into()] + other[[i, j].into()];
                 } 
             }
             Matrix2d::from_vec_of_vec(arr)
         } else { Err(MatrixError::InvalidShapes([self.shape(), other.shape()])) }
     }
 }
-impl Sub for Matrix2d {
+impl<const K:usize, const M:usize> Sub for Matrix2d<K, M> {
     type Output = Result<Self, MatrixError>;
 
     fn sub(self, other: Self) -> Result<Self, MatrixError> {
@@ -48,21 +89,20 @@ impl Sub for Matrix2d {
     }
 }
 
-impl Matrix2d {
-    pub fn new_empty(nrows:usize, ncols:usize) -> Matrix2d {
-        Matrix2d { nrows:nrows, ncols:ncols, array: vec![Vector {vec:vec![]}] }
-    }
-
-    pub fn from_float(f:f32) -> Matrix2d {
+impl<const K:usize, const M:usize> Matrix2d<K, M> {
+    pub fn from_float(f:f32) -> Matrix2d<K, M> {
         Matrix2d::from_array([[f]])
     }
 
-    pub fn from_1darray<const M:usize>(arr:[f32;M]) -> Matrix2d {
+    pub fn from_1darray(arr:[f32;M]) -> Matrix2d<K, M> {
         Matrix2d::from_array([arr])
     }
 
-    pub fn from_vec(vec:Vec<f32>) -> Matrix2d {
-        Matrix2d {nrows:1, ncols:vec.len(), array: vec![Vector {vec}]}
+    pub fn from_vec(vec:Vec<f32>) -> Matrix2d<K, M> {
+        let a = Matrix2d {ndims:1, shape:[vec.len();M], array: vec.try_into().unwrap()};
+        println!("shape should be [1], is {:?}", a.shape);
+        error();
+        a
     }
 
     pub fn from_vec_of_vec(vec:Vec<Vec<f32>>) -> Result<Matrix2d, MatrixError> {
@@ -82,11 +122,11 @@ impl Matrix2d {
         }
     }
 
-    pub fn from_vector(vector:Vector) -> Matrix2d {
+    pub fn from_vector(vector:Vector) -> Matrix2d<K, M> {
         Matrix2d {nrows:1, ncols:vector.vec.len(), array: vec![vector]}
     }
 
-    pub fn from_array<const M:usize, const N:usize>(arr:[[f32;M];N]) -> Matrix2d {
+    pub fn from_array<const M:usize, const N:usize>(arr:[[f32;M];N]) -> Matrix2d<K, M> {
         let mut rows= vec![];
         let mut nrows = 0;
         let mut ncols = 0;
@@ -122,7 +162,7 @@ impl Matrix2d {
 
     pub fn shape(&self) -> [usize; 2] {[self.nrows, self.ncols]}
 
-    pub fn transpose(self) -> Matrix2d {
+    pub fn transpose(self) -> Matrix2d<K, M> {
         let mut new_rows = vec![];
         let ncols = self.nrows;
         for i in 0..=ncols-1 {
@@ -189,7 +229,7 @@ impl Matrix2d {
         Ok(Matrix2d {nrows:self.nrows, ncols:other.ncols, array:rows})
     }
 
-    pub fn scale(sx:f32, sy:f32, sz:f32) -> Matrix2d {
+    pub fn scale(sx:f32, sy:f32, sz:f32) -> Matrix2d<K, M> {
         Matrix2d::from_array([
             [sx, 0., 0., 0.],
             [0., sy, 0., 0.],
@@ -198,7 +238,7 @@ impl Matrix2d {
         ])
     }
 
-    pub fn translate(t:(f32, f32, f32)) -> Matrix2d {
+    pub fn translate(t:(f32, f32, f32)) -> Matrix2d<K, M> {
         Matrix2d::from_array([
             [1., 0., 0., t.0],
             [0., 1., 0., t.1],
@@ -251,7 +291,7 @@ impl Matrix2d {
         Ok(return_to_pos.matmul(&rotate.matmul(&translate_to_zero)?)?)
     }
 
-    pub fn opengl_to_right_handed() -> Matrix2d {
+    pub fn opengl_to_right_handed() -> Matrix2d<K, M> {
         Matrix2d::from_array([
             [1.,0.,0.,0.],
             [0.,0.,1.,0.],
@@ -282,7 +322,7 @@ impl Matrix2d {
         }
     }
 
-    pub fn multiply_by_constant(&self, scalar:f32) -> Matrix2d {
+    pub fn multiply_by_constant(&self, scalar:f32) -> Matrix2d<K, M> {
         let mut narr = self.array.clone();
         for row in 0..self.nrows {
             for col in 0..self.ncols {
@@ -323,19 +363,6 @@ impl Matrix2d {
         match determinant {
             0.0 => Err(MatrixError::DeterminantIsZero),
             _ => Ok(self.clone().multiply_by_constant(determinant)),
-        }
-    }
-
-    pub fn expand_along_dims(mut self, other:Matrix2d) -> Result<Matrix2d, MatrixError> {
-        if self.ncols != other.ncols {
-            Err(MatrixError::InvalidShapes([self.shape(), other.shape()]))
-        } else {
-            self.nrows += other.nrows;
-            self.array.extend(other.array);
-            //for v in other.array {
-            //    self.array.push(v);
-            //}
-            Ok(self)
         }
     }
 }
