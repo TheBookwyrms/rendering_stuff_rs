@@ -2,7 +2,8 @@ mod vector;
 mod matrix;
 mod errors;
 
-//mod tests;
+
+pub mod _tests;
 //use crate::tests::vector;
 
 pub use vector::Vector;

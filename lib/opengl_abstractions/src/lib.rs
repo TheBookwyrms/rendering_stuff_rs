@@ -288,7 +288,14 @@ impl WithObject<'_> {
         draw_arrays(self.opengl, mode, num_shapes);
     }
     pub fn set_uniform(&self, uniform_name:&str, uniform_type:UniformType, value:Matrix2d) {
-        set_uniform(self.opengl, self.program_id, uniform_name, uniform_type, value.as_ptr());
+        let mut items = vec![];
+        for row in value.array {
+            for value in row.vec {
+                items.push(value);
+            }
+        }
+        set_uniform(self.opengl, self.program_id, uniform_name, uniform_type, items.as_ptr());
+        //set_uniform(self.opengl, self.program_id, uniform_name, uniform_type, value.as_ptr());
     }
 }
 impl Drop for WithObject<'_> {
@@ -446,7 +453,6 @@ fn get_uniform_location(opengl:&Gl, program_id:u32, uniform_name:&str) -> i32 {
 fn set_uniform_float(opengl:&Gl, program_id:u32, uniform_name:&str, float:*const f32) {
     let uniform_loc = get_uniform_location(opengl, program_id, uniform_name);
     unsafe { opengl.Uniform1f(uniform_loc, *float) }
-    
 }
 fn set_uniform_vec3(opengl:&Gl, program_id:u32, uniform_name:&str, vec3_ptr:*const f32) {
     let uniform_loc = get_uniform_location(opengl, program_id, uniform_name);

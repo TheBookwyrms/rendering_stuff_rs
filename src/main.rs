@@ -20,6 +20,7 @@ use render_context::Render;
 use opengl::{GlSettings, WithObject};
 //use opengl;
 use matrices::Matrix2d;
+use matrices::_tests::matrix_as_1_array::Matrix;
 //use window::init_window_and_opengl;
 
 use ppm_viewer;
@@ -32,8 +33,43 @@ use ppm_viewer;
 //#[folder = "src/shaders_glsl/"]
 //struct Asset;
 
+fn error(msg:String) {
+    let a = true;
+    let _b = match a {
+        true =>Err(msg),
+        false =>Ok(msg),
+    }.unwrap();
+}
+
 
 fn main() {
+
+
+    let a = Matrix::from_float(23.3);
+    let b = Matrix::from_1darray([1.0, 2.0, 3.0, 4.0]);
+    let c = Matrix::from_vec(vec![9.9, 8.3, 7.2]);
+    let d = Matrix::from_2darray([
+        [13.3],
+        [9.9],
+        [7.7],
+        [5.5],
+    ]);
+    println!("{}\n|| {:?} \n\n", a, a);
+    println!("{}\n|| {:?} \n\n", b, b);
+    println!("{}\n|| {:?} \n\n", c, c);
+    println!("{}\n|| {:?} \n\n", d, d);
+    let e = Matrix::from_vec_of_vec(vec![
+        vec![13.3, 18.3, 18.3, 108.3],
+        vec![9.9, 29.9, 06.0, 0.9235],
+        vec![7.7, 19.9, 05.0, 0.18235],
+        vec![5.5, 39.9, 40.0, 0.235],
+    ]).unwrap();
+    println!("{}\n|| {:?} \n\n", e, e);
+    let f = e.swap_axes(0, 1);
+    println!("{}\n|| {:?} \n\n", f, f);
+
+    error("halt".to_string());
+
 
 
     //println!("a");

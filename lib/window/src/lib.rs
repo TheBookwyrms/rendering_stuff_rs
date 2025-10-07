@@ -17,26 +17,26 @@ pub struct Window {
     pub last_cursor_pos : [f32; 2],
 }
 
-pub fn init_window_and_opengl() -> Window {
-    let (width, height) = (450, 450);
-    let window_name = "hello, window!";
-
-    let mut glfw = glfw::init(fail_on_errors!()).unwrap();
-
-    let (mut window, events) = glfw.create_window(
-        width,
-        height,
-        &window_name,
-        glfw::WindowMode::Windowed
-    ).expect("Failed to create GLFW window.");
-
-    //let opengl = opengl::load_with(get_glfw_loadfn(window_name, &mut window));
-    let opengl = opengl::load_with(get_glfw_loadfn(&mut window));
-
-    Window { glfw, window, events, opengl, last_cursor_pos:[0.0, 0.0] }
-}
-
 impl Window {
+    pub fn new_opengl_window() -> Window {
+        let (width, height) = (450, 450);
+        let window_name = "hello, window!";
+
+        let mut glfw = glfw::init(fail_on_errors!()).unwrap();
+
+        let (mut window, events) = glfw.create_window(
+            width,
+            height,
+            &window_name,
+            glfw::WindowMode::Windowed
+        ).expect("Failed to create GLFW window.");
+
+        //let opengl = opengl::load_with(get_glfw_loadfn(window_name, &mut window));
+        let opengl = opengl::load_with(get_glfw_loadfn(&mut window));
+
+        Window { glfw, window, events, opengl, last_cursor_pos:[0.0, 0.0] }
+    }
+
     // relabel subaspect functions to Window functions        
     pub fn poll_events(&mut self)  { self.glfw.poll_events(); }
 

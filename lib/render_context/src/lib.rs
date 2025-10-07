@@ -1,21 +1,12 @@
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-//use crate::window_loader::WindowLoader::Window;
-use window::Window;
-
-
 use opengl::{GlSettings, UniformType, WithObject};
 use matrices::Matrix2d;
 
-
-use window::glfw;
-use window::glfw::{Key, Action};
-
-
 use shaders::{ProgramHolder, ProgramType};
 use camera::{Camera, Lighting};
-use window::init_window_and_opengl;
+use window::{Window, glfw, glfw::{Key, Action}};
 
 
 pub struct Render {
@@ -26,7 +17,7 @@ pub struct Render {
 }
 impl Default for Render {
     fn default() -> Self {
-        let mut window = init_window_and_opengl();
+        let mut window = Window::new_opengl_window();
         let mut camera = Camera::new();
         let mut lighting = Lighting::new();
         let program_holder = ProgramHolder::new(

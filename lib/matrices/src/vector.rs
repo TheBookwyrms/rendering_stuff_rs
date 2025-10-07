@@ -1,7 +1,6 @@
 use std::ops::{Add, Index, IndexMut, Sub};
 
-use crate::errors::VectorError;
-
+use crate::errors::MatrixError;
 
 #[derive(Debug, Clone)]
 pub struct Vector {
@@ -24,29 +23,29 @@ impl IndexMut<usize> for Vector {
 
 
 impl Add for Vector {
-    type Output = Result<Self, VectorError>;
+    type Output = Result<Self, MatrixError>;
 
-    fn add(self, other: Self) -> Result<Self, VectorError> {
+    fn add(self, other: Self) -> Result<Self, MatrixError> {
         if self.len() == other.len() {
             let mut arr = vec![0.0; self.len()];
             for i in 0..self.vec.len() {
                 arr[i] = self[i] + other[i]
             }
             Ok(Vector::from_vec(arr))
-        } else { Err(VectorError::Invalidlengths([self.len(), other.len()])) }
+        } else { Err(MatrixError::Invalidlengths([self.len(), other.len()])) }
     }
 }
 impl Sub for Vector {
-    type Output = Result<Self, VectorError>;
+    type Output = Result<Self, MatrixError>;
 
-    fn sub(self, other: Self) -> Result<Self, VectorError> {
+    fn sub(self, other: Self) -> Result<Self, MatrixError> {
         if self.len() == other.len() {
             let mut arr = vec![0.0; self.len()];
             for i in 0..self.vec.len() {
                 arr[i] = self[i] - other[i]
             }
             Ok(Vector::from_vec(arr))
-        } else { Err(VectorError::Invalidlengths([self.len(), other.len()])) }
+        } else { Err(MatrixError::Invalidlengths([self.len(), other.len()])) }
     }
 }
 
@@ -61,13 +60,13 @@ impl Vector {
     pub fn from_vec(vec:Vec<f32>) -> Vector {
         Vector { vec: vec }
     }
-    pub fn dot(&self, other:&Vector) -> Result<f32, VectorError> {
+    pub fn dot(&self, other:&Vector) -> Result<f32, MatrixError> {
         if self.len() == other.len() {
             let mut sum: f32 = 0.0;
             for i in 0..=self.vec.len()-1 {
                 sum += self.vec[i]*other.vec[i]
             }
             Ok(sum)
-        } else { Err(VectorError::Invalidlengths([self.len(), other.len()])) }
+        } else { Err(MatrixError::Invalidlengths([self.len(), other.len()])) }
     }
 }

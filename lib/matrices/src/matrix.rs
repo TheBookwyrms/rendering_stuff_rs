@@ -29,7 +29,7 @@ impl Add for Matrix2d {
                 } 
             }
             Matrix2d::from_vec_of_vec(arr)
-        } else { Err(MatrixError::InvalidShapes([self.shape(), other.shape()])) }
+        } else { Err(MatrixError::InvalidShapes([self.shape().to_vec(), other.shape().to_vec()])) }
     }
 }
 impl Sub for Matrix2d {
@@ -44,7 +44,7 @@ impl Sub for Matrix2d {
                 } 
             }
             Matrix2d::from_vec_of_vec(arr)
-        } else { Err(MatrixError::InvalidShapes([self.shape(), other.shape()])) }
+        } else { Err(MatrixError::InvalidShapes([self.shape().to_vec(), other.shape().to_vec()])) }
     }
 }
 
@@ -262,7 +262,7 @@ impl Matrix2d {
 
     pub fn without(&self, row_i:usize, col_j:usize) -> Result<Matrix2d, MatrixError> {
         if !(row_i<self.nrows && col_j<self.ncols) {
-            Err(MatrixError::InvalidIndices([row_i, col_j]))
+            Err(MatrixError::InvalidIndices(vec![row_i, col_j]))
         } else {
             let mut v_overall : Vec<Vec<f32>> = vec![];
 
@@ -295,7 +295,7 @@ impl Matrix2d {
 
     pub fn determinant(&self) -> Result<f32, MatrixError> {
         if self.ncols != self.nrows {
-            Err(MatrixError::InvalidShape(self.shape()))
+            Err(MatrixError::InvalidShape(self.shape().to_vec()))
         } else if self.nrows == 2 {
             let a = self.array[0][0];
             let b = self.array[0][1];
@@ -328,7 +328,7 @@ impl Matrix2d {
 
     pub fn expand_along_dims(mut self, other:Matrix2d) -> Result<Matrix2d, MatrixError> {
         if self.ncols != other.ncols {
-            Err(MatrixError::InvalidShapes([self.shape(), other.shape()]))
+            Err(MatrixError::InvalidShapes([self.shape().to_vec(), other.shape().to_vec()]))
         } else {
             self.nrows += other.nrows;
             self.array.extend(other.array);

@@ -1,0 +1,2 @@
+rustc linear_idx_to_indices.rs
+./linear_idx_to_indices

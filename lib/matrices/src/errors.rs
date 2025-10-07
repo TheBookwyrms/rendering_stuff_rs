@@ -1,15 +1,12 @@
 #[derive(Debug)]
-pub enum VectorError {
-    Invalidlengths([usize; 2]),
-}
-
-
-#[derive(Debug)]
 pub enum MatrixError {
-    InvalidShape([usize; 2]),
-    InvalidShapes([[usize; 2]; 2]),
+    InvalidShape(Vec<usize>),
+    InvalidShapes([Vec<usize>; 2]),
+    InvalidDimension(usize),
+    InvalidDimensions([usize; 2]),
     InhomogenousLength(Vec<usize>),
     InvalidIndex(usize),
-    InvalidIndices([usize; 2]),
+    InvalidIndices(Vec<usize>),
     DeterminantIsZero,
+    Invalidlengths([usize; 2]),
 }

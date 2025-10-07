@@ -57,7 +57,7 @@ impl Camera {
     pub fn new() -> Camera {
         Camera {
             render_distance:512,
-            angle_xyz:(90.0, -90.0, 0.0),
+            angle_xyz:(90.0, -90.0, 0.0), // default orientation to view xy plane
             pan_xyz:(0.0, 0.0, 0.0),
             zoom:20.0,
             pan_sensitivity:0.001,
