@@ -118,6 +118,36 @@ impl<const K:usize> Index<[usize;K]> for Matrix {
     }
 }
 
+fn write_2d_matrix(f: &mut std::fmt::Formatter<'_>,
+                   row_len:usize,
+                   ll_lr:(usize, usize),
+                   min_idx:usize,
+                   max_idx:usize,
+                   mat:&Matrix
+                ) -> std::fmt::Result {
+    //let row_len = mat.shape[0];
+    //let (ll, lr) = mat.longest_item_str_len();
+    //for i in 0..mat.shape[1] {
+    let (ll, lr) = ll_lr;
+    for i in min_idx..max_idx {
+        write!(f, "  [")?;
+        //for j in self.get_row(i) {
+        for j in &mat.array[i*row_len..(i+1)*row_len] {
+            let js = j.to_string();
+            let js_vec = js.trim().split(".").collect::<Vec<_>>();
+            let (nl, nr) =
+                if j == &j.trunc() {
+                    (js_vec[0], "")
+                } else {
+                    (js_vec[0], js_vec[1])
+            };
+            write!(f, " {: >ll$}.{: <lr$}", nl, nr)?;
+        }
+        writeln!(f, "],")?;
+    }
+    write!(f, "")
+}
+
 impl Display for Matrix {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.shape.len() == 1 {
@@ -126,22 +156,23 @@ impl Display for Matrix {
             writeln!(f, "[")?;
             let row_len = self.shape[0];
             let (ll, lr) = self.longest_item_str_len();
-            for i in 0..self.shape[1] {
-                write!(f, "  [")?;
-                //for j in self.get_row(i) {
-                for j in &self.array[i*row_len..(i+1)*row_len] {
-                    let js = j.to_string();
-                    let js_vec = js.trim().split(".").collect::<Vec<_>>();
-                    let (nl, nr) =
-                        if j == &j.trunc() {
-                            (js_vec[0], "")
-                        } else {
-                            (js_vec[0], js_vec[1])
-                    };
-                    write!(f, " {: >ll$}.{: <lr$}", nl, nr)?;
+            let max = self.shape[1];
+            let _ = write_2d_matrix(f, row_len, (ll, lr), 0, max, &self);
+            write!(f, "]")
+        } else if self.shape.len() == 3 {
+            writeln!(f, "[")?;
+            let x_len = self.shape[0];
+            let y_len = self.shape[0];
+            let (ll, lr) = self.longest_item_str_len();
+            for i in 0..x_len {
+                let min = i*y_len;
+                let max = (i+1)*y_len;
+                let _ = write_2d_matrix(f, y_len, (ll, lr), min, max, &self);
+                if i != x_len {
+                    write!(f, "\n")?;
                 }
-                writeln!(f, "]")?;
             }
+            //let _ = write_2d_matrix(f, &self);
             write!(f, "]")
         } else {
             // needs iterating through dimensions
@@ -247,25 +278,21 @@ impl Matrix {
     }
 
     pub fn from_2darray<const M:usize, const N:usize>(arr:[[f32;M];N]) -> Matrix {
-        //let mut rows= vec![];
         let mut data = vec![];
-        //let mut nrows = 0;
-        //let mut ncols = 0;
-
         for row in arr {
-            //ncols = row.len().try_into().unwrap();
-            //nrows += 1;
-            ////let mut this_col_len = 0;
-            //let mut this_col = vec![];
             data.extend(row);
-            //for col in row {
-            //    //this_col_len += 1;
-            //    this_col.push(col);
-            //}
-            //let a = Vector::from_vec(this_col);
-            //rows.push(a);
         }
         Matrix {shape:vec![M, N], array:data}
+    }
+
+    pub fn from_3darray<const M:usize, const N:usize, const O:usize>(arr:[[[f32;M];N];O]) -> Matrix {
+        let mut data = vec![];
+        for ax1 in arr {
+            for ax2 in ax1 {
+                data.extend(ax2);
+            }
+        }
+        Matrix {shape:vec![M, N, O], array:data}
     }
 
     pub fn as_ptr(&self) -> *const f32 {
