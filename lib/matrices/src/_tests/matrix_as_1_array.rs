@@ -71,19 +71,21 @@ fn linear_index_to_indices(linear_index:usize, shape:Vec<usize>) -> Vec<usize> {
 
 pub fn turn_indices_into_linear_index(shape:Vec<usize>, indices:Vec<usize>) -> usize {
     let ndims = shape.clone().len();
+    let rev_ind = reverse_array(indices.clone());
+    
     let mut linear_idx = 0;
-    let rev_ind = reverse_array(indices);
+    
     for i in (0..ndims).into_iter().rev() {
         let mut idx_max = 1;
-        for j in i..(ndims-1) {
+        //for j in i..(ndims-1) {
+        for j in 0..i {
             idx_max *= shape[j];
         }
-        linear_idx += rev_ind[i]*idx_max;
+        linear_idx += indices[i]*idx_max;
     }
     //println!("{}", linear_idx);
     linear_idx
 }
-
 
 fn error(msg:String) {
     let a = true;
@@ -119,11 +121,11 @@ impl<const K:usize> Index<[usize;K]> for Matrix {
 }
 
 fn write_2d_matrix(f: &mut std::fmt::Formatter<'_>,
-                   row_len:usize,
+                   x_len:usize,
                    ll_lr:(usize, usize),
                    min_idx:usize,
                    max_idx:usize,
-                   mat:&Matrix
+                   arr:&Vec<f32>
                 ) -> std::fmt::Result {
     //let row_len = mat.shape[0];
     //let (ll, lr) = mat.longest_item_str_len();
@@ -132,7 +134,7 @@ fn write_2d_matrix(f: &mut std::fmt::Formatter<'_>,
     for i in min_idx..max_idx {
         write!(f, "  [")?;
         //for j in self.get_row(i) {
-        for j in &mat.array[i*row_len..(i+1)*row_len] {
+        for j in &arr[i*x_len..(i+1)*x_len] {
             let js = j.to_string();
             let js_vec = js.trim().split(".").collect::<Vec<_>>();
             let (nl, nr) =
@@ -154,20 +156,21 @@ impl Display for Matrix {
             write!(f, "{:?}", self.array.as_slice())
         } else if self.shape.len() == 2 {
             writeln!(f, "[")?;
-            let row_len = self.shape[0];
+            let x_len = self.shape[0];
             let (ll, lr) = self.longest_item_str_len();
-            let max = self.shape[1];
-            let _ = write_2d_matrix(f, row_len, (ll, lr), 0, max, &self);
+            let y_len = self.shape[1];
+            let _ = write_2d_matrix(f, x_len, (ll, lr), 0, y_len, &self.array);
             write!(f, "]")
         } else if self.shape.len() == 3 {
             writeln!(f, "[")?;
             let x_len = self.shape[0];
-            let y_len = self.shape[0];
+            let y_len = self.shape[1];
+            let z_len = self.shape[2];
             let (ll, lr) = self.longest_item_str_len();
-            for i in 0..x_len {
+            for i in 0..z_len {
                 let min = i*y_len;
                 let max = (i+1)*y_len;
-                let _ = write_2d_matrix(f, y_len, (ll, lr), min, max, &self);
+                let _ = write_2d_matrix(f, x_len, (ll, lr), min, max, &self.array);
                 if i != x_len {
                     write!(f, "\n")?;
                 }
@@ -318,7 +321,10 @@ impl Matrix {
             
             //println!("{}, {:?}, {}. {:?}", index, indices, self.array[index], swapped_indices);
 
-            let new_linear_index = turn_indices_into_linear_index(altered_shape.clone(), swapped_indices);
+            let new_linear_index = turn_indices_into_linear_index(altered_shape.clone(), swapped_indices.clone());
+
+            //println!("{}, {:?}, {}", index, indices, turn_indices_into_linear_index(self.shape.clone(), indices.clone()));
+            //println!("{}, {:?}, {:?}, {:?}, {:?}, {}", index, indices, swapped_indices, self.shape, altered_shape, new_linear_index);
 
             //swapped_arr[index] = self.array[new_linear_index];
             swapped_arr[new_linear_index] = self.array[index];
