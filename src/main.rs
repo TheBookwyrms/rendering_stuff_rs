@@ -64,6 +64,12 @@ fn main() {
         vec![7.7, 19.9, 05.0, 0.18235],
         vec![5.5, 39.9, 40.0, 0.235],
     ]).unwrap();
+    let e = Matrix::from_vec_of_vec(vec![
+        vec![13.3, 18.3, 18.4],
+        vec![9.9, 29.9,  6.0],
+        vec![7.7, 19.9,  5.0],
+        vec![5.5, 39.9, 40.0],
+    ]).unwrap();
     println!("{}\n|| {:?} \n\n", e, e);
     let f = e.swap_axes(0, 1);
     println!("{}\n|| {:?} \n\n", f, f);

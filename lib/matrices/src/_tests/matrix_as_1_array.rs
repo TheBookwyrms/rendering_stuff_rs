@@ -284,13 +284,19 @@ impl Matrix {
         for index in 0..self.array.len() {
 
             let indices = linear_index_to_indices(index, self.shape.clone());
+            //println!("{}, {:?}, {}", index, indices, self.array[index]);
             let mut swapped_indices = indices.clone();
             swapped_indices[axis1] = indices[axis2];
             swapped_indices[axis2] = indices[axis1];
+            
+            //println!("{}, {:?}, {}. {:?}", index, indices, self.array[index], swapped_indices);
 
             let new_linear_index = turn_indices_into_linear_index(altered_shape.clone(), swapped_indices);
 
-            swapped_arr[index] = self.array[new_linear_index];
+            //swapped_arr[index] = self.array[new_linear_index];
+            swapped_arr[new_linear_index] = self.array[index];
+            //swapped_arr[index] = self.array[new_linear_index];
+            //swapped_arr[index] = new_linear_index as f32;
 
 
             //let mut sections_rev = vec![0; self.ndims()];
