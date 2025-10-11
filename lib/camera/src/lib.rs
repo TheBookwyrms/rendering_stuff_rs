@@ -2,6 +2,8 @@ use std::time::Instant;
 
 use matrices::Matrix2d;
 use matrices::MatrixError;
+use matrices::_tests::matrix_as_1_array::Matrix;
+
 
 pub struct Lighting {
     pub ambient_strength:f32,
@@ -14,7 +16,7 @@ pub struct Lighting {
     pub view_vec:(f32, f32, f32, f32), // what the hell is this ???
     //pub camera_viewpos:(f32, f32, f32),
     pub specular_power:u32,
-    pub light_y_transform:Matrix2d, // mat4
+    pub light_y_transform:Matrix, // mat4
 }
 impl Lighting {
     pub fn new() -> Lighting {
@@ -31,7 +33,7 @@ impl Lighting {
             view_vec: (0.0, 0.0, 32.0, 1.0),
             //camera_viewpos: (),
             specular_power: 2,
-            light_y_transform: Matrix2d::from_array([
+            light_y_transform: Matrix::from_2darray([
                 [-1.0,  0.0, 0.0, 0.0],
                 [ 0.0, -1.0, 0.0, 0.0],
                 [ 0.0,  0.0, 1.0, 0.0],
@@ -68,7 +70,7 @@ impl Camera {
         }
     }
     pub fn get_orthographic_projection(&self, width:u32, height:u32)
-                -> Matrix2d {
+                -> Matrix {
         let l = -1.0 * (width / height) as f32 * self.zoom;
         let r = (width / height) as f32 * self.zoom;
         let b = -1.0 * self.zoom as f32;
@@ -76,7 +78,7 @@ impl Camera {
         let n = -1.0 * self.render_distance as f32;
         let f = self.render_distance as f32;
 
-        let orthographic_projection = Matrix2d::from_array([
+        let orthographic_projection = Matrix::from_2darray([
             [2.0/(r-l), 0.0, 0.0, 0.0],
             [0.0, 2.0/(t-b), 0.0, 0.0],
             [0.0, 0.0, 2.0/(f-n), 0.0],
@@ -86,9 +88,9 @@ impl Camera {
         orthographic_projection
     }
 
-    pub fn get_camera_transform(&self) -> Result<Matrix2d, MatrixError> {
-        let camera_rotation = Matrix2d::rotate_around_p((0.0, 0.0, 0.0), self.angle_xyz)?;
-        let camera_pan = Matrix2d::translate(self.pan_xyz);
+    pub fn get_camera_transform(&self) -> Result<Matrix, MatrixError> {
+        let camera_rotation = Matrix::rotate_around_p((0.0, 0.0, 0.0), self.angle_xyz)?;
+        let camera_pan = Matrix::translate(self.pan_xyz);
         camera_pan.matmul(&camera_rotation)
     }
 }

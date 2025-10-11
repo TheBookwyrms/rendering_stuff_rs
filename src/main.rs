@@ -92,9 +92,35 @@ fn main() {
     ]);
 
     println!("{:?}, {:?}", g.shape, g.array);
-    println!("{}\n|| {:?} \n\n", g, g);
-    let h = g.swap_axes(1, 2);
-    println!("{}\n|| {:?} \n\n", h, h);
+    //println!("{}\n|| {:?} \n\n", g, g);
+    //let h = g.swap_axes(0, 1);
+    //println!("{}\n|| {:?} \n\n", h, h);
+
+    let m1 = Matrix::from_2darray([
+        [1.1, 2.2, 9.3],
+        [9.9, 2.3, 8.3],
+        [7.7, 2.4, 7.3],
+        [5.5, 2.5, 6.3],
+    ]);
+    let m2 = Matrix::from_2darray([
+        [7.2, 3.3, 1.8],
+        [7.3, 8.6, 0.9],
+        [7.4, 7.1, 2.7],
+    ]);
+    println!("e {}\n|| {:?} \n\n", e, e);
+    let f = m1.matmul(&m2).unwrap();
+    println!("f {}\n|| {:?} \n\n", f, f);
+
+    let rc = m1.without_rc(0, 2).unwrap();
+    println!("f {}\n|| {:?} \n\n", rc, rc);
+
+    let inv = m2.inverse().unwrap();
+    //let inv = m2.cofactor_matrix().unwrap();
+    println!("f {}\n|| {:?} \n\n", inv, inv);
+
+    let b = Matrix::from_1darray([1.0, 2.0, 3.0, 4.0]);
+    let b = b.dot(&b).unwrap();
+    println!("f {}\n|| {:?} \n\n", b, b);
 
 
     error("halt".to_string());
@@ -132,7 +158,7 @@ fn main() {
     //    [1.0,   0.0, 2.0, 0.1, 0.9, 0.5, 1.0],
     //    [0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0],
     //]);
-    let triangle_normals = Matrix2d::from_array([
+    let triangle_normals = Matrix::from_2darray([
         [5.0,  1.0, 0.0, 0.9, 0.5, 0.1, 1.0, 0.5, 0.5, 0.5],
         [1.0,  0.0, 0.0, 0.1, 0.9, 0.5, 1.0, 0.5, 0.5, 0.5],
         //[0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0, 0.5, 0.5, 0.5],

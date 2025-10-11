@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 
 use opengl::{GlSettings, UniformType, WithObject};
 use matrices::Matrix2d;
+use matrices::_tests::matrix_as_1_array::Matrix;
 
 use shaders::{ProgramHolder, ProgramType};
 use camera::{Camera, Lighting};
@@ -83,9 +84,10 @@ impl Render {
 
 
 
-    pub fn create_vao_vbo(&self, data:&Matrix2d) -> (u32, u32) {
+    pub fn create_vao_vbo(&self, data:&Matrix) -> (u32, u32) {
         //println!("{:?}", data.ncols);
-        let store_normals = match data.ncols {
+        let store_normals = match data.shape[0] {
+        //let store_normals = match data.ncols {
             7 => Ok(false),
             10 => Ok(true),
             _ => Err("data length neither 7 nor 10 items"),
@@ -97,7 +99,7 @@ impl Render {
         (vao, vbo)
     }
 
-    pub fn draw_vao(&self, mode:GlSettings, vao:u32, data:&Matrix2d) {
+    pub fn draw_vao(&self, mode:GlSettings, vao:u32, data:&Matrix) {
         let with_vao = WithObject::vao(&self.window.opengl, vao);
         with_vao.draw_vao(mode, data);
     }
@@ -118,7 +120,7 @@ impl Render {
     }
 
     fn set_orthographic_camera_uniforms(&self, with_program:&WithObject<'_>) {
-        with_program.set_uniform("world_transform", UniformType::Mat4, Matrix2d::opengl_to_right_handed());
+        with_program.set_uniform("world_transform", UniformType::Mat4, Matrix::opengl_to_right_handed());
         with_program.set_uniform("orthographic_projection", UniformType::Mat4,
             self.camera.get_orthographic_projection(self.window.width(), self.window.height()));
         with_program.set_uniform("camera_transformation", UniformType::Mat4,
@@ -129,25 +131,25 @@ impl Render {
 
     fn set_blinn_phong_uniforms(&self, with_program:&WithObject<'_>) {
         with_program.set_uniform("ambient_strength", UniformType::Float,
-            Matrix2d::from_float(self.lighting.ambient_strength));
+            Matrix::from_float(self.lighting.ambient_strength));
         with_program.set_uniform("ambient_colour", UniformType::Vec3, 
-            Matrix2d::from_1darray(self.lighting.ambient_colour.into()));
+            Matrix::from_1darray(self.lighting.ambient_colour.into()));
         //with_program.set_uniform("diffuse_strength", UniformType::Float,
-        //    Matrix2d::from_float(self.lighting.diffuse_strength));
+        //    Matrix::from_float(self.lighting.diffuse_strength));
         //with_program.set_uniform("diffuse_base", UniformType::Float,
-        //    Matrix2d::from_float(self.lighting.diffuse_base));
+        //    Matrix::from_float(self.lighting.diffuse_base));
         //with_program.set_uniform("light_source_pos", UniformType::Vec3,
-        //    Matrix2d::from_1darray(self.lighting.light_source_pos.into()));
+        //    Matrix::from_1darray(self.lighting.light_source_pos.into()));
         //with_program.set_uniform("light_source_colour", UniformType::Vec3,
-        //    Matrix2d::from_1darray(self.lighting.light_source_colour.into()));
+        //    Matrix::from_1darray(self.lighting.light_source_colour.into()));
         //with_program.set_uniform("specular_strength", UniformType::Float,
-        //    Matrix2d::from_float(self.lighting.specular_strength));
+        //    Matrix::from_float(self.lighting.specular_strength));
         //with_program.set_uniform("specular_power", UniformType::Float,
-        //    Matrix2d::from_float(self.lighting.specular_power as f32));
+        //    Matrix::from_float(self.lighting.specular_power as f32));
         //let view_vec = self.lighting.view_vec;
         //let view_vec3 = (view_vec.0, view_vec.1, view_vec.2);
         //with_program.set_uniform("camera_viewpos", UniformType::Vec3,
-        //    Matrix2d::from_1darray(view_vec3.into()));
+        //    Matrix::from_1darray(view_vec3.into()));
         //with_program.set_uniform("light_y_transform", UniformType::Mat4,
         //    self.lighting.light_y_transform.clone());
     }

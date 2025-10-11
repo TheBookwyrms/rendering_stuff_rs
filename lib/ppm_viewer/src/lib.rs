@@ -11,16 +11,17 @@ use shaders::{ProgramHolder, ProgramType};
 use render_context::Render;
 use opengl::{GlSettings, WithObject};
 use matrices::Matrix2d;
+use matrices::_tests::matrix_as_1_array::Matrix;
 
 use std::fs;
 
 
-pub fn square_top_left(side_len:f32, xyz:[f32;3], rgb:Vec<&str>, a:f32) -> Matrix2d {
+pub fn square_top_left(side_len:f32, xyz:[f32;3], rgb:Vec<&str>, a:f32) -> Matrix {
     let r : f32 = rgb[0].trim().parse().unwrap();
     let g : f32 = rgb[1].trim().parse().unwrap();
     let b : f32 = rgb[2].trim().parse().unwrap();
     //println!("{}, {}, {}", r, g, b);
-    Matrix2d::from_array([
+    Matrix::from_2darray([
         [xyz[0]         , xyz[1],          xyz[2], r/256.0, g/256.0, b/256.0, a],
         [xyz[0]         , xyz[1]-side_len, xyz[2], r/256.0, g/256.0, b/256.0, a],
         [xyz[0]+side_len, xyz[1]-side_len, xyz[2], r/256.0, g/256.0, b/256.0, a],
@@ -58,7 +59,7 @@ pub fn view_ppm_from_text(ppm_text:String) {
     let mut squares_matrices = vec![];
     let a = vec![(4, -1.0)];
     let side_length = 1.0;
-    let mut squares_matrix = Matrix2d::new_empty(0, 7);
+    let mut squares_matrix = Matrix::new_empty(vec![0, 7]);
     //squares_matrix.array.pop();
     for row in 0..height {
         for col in 0..width {
@@ -69,7 +70,7 @@ pub fn view_ppm_from_text(ppm_text:String) {
                 let (t_vao, t_vbo) = render.create_vao_vbo(&squares_matrix);
                 squares_matrices.push((squares_matrix, t_vao, t_vbo));
 
-                squares_matrix = Matrix2d::new_empty(0, 7);
+                squares_matrix = Matrix::new_empty(vec![0, 7]);
                 //squares_matrix.array.pop();
             }
             if true {
