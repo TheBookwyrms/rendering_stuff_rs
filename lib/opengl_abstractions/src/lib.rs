@@ -25,7 +25,9 @@ use std::{ffi::CString, os::raw::c_void};
 
 
 use matrices::Matrix2d;
-use matrices::_tests::matrix_as_1_array::Matrix;
+//use matrices::_tests::matrix_as_1_array::Matrix;
+use matrices::_tests::matrix_with_types::matrix::Matrix;
+
 
 const F32_SIZE : usize = std::mem::size_of::<f32>();
 
@@ -226,7 +228,7 @@ impl WithObject<'_> {
         let vbo = gen_buffers(opengl);
         (vbo, WithObject::vbo(opengl, vbo))
     }
-    pub fn new_vao_vbo(opengl:&Gl, store_normals:bool, data:&Matrix) -> (u32, u32) {
+    pub fn new_vao_vbo(opengl:&Gl, store_normals:bool, data:&Matrix<f32>) -> (u32, u32) {
         let (vao, with_vao) = WithObject::new_vao(opengl);
         let (vbo, with_vbo) = WithObject::new_vbo(opengl);
 
@@ -259,7 +261,7 @@ impl WithObject<'_> {
         WithObject { opengl, object_type:GlSettings::Program,
                      vao_id:0, vbo_id:0, program_id:program }
     }
-    pub fn buffer_data(&self, target:GlSettings, data:&Matrix, draw_type:GlSettings) {
+    pub fn buffer_data(&self, target:GlSettings, data:&Matrix<f32>, draw_type:GlSettings) {
         let data_size = (data.array.len() * F32_SIZE) as gl::types::GLsizeiptr;
         let data_ptr = data.clone().as_ptr() as *const c_void;
         buffer_data(self.opengl, target, data_size, data_ptr, draw_type);
@@ -282,14 +284,14 @@ impl WithObject<'_> {
         set_vertex_attrib(self.opengl, 2, store_normals);
         if store_normals { set_vertex_attrib(self.opengl, 3, store_normals); }
     }
-    pub fn draw_vao(&self, mode:GlSettings, data:&Matrix) {
+    pub fn draw_vao(&self, mode:GlSettings, data:&Matrix<f32>) {
         //let num_shapes = 1;
         //let num_shapes = 3;
         let num_shapes = data.shape[1].try_into().unwrap();
         //let num_shapes = data.nrows.try_into().unwrap();
         draw_arrays(self.opengl, mode, num_shapes);
     }
-    pub fn set_uniform(&self, uniform_name:&str, uniform_type:UniformType, value:Matrix) {
+    pub fn set_uniform(&self, uniform_name:&str, uniform_type:UniformType, value:Matrix<f32>) {
         //let mut items = vec![];
         //for row in value.array {
         //    for value in row.vec {

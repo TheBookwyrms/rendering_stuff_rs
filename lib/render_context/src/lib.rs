@@ -3,7 +3,9 @@ use std::time::{Duration, Instant};
 
 use opengl::{GlSettings, UniformType, WithObject};
 use matrices::Matrix2d;
-use matrices::_tests::matrix_as_1_array::Matrix;
+//use matrices::_tests::matrix_as_1_array::Matrix;
+use matrices::_tests::matrix_with_types::matrix::Matrix;
+
 
 use shaders::{ProgramHolder, ProgramType};
 use camera::{Camera, Lighting};
@@ -84,7 +86,7 @@ impl Render {
 
 
 
-    pub fn create_vao_vbo(&self, data:&Matrix) -> (u32, u32) {
+    pub fn create_vao_vbo(&self, data:&Matrix<f32>) -> (u32, u32) {
         //println!("{:?}", data.ncols);
         let store_normals = match data.shape[0] {
         //let store_normals = match data.ncols {
@@ -99,7 +101,7 @@ impl Render {
         (vao, vbo)
     }
 
-    pub fn draw_vao(&self, mode:GlSettings, vao:u32, data:&Matrix) {
+    pub fn draw_vao(&self, mode:GlSettings, vao:u32, data:&Matrix<f32>) {
         let with_vao = WithObject::vao(&self.window.opengl, vao);
         with_vao.draw_vao(mode, data);
     }
@@ -131,7 +133,8 @@ impl Render {
 
     fn set_blinn_phong_uniforms(&self, with_program:&WithObject<'_>) {
         with_program.set_uniform("ambient_strength", UniformType::Float,
-            Matrix::from_float(self.lighting.ambient_strength));
+            //Matrix::from_float(self.lighting.ambient_strength));
+            Matrix::from_scalar(self.lighting.ambient_strength));
         with_program.set_uniform("ambient_colour", UniformType::Vec3, 
             Matrix::from_1darray(self.lighting.ambient_colour.into()));
         //with_program.set_uniform("diffuse_strength", UniformType::Float,

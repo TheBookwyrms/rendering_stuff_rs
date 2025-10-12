@@ -20,7 +20,8 @@ use render_context::Render;
 use opengl::{GlSettings, WithObject};
 //use opengl;
 use matrices::Matrix2d;
-use matrices::_tests::matrix_as_1_array::Matrix;
+//use matrices::_tests::matrix_as_1_array::Matrix;
+use matrices::_tests::matrix_with_types::matrix::Matrix;
 //use window::init_window_and_opengl;
 
 use ppm_viewer;
@@ -45,7 +46,7 @@ fn error(msg:String) {
 fn main() {
 
 
-    let a = Matrix::from_float(23.3);
+    let a = Matrix::from_scalar(23.3);
     let b = Matrix::from_1darray([1.0, 2.0, 3.0, 4.0]);
     let c = Matrix::from_vec(vec![9.9, 8.3, 7.2]);
     let d = Matrix::from_2darray([

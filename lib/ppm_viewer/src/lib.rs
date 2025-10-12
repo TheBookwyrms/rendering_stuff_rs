@@ -11,12 +11,14 @@ use shaders::{ProgramHolder, ProgramType};
 use render_context::Render;
 use opengl::{GlSettings, WithObject};
 use matrices::Matrix2d;
-use matrices::_tests::matrix_as_1_array::Matrix;
+//use matrices::_tests::matrix_as_1_array::Matrix;
+use matrices::_tests::matrix_with_types::matrix::Matrix;
+
 
 use std::fs;
 
 
-pub fn square_top_left(side_len:f32, xyz:[f32;3], rgb:Vec<&str>, a:f32) -> Matrix {
+pub fn square_top_left(side_len:f32, xyz:[f32;3], rgb:Vec<&str>, a:f32) -> Matrix<f32> {
     let r : f32 = rgb[0].trim().parse().unwrap();
     let g : f32 = rgb[1].trim().parse().unwrap();
     let b : f32 = rgb[2].trim().parse().unwrap();

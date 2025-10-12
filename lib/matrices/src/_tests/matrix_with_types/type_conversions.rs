@@ -1,3 +1,4 @@
+use crate::_tests::matrix_with_types::matrix::Matrix;
 use crate::_tests::matrix_with_types::numbers::DataTypes;
 
 pub trait IntoDataType {
@@ -21,22 +22,3 @@ impl IntoDataType for f64    {fn as_dtype(&self) -> DataTypes {DataTypes::F64}}
 impl IntoDataType for str    {fn as_dtype(&self) -> DataTypes {DataTypes::STR}}
 impl IntoDataType for String {fn as_dtype(&self) -> DataTypes {DataTypes::STRING}}
 impl IntoDataType for bool   {fn as_dtype(&self) -> DataTypes {DataTypes::BOOL}}
-
-//pub fn turn_T_into_datatype<T>(t:T) {
-//    match T {
-//        usize => {},
-//        u8 => {},
-//        u16 => {},
-//        u32 => {},
-//        u64 => {},
-//        u128 => {},
-//        isize => {},
-//        i8 => {},
-//        i16 => {},
-//        i32 => {},
-//        i64 => {},
-//        i128 => {},
-//        f32 => {},
-//        f64 => {},
-//    }
-//}

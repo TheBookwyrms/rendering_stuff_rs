@@ -1,8 +1,11 @@
 use std::time::Instant;
 
 use matrices::Matrix2d;
-use matrices::MatrixError;
-use matrices::_tests::matrix_as_1_array::Matrix;
+//use matrices::MatrixError;
+//use matrices::_tests::matrix_as_1_array::Matrix;
+use matrices::_tests::matrix_with_types::matrix::Matrix;
+use matrices::_tests::matrix_with_types::errors::MatrixError;
+
 
 
 pub struct Lighting {
@@ -16,7 +19,7 @@ pub struct Lighting {
     pub view_vec:(f32, f32, f32, f32), // what the hell is this ???
     //pub camera_viewpos:(f32, f32, f32),
     pub specular_power:u32,
-    pub light_y_transform:Matrix, // mat4
+    pub light_y_transform:Matrix<f32>, // mat4
 }
 impl Lighting {
     pub fn new() -> Lighting {
@@ -70,7 +73,7 @@ impl Camera {
         }
     }
     pub fn get_orthographic_projection(&self, width:u32, height:u32)
-                -> Matrix {
+                -> Matrix<f32> {
         let l = -1.0 * (width / height) as f32 * self.zoom;
         let r = (width / height) as f32 * self.zoom;
         let b = -1.0 * self.zoom as f32;
@@ -88,7 +91,7 @@ impl Camera {
         orthographic_projection
     }
 
-    pub fn get_camera_transform(&self) -> Result<Matrix, MatrixError> {
+    pub fn get_camera_transform(&self) -> Result<Matrix<f32>, MatrixError> {
         let camera_rotation = Matrix::rotate_around_p((0.0, 0.0, 0.0), self.angle_xyz)?;
         let camera_pan = Matrix::translate(self.pan_xyz);
         camera_pan.matmul(&camera_rotation)

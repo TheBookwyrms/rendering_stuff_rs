@@ -97,9 +97,11 @@ fn write_2d_matrix<T:Display + Debug + PartialEq>(f: &mut std::fmt::Formatter<'_
             let js_vec = js.trim().split(".").collect::<Vec<_>>();
 
             let mut has_non_zero = false;
-            for i in js_vec[1].chars() {
-                if i != char::from_u32(0).unwrap() {
-                    has_non_zero = true;
+            if js_vec.len() == 2 {
+                for i in js_vec[1].chars() {
+                    if i != char::from_u32(0).unwrap() {
+                        has_non_zero = true;
+                    }
                 }
             }
 
