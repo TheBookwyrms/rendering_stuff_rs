@@ -123,6 +123,11 @@ fn main() {
     let b = b.dot(&b).unwrap();
     println!("f {}\n|| {:?} \n\n", b, b);
 
+    let k = Matrix::<i8>::from_1darray([1, 2, 3]);
+    let c = Matrix::<i16>::from(k);
+    let b = Matrix::<f32>::from(c);
+    //let d = Matrix::<i8>::from(b);
+
 
     error("halt".to_string());
 
