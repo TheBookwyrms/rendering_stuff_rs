@@ -19,9 +19,8 @@ use render_context::Render;
 //use crate::render_context::RenderContext::Render;
 use opengl::{GlSettings, WithObject};
 //use opengl;
-use matrices::Matrix2d;
 //use matrices::_tests::matrix_as_1_array::Matrix;
-use matrices::_tests::matrix_with_types::matrix::Matrix;
+use matrices::matrix::Matrix;
 //use window::init_window_and_opengl;
 
 use ppm_viewer;
@@ -124,12 +123,13 @@ fn main() {
     println!("f {}\n|| {:?} \n\n", b, b);
 
     let k = Matrix::<i8>::from_1darray([1, 2, 3]);
-    let c = Matrix::<i16>::from(k);
+    let c = Matrix::<i16>::from(k.clone());
     let b = Matrix::<f32>::from(c);
     //let d = Matrix::<i8>::from(b);
 
+    println!("{}", (k.multiply_by_constant(3)));
 
-    error("halt".to_string());
+    //error("halt".to_string());
 
 
 

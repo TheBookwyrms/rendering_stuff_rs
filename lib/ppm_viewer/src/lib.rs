@@ -10,9 +10,8 @@
 use shaders::{ProgramHolder, ProgramType};
 use render_context::Render;
 use opengl::{GlSettings, WithObject};
-use matrices::Matrix2d;
 //use matrices::_tests::matrix_as_1_array::Matrix;
-use matrices::_tests::matrix_with_types::matrix::Matrix;
+use matrices::matrix::Matrix;
 
 
 use std::fs;

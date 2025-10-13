@@ -1,10 +1,9 @@
 use std::time::Instant;
 
-use matrices::Matrix2d;
 //use matrices::MatrixError;
 //use matrices::_tests::matrix_as_1_array::Matrix;
-use matrices::_tests::matrix_with_types::matrix::Matrix;
-use matrices::_tests::matrix_with_types::errors::MatrixError;
+use matrices::matrix::Matrix;
+use matrices::errors::MatrixError;
 
 
 

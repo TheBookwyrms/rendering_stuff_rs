@@ -1,11 +1,10 @@
-mod vector;
-mod matrix;
-mod errors;
+pub mod matrix;
+pub mod errors;
+pub mod generic_arrays;
+pub mod number_arrays;
+pub mod type_conversions;
+pub mod numbers;
+pub mod opengl_arrays;
+pub mod float_operations;
 
-
-pub mod _tests;
-//use crate::tests::vector;
-
-pub use vector::Vector;
-pub use matrix::Matrix2d;
-pub use errors::MatrixError;
+pub mod impl_from;

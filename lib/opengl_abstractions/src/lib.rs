@@ -24,12 +24,9 @@ use std::{ffi::CString, os::raw::c_void};
 //use std::{ffi::{CStr, CString}, os::raw::c_void};
 
 
-use matrices::Matrix2d;
 //use matrices::_tests::matrix_as_1_array::Matrix;
-use matrices::_tests::matrix_with_types::matrix::Matrix;
+use matrices::matrix::Matrix;
 
-
-const F32_SIZE : usize = std::mem::size_of::<f32>();
 
 
 
@@ -233,7 +230,7 @@ impl WithObject<'_> {
         let (vbo, with_vbo) = WithObject::new_vbo(opengl);
 
         with_vbo.buffer_data(GlSettings::ArrayBuffer, data, GlSettings::DynamicDraw);
-        with_vao.set_vertex_attribs(store_normals);
+        with_vao.set_vertex_attribs(store_normals, data.dtype_memsize());
 
         (vao, vbo)
     }
@@ -262,7 +259,7 @@ impl WithObject<'_> {
                      vao_id:0, vbo_id:0, program_id:program }
     }
     pub fn buffer_data(&self, target:GlSettings, data:&Matrix<f32>, draw_type:GlSettings) {
-        let data_size = (data.array.len() * F32_SIZE) as gl::types::GLsizeiptr;
+        let data_size = data.memory_size() as gl::types::GLsizeiptr;
         let data_ptr = data.clone().as_ptr() as *const c_void;
         buffer_data(self.opengl, target, data_size, data_ptr, draw_type);
     }
@@ -278,11 +275,11 @@ impl WithObject<'_> {
             _ => {},
         }
     }
-    pub fn set_vertex_attribs(&self, store_normals:bool) {
-        set_vertex_attrib(self.opengl, 0, store_normals);
-        set_vertex_attrib(self.opengl, 1, store_normals);
-        set_vertex_attrib(self.opengl, 2, store_normals);
-        if store_normals { set_vertex_attrib(self.opengl, 3, store_normals); }
+    pub fn set_vertex_attribs(&self, store_normals:bool, dtype_size:usize) {
+        set_vertex_attrib(self.opengl, 0, store_normals, dtype_size);
+        set_vertex_attrib(self.opengl, 1, store_normals, dtype_size);
+        set_vertex_attrib(self.opengl, 2, store_normals, dtype_size);
+        if store_normals { set_vertex_attrib(self.opengl, 3, store_normals, dtype_size); }
     }
     pub fn draw_vao(&self, mode:GlSettings, data:&Matrix<f32>) {
         //let num_shapes = 1;
@@ -524,7 +521,7 @@ fn buffer_data(
     
 }
 
-fn set_vertex_attrib(opengl:&Gl, layout_location:u32, store_normals:bool) {
+fn set_vertex_attrib(opengl:&Gl, layout_location:u32, store_normals:bool, dtype_size:usize) {
     let n_per_vertice : usize = 3;
     let n_per_colour  : usize = 3;
     let n_per_opacity : usize = 1;
@@ -532,13 +529,13 @@ fn set_vertex_attrib(opengl:&Gl, layout_location:u32, store_normals:bool) {
     let len_ptr = n_per_vertice + n_per_colour +
                             n_per_opacity + if store_normals
                             {n_per_normal} else {0};
-    let stride = (len_ptr * F32_SIZE).try_into().unwrap();
+    let stride = (len_ptr * dtype_size).try_into().unwrap();
     let (num_items, offset) = match layout_location {
         0 => Ok((n_per_vertice.try_into().unwrap(), 0 as *const c_void)),
-        1 => Ok(( n_per_colour.try_into().unwrap() , ((n_per_vertice) * F32_SIZE) as *const c_void)),
-        2 => Ok((n_per_opacity.try_into().unwrap(), ((n_per_vertice + n_per_colour) * F32_SIZE) as *const c_void)),
+        1 => Ok(( n_per_colour.try_into().unwrap() , ((n_per_vertice) * dtype_size) as *const c_void)),
+        2 => Ok((n_per_opacity.try_into().unwrap(), ((n_per_vertice + n_per_colour) * dtype_size) as *const c_void)),
         3 => if store_normals {
-                Ok((n_per_normal.try_into().unwrap(), ((n_per_vertice + n_per_colour + n_per_opacity) * F32_SIZE) as *const c_void))
+                Ok((n_per_normal.try_into().unwrap(), ((n_per_vertice + n_per_colour + n_per_opacity) * dtype_size) as *const c_void))
             } else {Err("normals are not included")},
         _ => Err("invalid layout location"),
     }.unwrap();

@@ -2,9 +2,8 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use opengl::{GlSettings, UniformType, WithObject};
-use matrices::Matrix2d;
 //use matrices::_tests::matrix_as_1_array::Matrix;
-use matrices::_tests::matrix_with_types::matrix::Matrix;
+use matrices::matrix::Matrix;
 
 
 use shaders::{ProgramHolder, ProgramType};

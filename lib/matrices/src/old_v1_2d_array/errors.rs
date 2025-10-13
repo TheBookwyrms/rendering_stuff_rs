@@ -1,5 +1,3 @@
-use crate::numbers::DataTypes;
-
 #[derive(Debug)]
 pub enum MatrixError {
     InvalidShape(Vec<usize>),
@@ -11,5 +9,4 @@ pub enum MatrixError {
     InvalidIndices(Vec<usize>),
     DeterminantIsZero,
     Invalidlengths([usize; 2]),
-    InvalidDataTypes([DataTypes;2])
 }
