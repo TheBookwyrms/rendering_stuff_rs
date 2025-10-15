@@ -1,5 +1,4 @@
-use std::thread::sleep;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use opengl::{GlSettings, UniformType, WithObject};
 //use matrices::_tests::matrix_as_1_array::Matrix;
@@ -20,9 +19,9 @@ pub struct Render {
 }
 impl Default for Render {
     fn default() -> Self {
-        let mut window = Window::new_opengl_window();
-        let mut camera = Camera::new();
-        let mut lighting = Lighting::new();
+        let window = Window::new_opengl_window();
+        let camera = Camera::new();
+        let lighting = Lighting::new();
         let program_holder = ProgramHolder::new(
             &window.opengl,
             [ProgramType::SimpleOrthographic, ProgramType::BlinnPhongOrthographic]
@@ -65,7 +64,6 @@ impl Render {
         self.clear_bindings();
 
 
-        //let dt = match Instant::now().duration_since(self.camera.current).as_micros() {
         let dt = match Instant::now().duration_since(self.camera.current).as_secs_f32() {
             0.0 => 0.0,
             t => t,};
@@ -79,9 +77,6 @@ impl Render {
         self.window.swap_buffers();
 
         self.poll_and_perform_polled_events();
-
-        //let interval = Duration::from_millis(100);
-        //sleep(interval);
     }
 
 

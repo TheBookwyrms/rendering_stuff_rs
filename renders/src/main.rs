@@ -44,7 +44,7 @@ fn error(msg:String) {
 
 fn main() {
 
-    //error("halt".to_string());
+    error("halt".to_string());
 
 
 
