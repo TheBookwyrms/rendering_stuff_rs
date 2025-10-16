@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 include!(concat!(env!("OUT_DIR"), "\\gl_bindings.rs"));
 
 use std::fmt;

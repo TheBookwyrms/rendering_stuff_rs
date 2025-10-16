@@ -71,8 +71,6 @@ pub fn set_uniform_mat4(opengl:&Gl, uniform_location:i32, mat4_ptr:*const f32) {
     unsafe { opengl.UniformMatrix4fv(uniform_location, 1, gl::TRUE, mat4_ptr) }
 }
 
-
-
 pub fn gen_vertex_arrays(opengl:&Gl) -> u32 {
     let mut vao = 0;
     unsafe { opengl.GenVertexArrays(1, &mut vao) }
@@ -112,14 +110,16 @@ pub fn vertex_attrib_pointer(
     opengl:&Gl,
     layout_location:u32,
     num_items_in_location:i32,
+    type_:gl::types::GLenum,
+    normalized:gl::types::GLboolean,
     stride_between_points:i32,
     offset:*const c_void) {
     unsafe {
         opengl.VertexAttribPointer(
             layout_location,
             num_items_in_location,
-            gl::FLOAT,
-            gl::FALSE,
+            type_,
+            normalized,
             stride_between_points,
             offset)
     }
@@ -138,8 +138,8 @@ pub fn draw_arrays(opengl:&Gl, mode:gl::types::GLenum, num_shapes:i32) {
     unsafe { opengl.DrawArrays(mode, 0, num_shapes) }
 }
 
-pub fn viewport(opengl:&Gl, width:i32, height:i32) {
-    unsafe { opengl.Viewport(0, 0, width, height);}
+pub fn viewport(opengl:&Gl, x_low:i32, y_low:i32, x_high:i32, y_high:i32) {
+    unsafe { opengl.Viewport(x_low, y_low, x_high, y_high);}
 }
 
 pub fn clear_colour(opengl:&Gl, red:f32, green:f32, blue:f32, alpha:f32) {

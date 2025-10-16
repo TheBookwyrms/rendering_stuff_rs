@@ -7,11 +7,6 @@ use std::vec;
 use rust_embed::Embed;
 
 
-#[derive(Embed)]
-#[folder = "src/shaders_glsl/"]
-struct Asset;
-
-
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ProgramType {
@@ -68,13 +63,6 @@ impl ProgramHolder {
     }
 }
 
-
-#[derive(Debug)]
-pub struct ShaderProgram {
-    pub program_id : u32,
-    pub program_type : ProgramType,
-}
-
 impl ShaderProgram {
     pub fn new(opengl:&Gl, program_type:ProgramType)  -> ShaderProgram {
 
@@ -91,34 +79,5 @@ impl ShaderProgram {
             ),
         };
 
-        let program_id = opengl::create_shader_program(opengl, vertex.shader_id, fragment.shader_id);
-
-        ShaderProgram { program_id:program_id, program_type:program_type }
     }
-}
-
-
-#[derive(Debug)]
-pub struct Shader {
-    pub shader_type : ShaderType,
-    pub shader_id : u32,
-}
-impl Shader {
-    pub fn new(opengl:&Gl, shader_text:String, shader_type : ShaderType) -> Shader {
-        let str_text = shader_text.as_str();
-
-        let shader_id = opengl::create_shader_variant(opengl, str_text, shader_type);
-
-        Shader {shader_type:shader_type, shader_id:shader_id}
-    }
-}
-
-fn get_shader_text(filename:&str) -> String {
-    let mut file = filename.to_owned();
-    file.push_str(".glsl");
-    let file = file.as_str();
-
-    let glsl = Asset::get(file).unwrap();
-    let shader_text = std::str::from_utf8(glsl.data.as_ref()).unwrap().to_owned();
-    shader_text
 }

@@ -1,6 +1,7 @@
-use std::ffi::NulError;
+use std::{ffi::NulError, str::Utf8Error};
 
-#[derive(Clone, Debug)] // Copy
+
+#[derive(Debug)] // Copy
 pub enum GlError {
     CStringError(NulError),
     InvalidShaderType(ShaderType),
@@ -10,6 +11,10 @@ pub enum GlError {
     InvalidDrawMode(DrawMode),
     CompilationSuccessFailed(String),
     InvalidDataDims(usize),
+    InvalidColour(f32, f32, f32, f32),
+    FileError(std::io::Error),
+    EmbedError,
+    TextError(Utf8Error),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -23,7 +28,6 @@ pub enum UniformType {
 pub enum ShaderType {
     VertexShader,
     FragmentShader,
-    AnyShader,
     ShaderProgram,
 }
 
@@ -47,22 +51,26 @@ pub enum DrawMode {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum GlSettings {
+pub enum BlendFunc {
+    SRCAlphaOneMinusSRCAlpha,
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum BufferBit {
+    ColourBufferBit,
+    DepthBufferBit,
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum GlEnable {
     DepthTest,
     Multisample,
     Blend,
-    BlendFunc_SRCAlpha_OneMinusSRCAlpha,
-    ColourBufferBit,
-    DepthBufferBit,
-    //ArrayBuffer,
-    VertexArrayObject,
-    VertexBufferObject,
-    Program,
-    Vertex_ArrayObject_BufferObject,
-    //StaticDraw,
-    //StreamDraw,
-    //DynamicDraw,
-    //GlTriangles,
-    //GlPoints,
-    //GlLines,
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum VertexObject {
+    Array,
+    Buffer,
+    ArrayAndBuffer,
 }

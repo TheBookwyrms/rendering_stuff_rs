@@ -95,6 +95,7 @@ version = "0.8.0"
 dependencies = [
  "gl_generator",
  "matrices",
+ "rust-embed",
 ]
 
 [[package]]

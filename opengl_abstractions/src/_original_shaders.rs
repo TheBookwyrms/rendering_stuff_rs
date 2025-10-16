@@ -7,6 +7,7 @@ use std::vec;
 use rust_embed::Embed;
 
 
+
 #[derive(Embed)]
 #[folder = "src/shaders_glsl/"]
 struct Asset;
