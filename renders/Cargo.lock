@@ -145,6 +145,7 @@ version = "0.8.0"
 dependencies = [
  "gl_generator",
  "matrices",
+ "rust-embed",
 ]
 
 [[package]]
@@ -152,16 +153,6 @@ name = "pkg-config"
 version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
-
-[[package]]
-name = "ppm_viewer"
-version = "0.8.0"
-dependencies = [
- "matrices",
- "opengl",
- "render_context",
- "shaders",
-]
 
 [[package]]
 name = "proc-macro2"
@@ -193,7 +184,6 @@ version = "0.8.0"
 dependencies = [
  "matrices",
  "opengl",
- "shaders",
  "window",
 ]
 
@@ -203,10 +193,8 @@ version = "0.8.0"
 dependencies = [
  "matrices",
  "opengl",
- "ppm_viewer",
  "render_context",
  "rust-embed",
- "shaders",
  "window",
 ]
 
@@ -262,15 +250,6 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
-]
-
-[[package]]
-name = "shaders"
-version = "0.8.0"
-dependencies = [
- "matrices",
- "opengl",
- "rust-embed",
 ]
 
 [[package]]

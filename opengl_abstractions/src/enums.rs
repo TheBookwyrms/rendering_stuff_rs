@@ -15,6 +15,7 @@ pub enum GlError {
     FileError(std::io::Error),
     EmbedError,
     TextError(Utf8Error),
+    InvalidProgramVariantUsage(ProgramVariant),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -29,6 +30,18 @@ pub enum ShaderType {
     VertexShader,
     FragmentShader,
     ShaderProgram,
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ProgramVariant {
+    BlinnPhongOrthographic(u32),
+    SimpleOrthographic(u32),
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ProgramSelect {
+    SelectBlinnPhongOrthographic,
+    SelectSimpleOrthographic,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]

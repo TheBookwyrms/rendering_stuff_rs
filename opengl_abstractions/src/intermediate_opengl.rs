@@ -1,11 +1,8 @@
 use crate::gl;
 use crate::gl::Gl;
 use crate::raw_opengl;
-
 use crate::enums::{
-    BufferType, DrawMode, DrawType,
-    GlError, ShaderType, UniformType,
-    BufferBit, GlEnable, BlendFunc
+    BlendFunc, BufferBit, BufferType, DrawMode, DrawType, GlEnable, GlError, ProgramSelect, ProgramVariant, ShaderType, UniformType
 };
 
 use std::ffi::CString;
@@ -85,6 +82,12 @@ pub fn create_shader_variant(opengl:&Gl, str_text:&str, shader_type:ShaderType) 
     Ok(shader_id)
 }
 
+pub fn use_program(opengl:&Gl, program:ProgramVariant) -> Result<(), GlError> {
+    match program {
+        ProgramVariant::BlinnPhongOrthographic(id) => Ok(raw_opengl::use_program(opengl, id)),
+        ProgramVariant::SimpleOrthographic(id) => Ok(raw_opengl::use_program(opengl, id)),
+    }
+}
 
 pub fn remove_shader_variant(opengl:&Gl, program_id:u32, shader_id:u32) {
     raw_opengl::detach_shader(opengl, program_id, shader_id);

@@ -8,12 +8,6 @@ use rust_embed::Embed;
 
 
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ProgramType {
-    BlinnPhongOrthographic,
-    SimpleOrthographic,
-}
-
 pub struct ProgramHolder {
     pub programs:Vec<ShaderProgram>
 }
@@ -60,24 +54,5 @@ impl ProgramHolder {
         }.unwrap();
 
         use_result
-    }
-}
-
-impl ShaderProgram {
-    pub fn new(opengl:&Gl, program_type:ProgramType)  -> ShaderProgram {
-
-        let (vertex, fragment) = match program_type {
-            ProgramType::BlinnPhongOrthographic => (
-                Shader::new(opengl, get_shader_text("blinn_phong_orthographic_vertex"), ShaderType::VertexShader),
-                //Shader::new(opengl, get_shader_text("simple_orthographic_vertex"), ShaderType::VertexShader),
-                Shader::new(opengl, get_shader_text("blinn_phong_orthographic_fragment"), ShaderType::FragmentShader)
-                //Shader::new(opengl, get_shader_text("simple_orthographic_fragment"), ShaderType::FragmentShader)
-            ),
-            ProgramType::SimpleOrthographic => (
-                Shader::new(opengl, get_shader_text("simple_orthographic_vertex"), ShaderType::VertexShader),
-                Shader::new(opengl, get_shader_text("simple_orthographic_fragment"), ShaderType::FragmentShader)
-            ),
-        };
-
     }
 }

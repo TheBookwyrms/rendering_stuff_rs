@@ -145,6 +145,7 @@ version = "0.8.0"
 dependencies = [
  "gl_generator",
  "matrices",
+ "rust-embed",
 ]
 
 [[package]]
@@ -183,7 +184,6 @@ version = "0.8.0"
 dependencies = [
  "matrices",
  "opengl",
- "shaders",
  "window",
 ]
 
@@ -239,15 +239,6 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
-]
-
-[[package]]
-name = "shaders"
-version = "0.8.0"
-dependencies = [
- "matrices",
- "opengl",
- "rust-embed",
 ]
 
 [[package]]

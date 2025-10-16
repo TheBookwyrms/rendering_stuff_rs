@@ -1,8 +1,5 @@
 use crate::enums::{
-    BlendFunc, BufferBit, BufferType,
-    DrawMode, DrawType, GlEnable,
-    GlError, VertexObject, ShaderType,
-    UniformType
+    BlendFunc, BufferBit, BufferType, DrawMode, DrawType, GlEnable, GlError, ProgramVariant, ShaderType, UniformType, VertexObject
 };
 use crate::gl;
 use crate::gl::Gl;
@@ -11,87 +8,18 @@ use crate::intermediate_opengl;
 
 use matrices::matrix::Matrix;
 
-use std::io::Read;
 use std::os::raw::c_void;
-use std::fs::File;
-
-use rust_embed::Embed;
 
 
-#[derive(Embed)]
-#[folder = "src/shaders_glsl/"]
-struct Asset;
 
-
-fn get_shader_text_dynamic(filename:&str) -> Result<String, GlError> {
-    let mut folder = "src/shaders_glsl/".to_owned();
-    folder.push_str(filename);
-    folder.push_str(".glsl");
-    let file_path = folder.as_str();
-
-    match File::open(file_path) {
-        Ok(mut file_handle) => {
-            let mut shader_text = String::new();
-            match file_handle.read_to_string(&mut shader_text) {
-                Ok(_) => Ok(shader_text),
-                Err(error) => Err(GlError::FileError(error)),
-            }
-        },
-        Err(error) => Err(GlError::FileError(error)),
-    }
-}
-
-fn get_shader_text_embed(filename:&str) -> Result<String, GlError> {
-    let mut file = filename.to_owned();
-    file.push_str(".glsl");
-    let file = file.as_str();
-
-    match Asset::get(file) {
-        Some(glsl) => {
-            match std::str::from_utf8(glsl.data.as_ref()) {
-                Ok(shader_text_str) => Ok(shader_text_str.to_owned()),
-                Err(error) => Err(GlError::TextError(error)),
-            }
-        },
-        None => Err(GlError::EmbedError),
-    }
-}
-
-pub fn load_opengl_with<T:FnMut(&'static str) -> *const c_void>(loadfn: T) -> Gl {
-    intermediate_opengl::load_opengl_with(loadfn)
-}
-
-
-pub fn viewport(opengl:&Gl, width:i32, height:i32) {
-    intermediate_opengl::viewport(opengl, width, height);
-}
-
-pub fn use_program(opengl:&Gl, program_id:u32) {
-    raw_opengl::use_program(opengl, program_id);
-}
-
-
-pub fn clear_colour(opengl:&Gl, r:f32, g:f32, b:f32, a:f32) -> Result<(), GlError> {
-    intermediate_opengl::clear_colour(opengl, r, g, b, a)
-}
-
-pub fn clear(opengl:&Gl, masks:Vec<BufferBit>) {
-    intermediate_opengl::clear(opengl, masks);
-}
-
-pub fn gl_enable(opengl:&Gl, setting:GlEnable) {
-    intermediate_opengl::gl_enable(opengl, setting);
-}
-
-pub fn gl_blendfunc(opengl:&Gl, setting:BlendFunc) {
-    intermediate_opengl::gl_blendfunc(opengl, setting);
-}
-
-pub fn set_uniform(opengl:&Gl, program_id:u32,
+pub fn set_uniform(opengl:&Gl, program:ProgramVariant,
                    uniform_name:&str, uniform_type:UniformType,
-                   value:Matrix<f32>
+                   value:*const f32
 ) -> Result<(), GlError> {
-    intermediate_opengl::set_uniform(opengl, program_id, uniform_name, uniform_type, value.as_ptr())
+    match program {
+        ProgramVariant::SimpleOrthographic(id) => intermediate_opengl::set_uniform(opengl, id, uniform_name, uniform_type, value),
+        ProgramVariant::BlinnPhongOrthographic(id) => intermediate_opengl::set_uniform(opengl, id, uniform_name, uniform_type, value),
+    }
 }
 
 

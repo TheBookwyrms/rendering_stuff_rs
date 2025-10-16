@@ -11,11 +11,11 @@ fn main() {
     
     let dest = Path::new(&out_dir);
     
-    let mut file = File::create(&dest.join("gl_bindings.rs")).unwrap();
+    let mut opengl_api_file = File::create(&dest.join("gl_bindings.rs")).unwrap();
 
 
     Registry::new(Api::Gl, (3, 3), Profile::Core, Fallbacks::All, [])
-    .write_bindings(gl_generator::StructGenerator, &mut file)
+    .write_bindings(gl_generator::StructGenerator, &mut opengl_api_file)
     .unwrap();
 
 

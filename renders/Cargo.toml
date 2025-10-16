@@ -12,6 +12,6 @@ rust-embed = { version = "8.7.2", default-features = false }
 matrices = {path = "../matrices"}
 opengl   = {path = "../opengl_abstractions"}
 window   = {path = "../window"}
-ppm_viewer = {path = "../ppm_viewer"}
+#ppm_viewer = {path = "../ppm_viewer"}
 render_context   = {path = "../render_context"}
-shaders = {path = "../shaders"}
+#shaders = {path = "../shaders"}

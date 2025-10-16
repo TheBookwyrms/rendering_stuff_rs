@@ -12,18 +12,19 @@
 //pub mod shaders;
 //pub mod _ray_tracer;
 
-use shaders::{ProgramHolder, ProgramType};
+//use shaders::{ProgramHolder, ProgramType};
 //use crate::shaders::shaders::{ProgramHolder, ProgramType};
 //use crate::camera::Camera::{Camera, Lighting};
 use render_context::render::Render;
 //use crate::render_context::RenderContext::Render;
-use opengl::{GlSettings, WithObject};
+use opengl;
+use opengl::enums::*;
 //use opengl;
 //use matrices::_tests::matrix_as_1_array::Matrix;
 use matrices::matrix::Matrix;
 //use window::init_window_and_opengl;
 
-use ppm_viewer;
+//use ppm_viewer;
 
 
 
@@ -42,9 +43,9 @@ fn error(msg:String) {
 }
 
 
-fn main() {
+fn main() -> Result<(), GlError> {
 
-    error("halt".to_string());
+    //error("halt".to_string());
 
 
 
@@ -69,7 +70,7 @@ fn main() {
 
 
     //let mut render = Render::Default::default();
-    let mut render = Render::default();
+    let mut render = Render::default()?;
     //let mut render = Render::new(window, camera, lighting, program_holder);
     render.setup_render();
 
@@ -90,7 +91,7 @@ fn main() {
 
     //let (t_vao, t_vbo) = WithObject::new_vao_vbo(&render.window.opengl, false, &triangle);
     //let (t_vao, t_vbo) = render.create_vao_vbo(&triangle);
-    let (t_vao, t_vbo) = render.create_vao_vbo(&triangle_normals);
+    let (t_vao, t_vbo) = render.create_vao_vbo(&triangle_normals)?;
     //let (tn_vao, tn_vbo) = WithObject::new_vao_vbo(&render.window.opengl, true, &triangle_normals);
 
     while !render.render_over() {
@@ -100,14 +101,14 @@ fn main() {
         //render.camera.zoom -= 0.001;
         
         //render.use_program(ProgramType::SimpleOrthographic);
-        render.use_program(ProgramType::BlinnPhongOrthographic);
+        render.use_program(ProgramSelect::SelectBlinnPhongOrthographic);
 
 
         //let with_vao = WithObject::vao(&render.window.opengl, tn_vao);
         //let with_vao = WithObject::vao(&render.window.opengl, t_vao);
         //with_vao.draw_vao(GlSettings::GlTriangles, &triangle);
         //render.draw_vao(GlSettings::GlTriangles, t_vao, &triangle);
-        render.draw_vao(GlSettings::GlTriangles, t_vao, &triangle_normals);
+        render.draw_vao(DrawMode::GlTriangles, t_vao, &triangle_normals);
         //with_vao.draw_vao(GlSettings::GlTriangles, &triangle_normals);
 
 
@@ -117,5 +118,5 @@ fn main() {
         render.end_render_actions();
     }
 
-
+    Ok(())
 }
