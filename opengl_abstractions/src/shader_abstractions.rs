@@ -1,19 +1,11 @@
-use std::fs::File;
-use std::io::Read;
-
 use crate::gl::Gl;
 use crate::enums::{GlError, ProgramSelect, ProgramVariant, UniformType};
 use crate::{high_level_abstractions, intermediate_opengl};
 
+use crate::shaders;
 
 use matrices::matrix::Matrix;
 
-use rust_embed::Embed;
-
-
-#[derive(Embed)]
-#[folder = "src/shaders_glsl/"]
-struct Asset;
 
 #[derive(Clone, Copy)]
 pub struct ProgramHolder {
@@ -72,75 +64,23 @@ impl WithProgram<'_> {
 
 
 
-pub fn create_program(opengl:&Gl, program_type:ProgramSelect, embed:bool) -> Result<ProgramVariant, GlError> {
-    let text_getter = match embed {
-        true  => get_shader_text_embed,
-        false => get_shader_text_dynamic,
-    };
-    
+pub fn create_program(opengl:&Gl, program_type:ProgramSelect) -> Result<ProgramVariant, GlError> {
     match program_type {
         ProgramSelect::SelectBlinnPhongOrthographic => {
-            let vertex_text = text_getter("blinn_phong_orthographic_vertex")?;
-            let fragment_text = text_getter("blinn_phong_orthographic_fragment")?;
+            let vertex_text = shaders::BLINN_PHONG_ORTHOGRAPHIC_VERTEX;
+            let fragment_text = shaders::BLINN_PHONG_ORTHOGRAPHIC_FRAGMENT;
             let shader_id = high_level_abstractions::create_shader_program(
-                opengl, vertex_text.as_str(), fragment_text.as_str()
+                opengl, vertex_text, fragment_text
             )?;
             Ok(ProgramVariant::BlinnPhongOrthographic(shader_id))
         },
         ProgramSelect::SelectSimpleOrthographic => {
-            let vertex_text = text_getter("simple_orthographic_vertex")?;
-            let fragment_text = text_getter("simple_orthographic_fragment")?;
+            let vertex_text = shaders::SIMPLE_ORTHOGRAPHIC_VERTEX;
+            let fragment_text = shaders::SIMPLE_ORTHOGRAPHIC_FRAGMENT;
             let shader_id = high_level_abstractions::create_shader_program(
-                opengl, vertex_text.as_str(), fragment_text.as_str()
+                opengl, vertex_text, fragment_text
             )?;
             Ok(ProgramVariant::SimpleOrthographic(shader_id))
         },
-    }
-}
-
-
-
-fn error(msg:String) {
-    let a = true;
-    let _b = match a {
-        true =>Err(msg),
-        false =>Ok(msg),
-    }.unwrap();
-}
-
-pub fn get_shader_text_dynamic(filename:&str) -> Result<String, GlError> {
-    let mut folder = "shaders_glsl/".to_owned();
-    folder.push_str(filename);
-    folder.push_str(".glsl");
-    let file_path = folder.as_str();
-
-    println!("{:?}", file_path);
-    println!("{:?}", std::env::current_dir());
-
-    match File::open(file_path) {
-        Ok(mut file_handle) => {
-            let mut shader_text = String::new();
-            match file_handle.read_to_string(&mut shader_text) {
-                Ok(_) => Ok(shader_text),
-                Err(error) => Err(GlError::FileError(error)),
-            }
-        },
-        Err(error) => Err(GlError::FileError(error)),
-    }
-}
-
-pub fn get_shader_text_embed(filename:&str) -> Result<String, GlError> {
-    let mut file = filename.to_owned();
-    file.push_str(".glsl");
-    let file = file.as_str();
-
-    match Asset::get(file) {
-        Some(glsl) => {
-            match std::str::from_utf8(glsl.data.as_ref()) {
-                Ok(shader_text_str) => Ok(shader_text_str.to_owned()),
-                Err(error) => Err(GlError::TextError(error)),
-            }
-        },
-        None => Err(GlError::EmbedError),
     }
 }

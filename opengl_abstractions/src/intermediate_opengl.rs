@@ -2,7 +2,10 @@ use crate::gl;
 use crate::gl::Gl;
 use crate::raw_opengl;
 use crate::enums::{
-    BlendFunc, BufferBit, BufferType, DrawMode, DrawType, GlEnable, GlError, ProgramSelect, ProgramVariant, ShaderType, UniformType
+    BlendFunc, BufferBit, BufferType,
+    DrawMode, DrawType, GlEnable,
+    GlError, ProgramVariant, ShaderType,
+    UniformType,
 };
 
 use std::ffi::CString;
@@ -205,22 +208,23 @@ pub fn buffer_data(
     }
 }
 
-pub fn set_vertex_attrib(opengl:&Gl, layout_location:u32, store_normals:bool, dtype_size:usize
+pub fn set_vertex_attrib(opengl:&Gl, layout_location:u32, store_normals:bool, dtype_size:i32
 ) -> Result<(), GlError>{
-    let n_per_vertice : usize = 3;
-    let n_per_colour  : usize = 3;
-    let n_per_opacity : usize = 1;
-    let n_per_normal  : usize = 3;
+    
+    let n_per_vertice : i32 = 3;
+    let n_per_colour  : i32 = 3;
+    let n_per_opacity : i32 = 1;
+    let n_per_normal  : i32 = 3;
     let len_ptr = n_per_vertice + n_per_colour +
                             n_per_opacity + if store_normals
                             {n_per_normal} else {0};
-    let stride = (len_ptr * dtype_size).try_into().unwrap();
+    let stride = len_ptr * dtype_size;
     let (num_items, offset) = match layout_location {
-        0 => Ok((n_per_vertice.try_into().unwrap(), 0 as *const c_void)),
-        1 => Ok(( n_per_colour.try_into().unwrap() , ((n_per_vertice) * dtype_size) as *const c_void)),
-        2 => Ok((n_per_opacity.try_into().unwrap(), ((n_per_vertice + n_per_colour) * dtype_size) as *const c_void)),
+        0 => Ok((n_per_vertice, 0 as *const c_void)),
+        1 => Ok(( n_per_colour , ((n_per_vertice) * dtype_size) as *const c_void)),
+        2 => Ok((n_per_opacity, ((n_per_vertice + n_per_colour) * dtype_size) as *const c_void)),
         3 => if store_normals {
-                Ok((n_per_normal.try_into().unwrap(), ((n_per_vertice + n_per_colour + n_per_opacity) * dtype_size) as *const c_void))
+                Ok((n_per_normal, ((n_per_vertice + n_per_colour + n_per_opacity) * dtype_size) as *const c_void))
             } else {Err(GlError::InvalidLayoutLocation(3))},
         n => Err(GlError::InvalidLayoutLocation(n)),
     }?;

@@ -1,5 +1,7 @@
 use crate::enums::{
-    BlendFunc, BufferBit, BufferType, DrawMode, DrawType, GlEnable, GlError, ProgramVariant, ShaderType, UniformType, VertexObject
+    BufferType, DrawMode, DrawType,
+    GlError, ProgramVariant, ShaderType,
+    UniformType, VertexObject,
 };
 use crate::gl;
 use crate::gl::Gl;
@@ -56,7 +58,11 @@ impl WithVertexObject<'_> {
         let (vbo, with_vbo) = WithVertexObject::new_vbo(opengl);
 
         with_vbo.buffer_data(BufferType::ArrayBuffer, data, DrawType::DynamicDraw);
-        with_vao.set_vertex_attribs(store_normals, data.dtype_memsize())?;
+        
+        match data.dtype_memsize().try_into() {
+            Ok(dtype_size) => with_vao.set_vertex_attribs(store_normals, dtype_size),
+            Err(error) => Err(GlError::TryFromIntError(error)),
+        }?;
 
         Ok((vao, vbo))
     }
@@ -95,7 +101,7 @@ impl WithVertexObject<'_> {
                                             data_ptr),
         }
     }
-    pub fn set_vertex_attribs(&self, store_normals:bool, dtype_size:usize) -> Result<(), GlError> {
+    pub fn set_vertex_attribs(&self, store_normals:bool, dtype_size:i32) -> Result<(), GlError> {
         intermediate_opengl::set_vertex_attrib(self.opengl, 0, store_normals, dtype_size)?;
         intermediate_opengl::set_vertex_attrib(self.opengl, 1, store_normals, dtype_size)?;
         intermediate_opengl::set_vertex_attrib(self.opengl, 2, store_normals, dtype_size)?;
@@ -104,7 +110,13 @@ impl WithVertexObject<'_> {
     }
     pub fn draw_vao(&self, mode:DrawMode, data:&Matrix<f32>) -> Result<(), GlError> {
         match data.ndims() {
-            2 => Ok(intermediate_opengl::draw_arrays(self.opengl, mode, data.shape[1].try_into().unwrap())),
+            2 => {
+                let data1 : i32 = match data.shape[1].try_into() {
+                    Ok(i) => Ok(i),
+                    Err(error) => Err(GlError::TryFromIntError(error)),
+                }?;
+                Ok(intermediate_opengl::draw_arrays(self.opengl, mode, data1))
+            },
             _ => Err(GlError::InvalidDataDims(data.ndims())),
         }
     }

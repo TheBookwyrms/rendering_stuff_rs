@@ -1,4 +1,8 @@
-use std::{ffi::NulError, str::Utf8Error};
+use std::str::Utf8Error;
+use std::num::TryFromIntError;
+use std::ffi::NulError;
+
+use matrices::errors::MatrixError;
 
 
 #[derive(Debug)] // Copy
@@ -16,6 +20,8 @@ pub enum GlError {
     EmbedError,
     TextError(Utf8Error),
     InvalidProgramVariantUsage(ProgramVariant),
+    MatrixError(MatrixError),
+    TryFromIntError(TryFromIntError),
 }
 
 #[derive(Clone, Copy, Debug)]

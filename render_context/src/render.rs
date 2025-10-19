@@ -1,14 +1,19 @@
 use std::time::Instant;
 
-use opengl::{self, enums::{BufferBit, DrawMode, GlError, ProgramSelect, ProgramVariant, ShaderType, UniformType}, shader_abstractions::{ProgramHolder, WithProgram}};
+use opengl;
+use opengl::enums::{BufferBit, DrawMode, GlError, ProgramSelect, UniformType};
+use opengl::shader_abstractions;
+use opengl::shader_abstractions::{ProgramHolder, WithProgram};
+use opengl::high_level_abstractions::WithVertexObject;
 //use matrices::_tests::matrix_as_1_array::Matrix;
 use matrices::matrix::Matrix;
 
-
+use glfw;
+use glfw::{Action, Key};
 //use shaders::{ProgramHolder, ProgramType};
-use crate::camera::Camera;
+use crate::{camera::Camera};
 use crate::lighting::Lighting;
-use window::{Window, glfw, glfw::{Key, Action}};
+use crate::window::Window;
 
 
 pub struct Render {
@@ -17,47 +22,17 @@ pub struct Render {
     pub lighting:Lighting,
     pub programs:ProgramHolder,
 }
-//impl Default for Render {
-//    fn default() -> Result<Self, GlError> {
-//        let window = Window::new_opengl_window();
-//        let camera = Camera::new();
-//        let lighting = Lighting::new();
-//
-//        let simple_orthographic_shader = opengl::shader_abstractions::create_program(&window.opengl, ProgramType::InitSimpleOrthographic, false)?;
-//        let blinn_phone_orthographic_shader = opengl::shader_abstractions::create_program(&window.opengl, ProgramType::InitBlinnPhongOrthographic, false)?;
-//
-//        let programs = ProgramHolder {
-//            simple_orthographic: simple_orthographic_shader,
-//            blinn_phone_orthographic: blinn_phone_orthographic_shader,
-//        };
-//
-//        //let programs = [
-//        //    opengl::shader_abstractions::create_program(&window.opengl, ProgramType::InitSimpleOrthographic, false)?,
-//        //    opengl::shader_abstractions::create_program(&window.opengl, ProgramType::InitBlinnPhongOrthographic, false)?,
-//        //].to_vec();
-//        //let program_holder = ProgramHolder::new(
-//        //    &window.opengl,
-//        //    [ProgramType::SimpleOrthographic, ProgramType::BlinnPhongOrthographic]
-//        //);
-//        //Self { window, camera, lighting, programs:program_holder }
-//        Ok(Self { window, camera, lighting, programs:programs })
-//    }
-//}
 impl Render {
     pub fn default() -> Result<Self, GlError> {
         let window = Window::new_opengl_window();
         let camera = Camera::new();
         let lighting = Lighting::new();
 
-        let simple_orthographic_shader = opengl::shader_abstractions::create_program(&window.opengl, ProgramSelect::SelectSimpleOrthographic, true)?;
-        let blinn_phone_orthographic_shader = opengl::shader_abstractions::create_program(&window.opengl, ProgramSelect::SelectBlinnPhongOrthographic, true)?;
+        let simple_orthographic_shader = shader_abstractions::create_program(&window.opengl, ProgramSelect::SelectSimpleOrthographic)?;
+        let blinn_phone_orthographic_shader = shader_abstractions::create_program(&window.opengl, ProgramSelect::SelectBlinnPhongOrthographic)?;
 
         let programs = ProgramHolder::new(simple_orthographic_shader, blinn_phone_orthographic_shader)?;
 
-        //let programs = ProgramHolder {
-        //    simple_orthographic: simple_orthographic_shader,
-        //    blinn_phone_orthographic: blinn_phone_orthographic_shader,
-        //};
         Ok(Self { window, camera, lighting, programs:programs })
     }
     pub fn render_over(&self) -> bool { self.window.window.should_close() }
@@ -81,8 +56,8 @@ impl Render {
     }
 
     fn clear_bindings(&self) {
-        opengl::high_level_abstractions::WithVertexObject::vao(    &self.window.opengl, 0);
-        opengl::high_level_abstractions::WithVertexObject::vbo(    &self.window.opengl, 0);
+        WithVertexObject::vao(    &self.window.opengl, 0);
+        WithVertexObject::vbo(    &self.window.opengl, 0);
         //opengl::high_level_abstractions::WithVertexObject::program(&self.window.opengl, 0);
     }
     
@@ -110,28 +85,24 @@ impl Render {
 
 
     pub fn create_vao_vbo(&self, data:&Matrix<f32>) -> Result<(u32, u32), GlError> {
-        //println!("{:?}", data.ncols);
         let store_normals = match data.shape[0] {
-        //let store_normals = match data.ncols {
             7 => Ok(false),
             10 => Ok(true),
             _ => Err("data length neither 7 nor 10 items"),
         }.unwrap();
-        //println!("{:?}", store_normals);
 
-
-        opengl::high_level_abstractions::WithVertexObject::new_vao_vbo(&self.window.opengl, store_normals, data)
+        WithVertexObject::new_vao_vbo(&self.window.opengl, store_normals, data)
     }
 
     pub fn draw_vao(&self, mode:DrawMode, vao:u32, data:&Matrix<f32>) -> Result<(), GlError> {
-        let with_vao = opengl::high_level_abstractions::WithVertexObject::vao(&self.window.opengl, vao);
+        let with_vao = WithVertexObject::vao(&self.window.opengl, vao);
         with_vao.draw_vao(mode, data)
     }
 
 
     pub fn use_program(&self, program_type:ProgramSelect) -> Result<(), GlError> {
 
-        let with_program = opengl::shader_abstractions::WithProgram::program(&self.window.opengl, program_type, self.programs);
+        let with_program = WithProgram::program(&self.window.opengl, program_type, self.programs);
         with_program.use_program()?;
         match program_type {
             ProgramSelect::SelectSimpleOrthographic => {
@@ -143,36 +114,27 @@ impl Render {
             },
         }
         Ok(())
-        //match program_type {
-        //    ProgramType::SimpleOrthographic(_) => {
-        //        self.set_orthographic_camera_uniforms(&with_program);
-        //    },
-        //    ProgramType::BlinnPhongOrthographic(_) => {
-        //        self.set_orthographic_camera_uniforms(&with_program);
-        //        self.set_blinn_phong_uniforms(&with_program);
-        //        //Err("uniforms for Blinn-Phong are not fully yet implemented").unwrap()
-        //    },
-        //}
     }
 
     fn set_orthographic_camera_uniforms(&self, with_program:&WithProgram<'_>) -> Result<(), GlError> {
         with_program.set_uniform("world_transform", UniformType::Mat4, Matrix::opengl_to_right_handed())?;
         with_program.set_uniform("orthographic_projection", UniformType::Mat4,
             self.camera.get_orthographic_projection(self.window.width(), self.window.height()))?;
+        let camera_transform = match self.camera.get_camera_transform() {
+            Ok(mat) => Ok(mat),
+            Err(error) => Err(GlError::MatrixError(error)),
+        }?;
         with_program.set_uniform("camera_transformation", UniformType::Mat4,
-            self.camera.get_camera_transform().unwrap())?;
-        Ok(())
+            camera_transform)
     }
 
 
 
     fn set_blinn_phong_uniforms(&self, with_program:&WithProgram<'_>) -> Result<(), GlError> {
         with_program.set_uniform("ambient_strength", UniformType::Float,
-            //Matrix::from_float(self.lighting.ambient_strength));
             Matrix::from_scalar(self.lighting.ambient_strength))?;
         with_program.set_uniform("ambient_colour", UniformType::Vec3, 
-            Matrix::from_1darray(self.lighting.ambient_colour.into()))?;
-        Ok(())
+            Matrix::from_1darray(self.lighting.ambient_colour.into()))
 
         //with_program.set_uniform("diffuse_strength", UniformType::Float,
         //    Matrix::from_float(self.lighting.diffuse_strength));

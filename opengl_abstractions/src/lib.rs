@@ -1,5 +1,6 @@
 // gets gl from the build.rs and khronos API
 pub mod gl;
+pub mod shaders;
 
 // provides handles for the base opengl API
 pub mod raw_opengl;

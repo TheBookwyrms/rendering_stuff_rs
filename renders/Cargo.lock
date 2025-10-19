@@ -145,7 +145,6 @@ version = "0.8.0"
 dependencies = [
  "gl_generator",
  "matrices",
- "rust-embed",
 ]
 
 [[package]]
@@ -182,9 +181,9 @@ checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
 name = "render_context"
 version = "0.8.0"
 dependencies = [
+ "glfw",
  "matrices",
  "opengl",
- "window",
 ]
 
 [[package]]
@@ -195,7 +194,6 @@ dependencies = [
  "opengl",
  "render_context",
  "rust-embed",
- "window",
 ]
 
 [[package]]
@@ -321,14 +319,6 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
-
-[[package]]
-name = "window"
-version = "0.8.0"
-dependencies = [
- "glfw",
- "opengl",
-]
 
 [[package]]
 name = "windows-sys"
