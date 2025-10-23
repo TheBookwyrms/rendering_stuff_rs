@@ -12,4 +12,4 @@ pub mod number_arrays;
 pub mod float_operations;
 pub mod opengl_arrays;
 
-pub mod impl_from;
+pub mod impl_per_type;

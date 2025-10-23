@@ -2,6 +2,13 @@ use crate::matrix::Matrix;
 use crate::numbers::DataTypes;
 
 
+impl PartialEq for Matrix<u8> {
+    fn eq(&self, other: &Self) -> bool {
+        self.shape==other.shape && self.array==other.array && self.dtype==other.dtype
+    }
+}
+
+
 impl From<Matrix<u8>> for Matrix<u16> {
     fn from(mat:Matrix<u8>) -> Matrix<u16> {
         let narr = (0..mat.array.len()).map(|i| mat.array[i] as u16).collect::<Vec<_>>();

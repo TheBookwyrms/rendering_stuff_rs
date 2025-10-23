@@ -11,5 +11,7 @@ pub enum MatrixError {
     InvalidIndices(Vec<usize>),
     DeterminantIsZero,
     Invalidlengths([usize; 2]),
-    InvalidDataTypes([DataTypes;2])
+    InvalidDataTypes([DataTypes;2]),
+    AugmentedMatrixShapeError,
+    NulColumnInGaussianElimination,
 }

@@ -2,6 +2,11 @@ use crate::matrix::Matrix;
 use crate::numbers::DataTypes;
 
 
+impl PartialEq for Matrix<usize> {
+    fn eq(&self, other: &Self) -> bool {
+        self.shape==other.shape && self.array==other.array && self.dtype==other.dtype
+    }
+}
 
 
 impl From<Matrix<usize>> for Matrix<u64>{

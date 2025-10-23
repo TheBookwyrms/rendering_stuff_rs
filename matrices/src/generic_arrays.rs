@@ -3,7 +3,7 @@ use crate::numbers::DataTypes;
 use crate::type_conversions::IntoDataType;
 use crate::errors::MatrixError;
 
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 use std::fmt::{Debug, Display};
 use std::{char, vec};
 
@@ -17,13 +17,19 @@ fn error(msg:String) {
 }
 
 
-
 impl<const K:usize, T:Display+IntoDataType+Clone> Index<[usize;K]> for Matrix<T> {
     type Output = T;
 
     /// indexes a matrix by its indices
     fn index(&self, idx:[usize;K]) -> &Self::Output {           
         &self.array[self.linear_index_of(idx.to_vec())]
+    }
+}
+
+impl<const K:usize, T:Display+IntoDataType+Clone> IndexMut<[usize;K]> for Matrix<T> {
+    fn index_mut(&mut self, index: [usize;K]) -> &mut Self::Output {
+        let linear_idx = self.linear_index_of(index.to_vec());
+        &mut self.array[linear_idx]
     }
 }
 
@@ -207,7 +213,7 @@ impl<T:Display + IntoDataType + Clone> Matrix<T> {
     }
 
 
-    pub fn transpose(self) -> Result<Matrix<T>, MatrixError> {
+    pub fn transpose(&self) -> Result<Matrix<T>, MatrixError> {
         if self.ndims() == 2 {
             Ok(self.swap_axes(0,1))
         } else {
@@ -229,7 +235,7 @@ impl<T:Display + IntoDataType + Clone> Matrix<T> {
         }
     }
 
-    pub fn get_col(self, idx:usize)  -> Result<Matrix<T>, MatrixError> {
+    pub fn get_col(&self, idx:usize)  -> Result<Matrix<T>, MatrixError> {
         if self.ndims() == 2 {
             let tarr = self.transpose()?;
             tarr.get_row(idx)

@@ -46,3 +46,25 @@ impl Numerical for i128 {}
 
 impl Numerical for f32 {}
 impl Numerical for f64 {}
+
+pub trait Float {
+    fn is_zero(&self) -> bool;
+    fn usize_to_t(u:usize) -> Self;
+    fn zero() -> Self;
+    fn one() -> Self;
+    fn powf(base:Self, exponent:Self) -> Self;
+}
+impl Float for f32 {
+    fn is_zero(&self) -> bool { self==&0.0 }
+    fn usize_to_t(u:usize) -> Self {f32::from(u16::try_from(u32::try_from(u).unwrap()).unwrap())}
+    fn zero() -> Self {0.0}
+    fn one() -> Self {1.0}
+    fn powf(base:f32, exponent:f32) -> Self {base.powf(exponent)}
+}
+impl Float for f64 {
+    fn is_zero(&self) -> bool { self==&0.0 }
+    fn usize_to_t(u:usize) -> Self {f64::from(u16::try_from(u32::try_from(u).unwrap()).unwrap())}
+    fn zero() -> Self {0.0}
+    fn one() -> Self {1.0}
+    fn powf(base:f64, exponent:f64) -> Self {base.powf(exponent)}
+}

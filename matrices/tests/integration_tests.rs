@@ -3,6 +3,61 @@ use matrices::numbers::DataTypes;
 
 
 #[test]
+fn echelon_form() {
+    //let mat = Matrix::from_2darray([
+    //    [8.0, 3.0, 4.0, 1.5],
+    //    [0.0, 0.0, 9.0, 0.3],
+    //    [1.0, 1.0, 2.0, 9.0],
+    //]);
+    let mat = Matrix::from_2darray([
+        [2.0, 3.0, 4.0, 1.5],
+        [0.0, 0.0, 9.0, 0.3],
+        [1.0, 1.0, 2.0, 9.0],
+    ]);
+
+    let echelon_form = mat.get_echelon_form_of_via_gaussian_elimination().unwrap();
+
+    let echelon_algorithm_by_hand = Matrix::from_2darray([
+        [1.0, 3.0/2.0, 2.0, 3.0/4.0],
+        [0.0, 1.0, -18.0, -171.0/10.0],
+        [0.0, 0.0, 1.0, 1.0/30.0],
+    ]);
+
+    for i in 0..echelon_form.array.len() {
+        println!("{}, {}, {}", echelon_form.array[i], echelon_algorithm_by_hand.array[i], echelon_form.array[i]==echelon_algorithm_by_hand.array[i]);
+    }
+
+    assert_eq!(echelon_form, echelon_algorithm_by_hand);
+}
+
+
+
+#[test]
+fn column_zeroes() {
+    let mat1 = Matrix::from_2darray([
+        [1.0, 2.0, 3.0],
+        [4.0, 0.0, 3.0],
+        [0.0, 0.0, 0.0],
+    ]);
+    let mat2 = Matrix::from_2darray([
+        [1.0, 0.0, 3.0],
+        [4.0, 0.0, 3.0],
+        [0.0, 0.0, 0.0],
+    ]);
+
+    let is_zero1 = mat1.col_is_nul(0).unwrap();
+    let is_zero2 = mat1.col_is_nul(2).unwrap();
+    let is_zero4 = mat2.col_is_nul(0).unwrap();
+    let is_zero5 = mat2.col_is_nul(1).unwrap();
+
+    assert_eq!(is_zero1, false);
+    assert_eq!(is_zero2, false);
+    assert_eq!(is_zero4, false);
+    assert_eq!(is_zero5, true);
+}
+
+
+#[test]
 fn dtype() {
     let mat = Matrix::<f32>::from_scalar(23.3);
     assert_eq!(mat.dtype, DataTypes::F32);

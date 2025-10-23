@@ -13,5 +13,9 @@ pub mod u64;
 pub mod u128;
 
 pub mod f32;
+pub mod f64;
 
 pub mod str;
+pub mod string;
+
+pub mod bool;
