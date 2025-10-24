@@ -6,6 +6,8 @@ use glfw::{Context, WindowEvent};
 use glfw::{PWindow, GlfwReceiver};
 use glfw::fail_on_errors;
 
+use crate::errors::RenderError;
+
 pub struct Window {
     pub glfw:Glfw,
     pub window:PWindow,
@@ -15,23 +17,28 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn new_opengl_window() -> Window {
+    pub fn new_opengl() -> Result<Window, RenderError> {
         let (width, height) = (450, 450);
         let window_name = "hello, window!";
 
-        let mut glfw = glfw::init(fail_on_errors!()).unwrap();
-
-        let (mut window, events) = glfw.create_window(
-            width,
-            height,
-            &window_name,
-            glfw::WindowMode::Windowed
-        ).expect("Failed to create GLFW window.");
-
-        //let opengl = opengl::load_with(get_glfw_loadfn(window_name, &mut window));
-        let opengl = opengl::intermediate_opengl::load_opengl_with(get_glfw_loadfn(&mut window));
-
-        Window { glfw, window, events, opengl, last_cursor_pos:[0.0, 0.0] }
+        match glfw::init(fail_on_errors!()) {
+            Ok(mut glfw) => {
+                match glfw.create_window(
+                            width, height,
+                            &window_name,
+                            glfw::WindowMode::Windowed
+                        ) {
+                    Some((mut window, events)) => {
+                        let opengl = opengl::intermediate_opengl::load_opengl_with(
+                                                                            get_glfw_loadfn(&mut window)
+                                                                        );
+                        Ok(Window { glfw, window, events, opengl, last_cursor_pos:[0.0, 0.0] })
+                    },
+                    None => Err(RenderError::GLFWNoWindowCreated),
+                }
+            },
+            Err(err) => Err(RenderError::GLFWinitError(err)),
+        }
     }
 
     // relabel subaspect functions to Window functions        
@@ -40,8 +47,18 @@ impl Window {
     pub fn set_polling(&mut self)  { self.window.set_all_polling(true); }
     pub fn swap_buffers(&mut self) { self.window.swap_buffers(); }
     pub fn make_current(&mut self) { self.window.make_current(); }
-    pub fn width(&self)  -> u32    { self.window.get_size().0.try_into().unwrap() }
-    pub fn height(&self) -> u32    { self.window.get_size().1.try_into().unwrap() }
+    pub fn width(&self) -> Result<u32, RenderError> { 
+        match self.window.get_size().0.try_into() {
+            Ok(u) => Ok(u),
+            Err(err) => Err(RenderError::TryFromIntError(err)),
+        }
+    }
+    pub fn height(&self) -> Result<u32, RenderError> { 
+        match self.window.get_size().1.try_into() {
+            Ok(u) => Ok(u),
+            Err(err) => Err(RenderError::TryFromIntError(err)),
+        }
+    }
 
     pub fn clear(&self, masks:Vec<BufferBit>) { opengl::intermediate_opengl::clear(&self.opengl, masks) }
     pub fn clear_to_colour(&self, rgb:(f32, f32, f32), a:f32) -> Result<(), GlError> {
@@ -56,7 +73,6 @@ impl Window {
     }
 }
 
-//fn get_glfw_loadfn<T>(window_name:&'static str, window:&mut PWindow)
 fn get_glfw_loadfn<T>(window:&mut PWindow)
                 -> impl FnMut(&'static str) -> *const T {
     |window_name: &'static str| window.get_proc_address(&window_name).unwrap() as *const _

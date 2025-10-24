@@ -95,21 +95,12 @@ impl<T:
         } else {
             Ok(self.cofactor_matrix()?.transpose()?.multiply_by_constant(T::one()/determinant))
         }
-        //match determinant {
-        //    //0.0 => Err(MatrixError::DeterminantIsZero),
-        //    z => Err(MatrixError::DeterminantIsZero),
-        //    _ => Ok(self.cofactor_matrix()?.transpose()?.multiply_by_constant(T::one()/determinant)),
-        //}
     }
 
     pub fn col_is_nul(&self, col_j:usize) -> Result<bool, MatrixError> {
         if self.ndims() == 2 {
             let column = self.get_col(col_j)?;
             let zeroes = (0..column.array.len()).map(|i| column.array[i].is_zero()).all(|b| b==true);
-            //println!("{:?}", column);
-            //println!("{:?}", (0..column.array.len()).map(|i| column.array[i]==0.0).collect::<Vec<bool>>());
-            //println!("{:?}", (0..column.array.len()).map(|i| column.array[i]==0.0).all(|b| b==true));
-            //println!("");
             Ok(zeroes)
         } else {
             Err(MatrixError::InvalidDimension(self.ndims()))
@@ -202,20 +193,20 @@ impl<T:
             let without_results = re_minus_id.without_col(self.shape[0]-1)?;
             let null = Matrix::<T>::null_from_vec(without_results.shape.clone());
 
-            println!("a, {}", reduced_echelon);
-            println!("b, {}", identity);
-            println!("c, {}", re_minus_id);
-            println!("d, {}", without_results);
-            println!("e, {}", null);
+            //println!("a, {}", reduced_echelon);
+            //println!("b, {}", identity);
+            //println!("c, {}", re_minus_id);
+            //println!("d, {}", without_results);
+            //println!("e, {}", null);
 
 
-            println!("{}, {}", without_results.array.len(), null.array.len());
+            //println!("{}, {}", without_results.array.len(), null.array.len());
             let shape_eq = without_results.shape == null.shape;
             let dtype_eq = without_results.dtype == null.dtype;
             let arr_eq = without_results.array == null.array;
-            for i in 0..without_results.array.len() {
-                println!("{}, {}, {}, {}", i, without_results.array[i], null.array[i], without_results.array[i]==null.array[i])
-            }
+            //for i in 0..without_results.array.len() {
+            //    println!("{}, {}, {}, {}", i, without_results.array[i], null.array[i], without_results.array[i]==null.array[i])
+            //}
 
             if shape_eq && dtype_eq && arr_eq {
                 let solution = reduced_echelon.get_col(self.shape[0]-1)?;

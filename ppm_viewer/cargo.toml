@@ -10,4 +10,3 @@ edition = "2024"
 matrices = {path = "../matrices"}
 opengl = {path = "../opengl_abstractions"}
 render_context   = {path = "../render_context"}
-shaders = {path = "../shaders"}

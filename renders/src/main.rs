@@ -5,34 +5,15 @@
 
 
 
-
-
-//pub mod camera;
-//pub mod render_context;
-//pub mod shaders;
-//pub mod _ray_tracer;
-
-//use shaders::{ProgramHolder, ProgramType};
-//use crate::shaders::shaders::{ProgramHolder, ProgramType};
-//use crate::camera::Camera::{Camera, Lighting};
+use render_context::errors::RenderError;
 use render_context::render::Render;
-//use crate::render_context::RenderContext::Render;
-use opengl;
-use opengl::enums::*;
-//use opengl;
-//use matrices::_tests::matrix_as_1_array::Matrix;
+use render_context::enums::{GlError, ProgramSelect, DrawMode};
 use matrices::matrix::Matrix;
-//use window::init_window_and_opengl;
 
 //use ppm_viewer;
 
 
 
-
-//use rust_embed::Embed;
-//#[derive(Embed)]
-//#[folder = "src/shaders_glsl/"]
-//struct Asset;
 
 fn error(msg:String) {
     let a = true;
@@ -43,7 +24,7 @@ fn error(msg:String) {
 }
 
 
-fn main() -> Result<(), GlError> {
+fn main() -> Result<(), RenderError> {
 
     //error("halt".to_string());
 
@@ -60,18 +41,7 @@ fn main() -> Result<(), GlError> {
     //}.unwrap();
     
 
-    //let mut window = init_window_and_opengl();
-    //let mut camera = Camera::new();
-    //let mut lighting = Lighting::new();
-    //let program_holder = ProgramHolder::new(
-        //&window.opengl,
-        //[ProgramType::SimpleOrthographic, ProgramType::BlinnPhongOrthographic]
-    //);
-
-
-    //let mut render = Render::Default::default();
     let mut render = Render::default()?;
-    //let mut render = Render::new(window, camera, lighting, program_holder);
     render.setup_render();
 
 
@@ -83,7 +53,6 @@ fn main() -> Result<(), GlError> {
     let triangle_normals = Matrix::from_2darray([
         [5.0,  1.0, 0.0, 0.9, 0.5, 0.1, 1.0, 0.5, 0.5, 0.5],
         [1.0,  0.0, 0.0, 0.1, 0.9, 0.5, 1.0, 0.5, 0.5, 0.5],
-        //[0.0, -18.0, 0.0, 0.5, 0.1, 0.9, 1.0, 0.5, 0.5, 0.5],
         [0.0, -5.0, 0.0, 0.5, 0.1, 0.9, 1.0, 0.5, 0.5, 0.5],
     ]);
 
@@ -98,7 +67,7 @@ fn main() -> Result<(), GlError> {
         render.begin_render_actions();
 
 
-        //render.camera.zoom -= 0.001;
+        //render.camera.zoom -= 0.01;
         
         //render.use_program(ProgramType::SimpleOrthographic);
         render.use_program(ProgramSelect::SelectBlinnPhongOrthographic);

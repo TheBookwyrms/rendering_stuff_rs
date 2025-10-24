@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use matrices::matrix::Matrix;
 use matrices::errors::MatrixError;
 
@@ -11,8 +9,7 @@ pub struct Camera {
     pub zoom:f32,
     pub pan_sensitivity:f32,
     pub angle_sensitivity:f32,
-    pub panning:bool, pub angling:bool, pub paused:bool,
-    pub pause_time:Instant, pub current:Instant, pub dt:u64,
+    pub panning:bool, pub angling:bool,
     pub background_colour:(f32, f32, f32),
 }
 
@@ -25,8 +22,7 @@ impl Camera {
             zoom:20.0,
             pan_sensitivity:0.001,
             angle_sensitivity:0.01,
-            panning:false, angling:false, paused:false,
-            pause_time:Instant::now(), current:Instant::now(), dt:0,
+            panning:false, angling:false,
             background_colour:(0.5, 0.5, 0.5),
         }
     }
