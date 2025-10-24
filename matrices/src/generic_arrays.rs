@@ -15,9 +15,76 @@ fn error(msg:String) {
         false =>Ok(msg),
     }.unwrap();
 }
+impl<T:Display + Clone> Matrix<T> {
+
+    /// converts linear index into corresponding matrix indices
+    pub fn indices_of(&self, linear_index:usize) -> Vec<usize> {
+
+        let mut indices = self.shape.clone();
+
+        let mut curr_max :usize = self.shape.iter().product();
+        let mut curr_lin_idx = linear_index.clone();
+
+        for (i, s_size) in self.shape.iter().enumerate().rev() {
+            // IMPORTANT!!!
+            // The divisions here truncate the values
+            // not a pure division with exact values
+            // ex: 3.75 is truncated to 3
+            let section_len = curr_max/s_size;
+            let section = curr_lin_idx/section_len;
+            curr_lin_idx -= section*section_len;
+            curr_max = curr_max/s_size;
+            indices[i] = section;
+        }
+        indices
+    }
+
+    /// turns matrix indices into corresponding linear index
+    pub fn linear_index_of(&self, indices:Vec<usize>) -> usize {        
+        let mut linear_idx = 0;
+        
+        for i in (0..self.ndims()).into_iter().rev() {
+            let mut idx_max = 1;
+            for j in 0..i {
+                idx_max *= self.shape[j];
+            }
+            linear_idx += indices[i]*idx_max;
+        }
+        linear_idx
+    }
+
+    pub fn longest_item_str_len(&self) -> (usize, usize) {
+        let mut length_left = 0;
+        let mut length_right = 0;
+        for i in &self.array {
+            let l_i = i.to_string();
+            let l_i : Vec<usize>= l_i.split(".").map(|u| u.chars().count()).collect();
+            let (ll, lr) = match l_i.len() {
+                1 => (l_i[0], 0),
+                2 => (l_i[0], l_i[1]),
+                _ => {error("too many decimals".to_string()); (0, 0)},
+            };
+            if ll > length_left {
+                length_left = ll;
+            }
+            if lr > length_right {
+                length_right = lr;
+            }
+        }
+        (length_left, length_right)
+    }
+
+    pub fn ndims(&self) -> usize {
+        self.shape.len()
+    }
 
 
-impl<const K:usize, T:Display+IntoDataType+Clone> Index<[usize;K]> for Matrix<T> {
+    pub fn as_ptr(&self) -> *const T {
+        self.array.as_ptr()
+    }
+}
+
+impl<const K:usize, T:Display+Clone> Index<[usize;K]> for Matrix<T> {
     type Output = T;
 
     /// indexes a matrix by its indices
@@ -26,13 +93,12 @@ impl<const K:usize, T:Display+IntoDataType+Clone> Index<[usize;K]> for Matrix<T>
     }
 }
 
-impl<const K:usize, T:Display+IntoDataType+Clone> IndexMut<[usize;K]> for Matrix<T> {
+impl<const K:usize, T:Display+Clone> IndexMut<[usize;K]> for Matrix<T> {
     fn index_mut(&mut self, index: [usize;K]) -> &mut Self::Output {
         let linear_idx = self.linear_index_of(index.to_vec());
         &mut self.array[linear_idx]
     }
 }
-
 
 /// generic function for writing out a 2D matrix
 fn write_2d_matrix<T:Display + Debug + PartialEq>(f: &mut std::fmt::Formatter<'_>,
@@ -117,74 +183,6 @@ impl<T:Display + Debug + PartialEq + IntoDataType + Clone> Display for Matrix<T>
 
 impl<T:Display + IntoDataType + Clone> Matrix<T> {
 
-    /// converts linear index into corresponding matrix indices
-    pub fn indices_of(&self, linear_index:usize) -> Vec<usize> {
-
-        let mut indices = self.shape.clone();
-
-        let mut curr_max :usize = self.shape.iter().product();
-        let mut curr_lin_idx = linear_index.clone();
-
-        for (i, s_size) in self.shape.iter().enumerate().rev() {
-            // IMPORTANT!!!
-            // The divisions here truncate the values
-            // not a pure division with exact values
-            // ex: 3.75 is truncated to 3
-            let section_len = curr_max/s_size;
-            let section = curr_lin_idx/section_len;
-            curr_lin_idx -= section*section_len;
-            curr_max = curr_max/s_size;
-            indices[i] = section;
-        }
-        indices
-    }
-
-    /// turns matrix indices into corresponding linear index
-    pub fn linear_index_of(&self, indices:Vec<usize>) -> usize {        
-        let mut linear_idx = 0;
-        
-        for i in (0..self.ndims()).into_iter().rev() {
-            let mut idx_max = 1;
-            for j in 0..i {
-                idx_max *= self.shape[j];
-            }
-            linear_idx += indices[i]*idx_max;
-        }
-        linear_idx
-    }
-
-
-
-    pub fn longest_item_str_len(&self) -> (usize, usize) {
-        let mut length_left = 0;
-        let mut length_right = 0;
-        for i in &self.array {
-            let l_i = i.to_string();
-            let l_i : Vec<usize>= l_i.split(".").map(|u| u.chars().count()).collect();
-            let (ll, lr) = match l_i.len() {
-                1 => (l_i[0], 0),
-                2 => (l_i[0], l_i[1]),
-                _ => {error("too many decimals".to_string()); (0, 0)},
-            };
-            if ll > length_left {
-                length_left = ll;
-            }
-            if lr > length_right {
-                length_right = lr;
-            }
-        }
-        (length_left, length_right)
-    }
-
-    pub fn ndims(&self) -> usize {
-        self.shape.len()
-    }
-
-
-    pub fn as_ptr(&self) -> *const T {
-        self.array.as_ptr()
-    }
-
     pub fn swap_axes(&self, axis1:usize, axis2:usize) -> Matrix<T> {
 
         let swapped_arr = self.array.clone();
@@ -258,7 +256,7 @@ impl<T:Display + IntoDataType + Clone> Matrix<T> {
     pub fn without_rc(&self, row_i:usize, col_j:usize) -> Result<Matrix<T>, MatrixError> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
-        } else if !(row_i<self.shape[0] && col_j<self.shape[1]) {
+        } else if !(row_i<self.shape[1] && col_j<self.shape[0]) {
             Err(MatrixError::InvalidIndices(vec![row_i, col_j]))
         } else {
 
@@ -279,7 +277,30 @@ impl<T:Display + IntoDataType + Clone> Matrix<T> {
         }
     }
 
-    pub fn expand_along_dims(mut self, other:Matrix<T>) -> Result<Matrix<T>, MatrixError> {
+    pub fn without_col(&self, col_j:usize) -> Result<Matrix<T>, MatrixError> {
+        if self.ndims() != 2 {
+            Err(MatrixError::InvalidDimension(self.ndims()))
+        } else if !(col_j<self.shape[0]) {
+            Err(MatrixError::InvalidIndex(col_j))
+        } else {
+
+            let mut new_shape = self.shape.clone();
+            new_shape[0] -= 1;
+            let mut v = vec![];
+            
+            for row in 0..self.shape[1] {
+                for (col, val) in self.get_row(row)?.array.into_iter().enumerate() {
+                    if col != col_j {
+                        v.push(val);
+                    }
+                }
+            }
+
+            Ok(Matrix {shape:new_shape, array:v, dtype:self.dtype})
+        }
+    }
+
+    pub fn expand_along_outer_dim(mut self, other:Matrix<T>) -> Result<Matrix<T>, MatrixError> {
         if self.shape[0] != other.shape[0] {
             Err(MatrixError::InvalidShapes([self.shape.to_vec(), other.shape.to_vec()]))
         } else if (self.dtype != DataTypes::EMPTY) && (self.dtype != other.dtype) {

@@ -3,29 +3,58 @@ use matrices::numbers::DataTypes;
 
 
 #[test]
-fn echelon_form() {
-    //let mat = Matrix::from_2darray([
-    //    [8.0, 3.0, 4.0, 1.5],
-    //    [0.0, 0.0, 9.0, 0.3],
-    //    [1.0, 1.0, 2.0, 9.0],
-    //]);
+fn solve() {
+    let augmented_mat = Matrix::from_2darray([
+        [2.0, 3.0, 4.0, 1.5],
+        [0.0, 0.0, 9.0, 0.3],
+        [1.0, 1.0, 2.0, 9.0],
+    ]);
+
+    let reduced_echelon = augmented_mat.solve().unwrap();
+
+    println!("abc");
+
+    let solution = Matrix::from_1darray([763.0/30.0, -16.5, 1.0/30.0,]);
+
+    assert_eq!(reduced_echelon, solution);
+
+}
+
+#[test]
+fn reduced_echelon_form() {
     let mat = Matrix::from_2darray([
         [2.0, 3.0, 4.0, 1.5],
         [0.0, 0.0, 9.0, 0.3],
         [1.0, 1.0, 2.0, 9.0],
     ]);
 
-    let echelon_form = mat.get_echelon_form_of_via_gaussian_elimination().unwrap();
+    let reduced_echelon_form = mat.reduced_echelon().unwrap();
+
+    let reduced_echelon_algorithm_by_hand = Matrix::from_2darray([
+        [1.0, 0.0, 0.0, 763.0/30.0],
+        [0.0, 1.0, 0.0, -16.5],
+        [0.0, 0.0, 1.0, 1.0/30.0],
+    ]);
+
+
+    assert_eq!(reduced_echelon_form, reduced_echelon_algorithm_by_hand);
+}
+
+#[test]
+fn echelon_form() {
+    let mat = Matrix::from_2darray([
+        [2.0, 3.0, 4.0, 1.5],
+        [0.0, 0.0, 9.0, 0.3],
+        [1.0, 1.0, 2.0, 9.0],
+    ]);
+
+    let echelon_form = mat.echelon().unwrap();
 
     let echelon_algorithm_by_hand = Matrix::from_2darray([
         [1.0, 3.0/2.0, 2.0, 3.0/4.0],
         [0.0, 1.0, -18.0, -171.0/10.0],
         [0.0, 0.0, 1.0, 1.0/30.0],
     ]);
-
-    for i in 0..echelon_form.array.len() {
-        println!("{}, {}, {}", echelon_form.array[i], echelon_algorithm_by_hand.array[i], echelon_form.array[i]==echelon_algorithm_by_hand.array[i]);
-    }
 
     assert_eq!(echelon_form, echelon_algorithm_by_hand);
 }

@@ -1,7 +1,39 @@
+use std::fmt::Display;
+
 use crate::matrix::Matrix;
-use crate::numbers::DataTypes;
+use crate::numbers::{DataTypes, Float};
 use crate::type_conversions::IntoDataType;
 use crate::errors::MatrixError;
+
+impl<T:Clone + Float + Display> Matrix<T> {
+    pub fn identity<const K:usize>(shape:[usize; K]) -> Matrix<T> {
+        let arr = vec![T::zero(); shape.iter().product()];
+        let mut identity_mat = Matrix {shape:shape.to_vec(), array:arr, dtype:T::as_dtype()};
+        let lowest_order = *shape.iter().min().unwrap();
+        for i in 0..lowest_order {
+            identity_mat[[i, i]] = T::one();
+        }
+        identity_mat
+    }
+    pub fn identity_from_vec(shape:Vec<usize>) -> Matrix<T> {
+        let arr = vec![T::zero(); shape.iter().product()];
+        let mut identity_mat = Matrix {shape:shape.to_vec(), array:arr, dtype:T::as_dtype()};
+        let lowest_order = *shape.iter().min().unwrap();
+        for i in 0..lowest_order {
+            identity_mat[[i, i]] = T::one();
+        }
+        identity_mat
+    }
+
+    pub fn null<const K:usize>(shape:[usize; K]) -> Matrix<T> {
+        let arr = vec![T::zero(); shape.iter().product()];
+        Matrix { shape: shape.to_vec(), array: arr, dtype: T::as_dtype() }
+    }
+    pub fn null_from_vec(shape:Vec<usize>) -> Matrix<T> {
+        let arr = vec![T::zero(); shape.iter().product()];
+        Matrix { shape: shape.to_vec(), array: arr, dtype: T::as_dtype() }
+    }
+}
 
 impl<T:IntoDataType + Clone> Matrix<T> {
 

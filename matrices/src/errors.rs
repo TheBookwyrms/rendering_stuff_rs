@@ -13,5 +13,6 @@ pub enum MatrixError {
     Invalidlengths([usize; 2]),
     InvalidDataTypes([DataTypes;2]),
     AugmentedMatrixShapeError,
-    NulColumnInGaussianElimination,
+    InvalidExpansionLength((Vec<usize>, usize)),
+    MatrixSolveError((bool, bool, bool)),
 }

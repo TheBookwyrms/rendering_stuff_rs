@@ -1,25 +1,20 @@
 use std::fmt::{Debug, Display};
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use crate::matrix::Matrix;
 use crate::numbers::{DataTypes, Float, Numerical};
 use crate::errors::MatrixError;
 use crate::type_conversions::IntoDataType;
 
-// where <T as Mul>::Output: Sub
 
 impl<T:
-    Float + Clone + IntoDataType + Display + Debug + PartialEq
+    Float + Clone + IntoDataType + Display + Debug + PartialEq + DivAssign
     + SubAssign + MulAssign + AddAssign + Mul + Sub + Numerical + Add<Output = T>
     + Mul<Output = T> + Sub<Output = T> + Sum + Neg<Output = T> + Div<Output = T>
-    //+ Deref<Target = T>
-    // + Mul + Sub
-    //> Matrix<T> where <T as Mul>::Output: Sub {
+    + IntoDataType
     > Matrix<T> {
 
-//}
-//impl Matrix<f32> {
     
     pub fn minor(&self, row_i:usize, col_j:usize) -> Result<T, MatrixError> {
         if self.ndims() != 2 {
@@ -27,7 +22,7 @@ impl<T:
         } else if self.shape[0] != self.shape[1] {
             Err(MatrixError::InvalidShape(self.shape.clone()))
         } else {
-            let minor = self.without_rc(row_i, col_j)?.determinant();
+            let minor = self.without_rc(row_i, col_j)?.laplace_expansion();
             minor
         }
     }
@@ -38,7 +33,7 @@ impl<T:
         } else if self.shape[0] != self.shape[1] {
             Err(MatrixError::InvalidShape(self.shape.clone()))
         } else {
-            let minor = self.without_rc(row_i, col_j)?.determinant()?;
+            let minor = self.without_rc(row_i, col_j)?.laplace_expansion()?;
 
             let r = T::usize_to_t(row_i);
             let c = T::usize_to_t(col_j);
@@ -53,7 +48,7 @@ impl<T:
         }
     }
 
-    pub fn determinant(&self) -> Result<T, MatrixError> {
+    pub fn laplace_expansion(&self) -> Result<T, MatrixError> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
         } else if self.shape[0] != self.shape[1] {
@@ -94,7 +89,7 @@ impl<T:
     }
 
     pub fn inverse(&self) -> Result<Matrix<T>, MatrixError> {
-        let determinant = self.determinant()?;
+        let determinant = self.laplace_expansion()?;
         if determinant == T::zero() {
             Err(MatrixError::DeterminantIsZero)
         } else {
@@ -122,112 +117,113 @@ impl<T:
     }
 
 
-    pub fn get_echelon_form_of_via_gaussian_elimination(&self) -> Result<Matrix<T>, MatrixError> {
+    /// Gaussian elimination algorithm to get the row echelon form of a matrix
+    pub fn echelon(&self) -> Result<Matrix<T>, MatrixError> {
+        if self.ndims() != 2 {
+            Err(MatrixError::InvalidDimension(self.ndims()))
+        } else {
+            let mut mat = self.clone();
+            for base_adjustment in 0..mat.shape[1] {
+
+
+                let this_col = mat.get_col(base_adjustment)?;
+                let col_below_is_nul = this_col.array[base_adjustment..this_col.array.len()]
+                                                     .iter()
+                                                     .map(|i| i==&T::zero())
+                                                     .all(|b| b==true);
+                match col_below_is_nul {
+                    true => {
+                        /* this column is null for un-gaussed rows, so pass (variable not linked) */
+                    },
+                    false => {
+
+                        for row_i in base_adjustment..mat.shape[1] {
+
+                            let mut row_below = row_i+1;
+                            while &mat[[base_adjustment, row_i]]==&T::zero() {
+                                for col_j in 0..mat.shape[0] {
+                                    let val_below = mat[[col_j, row_below]].clone();
+                                    mat[[col_j, row_i]] += val_below;
+                                }
+                                row_below += 1;
+                            }
+
+                            let row_leftmost_val = mat[[base_adjustment, row_i]].clone();
+                            for col_j in 0..mat.shape[0] {
+                                mat[[col_j, row_i]] /= row_leftmost_val.clone();
+                                if row_i != base_adjustment {
+                                    let pivot_row_val = mat[[col_j, base_adjustment]].clone();
+                                    mat[[col_j, row_i]] -= pivot_row_val;
+                                }
+                            }
+                        }
+                    },
+                }
+            }
+            Ok(mat)
+        }
+    }
+
+    /// Gauss-Jordan elimination algorithm
+    pub fn reduced_echelon(&self) -> Result<Matrix<T>, MatrixError> {
+        if self.ndims() != 2 {
+            Err(MatrixError::InvalidDimension(self.ndims()))
+        } else {
+            let echelon_form = self.echelon()?;
+            let mut reduced_echelon_form = echelon_form.clone();
+            for base in (0..echelon_form.shape[1]).rev() {
+                for row_i in (0..base).rev() {
+                    //println!("");
+                    let val_above_pivot = reduced_echelon_form[[base, row_i]].clone();
+                    for col_j in 0..self.shape[0] {
+                        let pivot_value = reduced_echelon_form[[col_j, base]].clone();
+                        //let position_val = reduced_echelon_form[[col_j, row_i]].clone();
+                        //println!("{}, {}, {}", pivot_value.clone(), val_above_pivot.clone(), position_val.clone());
+                        reduced_echelon_form[[col_j, row_i]] -= pivot_value.clone()*val_above_pivot.clone();
+                    }
+                    //println!("{}", reduced_echelon_form);
+                }
+            }
+            Ok(reduced_echelon_form)
+        }
+    }
+
+    /// via Gauss-Jordan elimination
+    pub fn solve(&self) -> Result<Matrix<T>, MatrixError> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
         } else if self.shape[0] != self.shape[1]+1 {
             Err(MatrixError::AugmentedMatrixShapeError)
         } else {
-            let mut mat = self.clone();
-            for base_adjustment in 0..mat.shape[1] {
-                for row_i in base_adjustment..mat.shape[1] {
+            let reduced_echelon = self.reduced_echelon()?;
+            //error("a".to_string());
+            let identity = Matrix::<T>::identity_from_vec(reduced_echelon.shape.clone());
+            let re_minus_id = (reduced_echelon.clone()-identity.clone())?;
+            let without_results = re_minus_id.without_col(self.shape[0]-1)?;
+            let null = Matrix::<T>::null_from_vec(without_results.shape.clone());
 
-                    let leftmost_value = mat[[base_adjustment, row_i]].clone();
+            println!("a, {}", reduced_echelon);
+            println!("b, {}", identity);
+            println!("c, {}", re_minus_id);
+            println!("d, {}", without_results);
+            println!("e, {}", null);
 
-            //println!("");
-            //println!("{}", leftmost_value);
-            //println!("{}", mat);
 
-                    if leftmost_value != T::zero() {
-                        Ok(())
-                    } else {
-                        let is_col_nul = mat.col_is_nul(base_adjustment)?;
-                            match is_col_nul {
-                                true => {Err(MatrixError::NulColumnInGaussianElimination)},
-                                false => {
-                                    let mut is_fixed = false;
-
-                                    for row_below in (base_adjustment+1)..mat.shape[1] {
-                                        if !is_fixed {
-                                            let row_left = mat[[base_adjustment, row_below]].clone();
-
-                                            if row_left != T::zero() {
-                                                for col_j in 0..mat.shape[0] {
-                                                    mat[[col_j, row_i]] = mat[[col_j, row_i]].clone() + mat[[col_j, row_i+1]].clone();
-                                                    //mat[[col_j, row_i]] += mat[[col_j, row_i+1]].clone();
-                                                }
-                                                is_fixed = true;
-                                            }
-                                        }
-                                    }
-
-                                    match is_fixed {
-                                        true => Ok(()),
-                                        false => Err(MatrixError::NulColumnInGaussianElimination),
-                                    }
-                                },
-                            }
-                    }?;
-
-                    //match leftmost_value {
-                    //    T::zero() => {
-                    //        let is_col_nul = mat.col_is_nul(base_adjustment)?;
-                    //        match is_col_nul {
-                    //            true => {Err(MatrixError::NulColumnInGaussianElimination)},
-                    //            false => {
-                    //                let mut is_fixed = false;
-//
-                    //                for row_below in (base_adjustment+1)..mat.shape[1] {
-                    //                    if !is_fixed {
-                    //                        let row_left = mat[[base_adjustment, row_below]];
-//
-                    //                        if row_left != T::zero() {
-                    //                            for col_j in 0..mat.shape[0] {
-                    //                                mat[[col_j, row_i]] += mat[[col_j, row_i+1]];
-                    //                            }
-                    //                            is_fixed = true;
-                    //                        }
-                    //                    }
-                    //                }
-//
-                    //                match is_fixed {
-                    //                    true => Ok(()),
-                    //                    false => Err(MatrixError::NulColumnInGaussianElimination),
-                    //                }
-                    //            },
-                    //        }
-                    //    },
-                    //    _ => {Ok(())},
-                    //}?;
-
-                    // set it to new value, in case it changed from the fixing
-                    let leftmost_value = mat[[base_adjustment, row_i]].clone();
-
-            //println!("{}", leftmost_value);
-
-                    for col_j in 0..mat.shape[0] {
-                        //println!("{:?}, {}, {}, {}, {}", (col_j, row_i), mat[[col_j, row_i]], mat[[col_j, row_i]]/leftmost_value, mat[[col_j, base_adjustment]], mat[[col_j, row_i]]/leftmost_value-mat[[col_j, base_adjustment]]);
-                        mat[[col_j, row_i]] *= T::one()/leftmost_value.clone();
-                        if row_i != base_adjustment {
-                            mat[[col_j, row_i]] = mat[[col_j, row_i]].clone() - mat[[col_j, base_adjustment]].clone();
-                            //mat[[col_j, row_i]] -= mat[[col_j, base_adjustment]].clone();
-                        }
-                    }
-
-            //println!("{}", mat);
-            //println!("{}", leftmost_value);
-            //println!("");
-
-                }
+            println!("{}, {}", without_results.array.len(), null.array.len());
+            let shape_eq = without_results.shape == null.shape;
+            let dtype_eq = without_results.dtype == null.dtype;
+            let arr_eq = without_results.array == null.array;
+            for i in 0..without_results.array.len() {
+                println!("{}, {}, {}, {}", i, without_results.array[i], null.array[i], without_results.array[i]==null.array[i])
             }
-            //println!("");
-            //println!("");
-            //println!("");
-            //println!("{}", mat);
-            //println!("");
-            //println!("");
-            //println!("");
-            Ok(mat)
+
+            if shape_eq && dtype_eq && arr_eq {
+                let solution = reduced_echelon.get_col(self.shape[0]-1)?;
+                Ok(solution)
+            } else {
+                Err(MatrixError::MatrixSolveError((shape_eq, dtype_eq, arr_eq)))
+            }
+
         }
     }
 }

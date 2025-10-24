@@ -53,6 +53,7 @@ pub trait Float {
     fn zero() -> Self;
     fn one() -> Self;
     fn powf(base:Self, exponent:Self) -> Self;
+    fn as_dtype() -> DataTypes;
 }
 impl Float for f32 {
     fn is_zero(&self) -> bool { self==&0.0 }
@@ -60,6 +61,7 @@ impl Float for f32 {
     fn zero() -> Self {0.0}
     fn one() -> Self {1.0}
     fn powf(base:f32, exponent:f32) -> Self {base.powf(exponent)}
+    fn as_dtype() -> DataTypes {DataTypes::F32}
 }
 impl Float for f64 {
     fn is_zero(&self) -> bool { self==&0.0 }
@@ -67,4 +69,5 @@ impl Float for f64 {
     fn zero() -> Self {0.0}
     fn one() -> Self {1.0}
     fn powf(base:f64, exponent:f64) -> Self {base.powf(exponent)}
+    fn as_dtype() -> DataTypes {DataTypes::F64}
 }
