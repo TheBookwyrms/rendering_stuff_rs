@@ -1,6 +1,77 @@
 use matrices::matrix::Matrix;
 use matrices::numbers::DataTypes;
 
+use matrices::cartesian_product;
+
+
+#[test]
+fn cartesian_product_two_vec() {
+    let a1 = vec![1, 2, 3];
+    let a2 = vec![4, 5, 6];
+
+    let cp = cartesian_product::cartesian_product([a1, a2]);
+
+    assert_eq!(cp, vec![
+        vec![1, 4],
+        vec![1, 5],
+        vec![1, 6],
+        vec![2, 4],
+        vec![2, 5],
+        vec![2, 6],
+        vec![3, 4],
+        vec![3, 5],
+        vec![3, 6],
+    ]);
+}
+#[test]
+fn cartesian_product_three_vec() {
+    let a1 = vec![1, 2];
+    let a2 = vec![3, 4];
+    let a3 = vec![5, 6];
+
+    let cp = cartesian_product::cartesian_product([a1, a2, a3]);
+
+    assert_eq!(cp, vec![
+        vec![1, 3, 5],
+        vec![1, 3, 6],
+        vec![1, 4, 5],
+        vec![1, 4, 6],
+        vec![2, 3, 5],
+        vec![2, 3, 6],
+        vec![2, 4, 5],
+        vec![2, 4, 6],
+    ]);
+}
+
+#[test]
+fn range_indexing() {
+    let mat = Matrix::from_2darray([
+        [00, 01, 02, 03, 04, 05, 06, 07, 08, 09],
+        [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+        [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+        [30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
+        [40, 41, 42, 43, 44, 45, 46, 47, 48, 49],
+        [50, 51, 52, 53, 54, 55, 56, 57, 58, 59],
+        [60, 61, 62, 63, 64, 65, 66, 67, 68, 69],
+        [70, 71, 72, 73, 74, 75, 76, 77, 78, 79],
+        [80, 81, 82, 83, 84, 85, 86, 87, 88, 89],
+        [90, 91, 92, 93, 94, 95, 96, 97, 98, 99],
+    ]);
+
+    let indexed_mat = mat.get_submatrix([2..6, 3..8]).unwrap();
+
+    let real = Matrix::from_2darray([
+        [32, 33, 34, 35],
+        [42, 43, 44, 45],
+        [52, 53, 54, 55],
+        [62, 63, 64, 65],
+        [72, 73, 74, 75],
+    ]);
+
+    println!("{}", indexed_mat);
+
+    assert_eq!(indexed_mat, real);
+}
 
 #[test]
 fn solve() {

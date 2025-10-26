@@ -1,3 +1,5 @@
+pub mod cartesian_product;
+
 pub mod matrix;
 pub mod errors;
 

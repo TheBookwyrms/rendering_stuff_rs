@@ -1,9 +1,10 @@
+use crate::cartesian_product;
 use crate::matrix::Matrix;
 use crate::numbers::DataTypes;
 use crate::type_conversions::IntoDataType;
 use crate::errors::MatrixError;
 
-use std::ops::{Index, IndexMut};
+use std::ops::{Index, IndexMut, Range};
 use std::fmt::{Debug, Display};
 use std::{char, vec};
 
@@ -15,7 +16,7 @@ fn error(msg:String) {
         false =>Ok(msg),
     }.unwrap();
 }
-impl<T:Display + Clone> Matrix<T> {
+impl<T:Clone> Matrix<T> {
 
     /// converts linear index into corresponding matrix indices
     pub fn indices_of(&self, linear_index:usize) -> Vec<usize> {
@@ -53,6 +54,17 @@ impl<T:Display + Clone> Matrix<T> {
         linear_idx
     }
 
+    pub fn ndims(&self) -> usize {
+        self.shape.len()
+    }
+
+    pub fn as_ptr(&self) -> *const T {
+        self.array.as_ptr()
+    }
+}
+
+
+impl<T:Display + Clone> Matrix<T> {
     pub fn longest_item_str_len(&self) -> (usize, usize) {
         let mut length_left = 0;
         let mut length_right = 0;
@@ -73,27 +85,153 @@ impl<T:Display + Clone> Matrix<T> {
         }
         (length_left, length_right)
     }
+}
 
-    pub fn ndims(&self) -> usize {
-        self.shape.len()
-    }
+//impl<const K:usize, T:Display+Clone> Index<[Range<usize>;K]> for Matrix<T> {
+//    type Output = Matrix<T>;
+//
+//    /// indexes a matrix by Ranges of indices
+//    fn index(&self, idx:[Range<usize>;K]) -> &Self::Output {
+//
+//        let new_shape = idx.clone().map(|range| range.len()).to_vec();
+//        let full_len = new_shape.iter().product();
+//        let mut idx_vec = vec![vec![]; full_len];
+//
+//        for (i, range) in idx.into_iter().enumerate() {
+//            let num_repeated = full_len/range.len();
+//            for reps in 0..num_repeated {
+//                for val in range.clone() {
+//                    idx_vec[reps*range.len() + i].push(val);
+//                }
+//            }
+//        }
+//
+//        let mut new_arr = vec![];
+//        for indices in idx_vec {
+//            let linear_index = self.linear_index_of(indices);
+//            let idx_val = self.array[linear_index].clone();
+//            new_arr.push(idx_val);
+//        }
+//
+//        &Self{
+//            shape:new_shape,//.clone(),
+//            array:new_arr,//.clone(),
+//            dtype:self.dtype,//.clone(),
+//        }//.clone()
+//    }
+//}
 
 
-    pub fn as_ptr(&self) -> *const T {
-        self.array.as_ptr()
+impl<T:Clone> Matrix<T> {
+    pub fn get_submatrix<const K:usize>(&self, bounds:[Range<usize>;K]) -> Result<Matrix<T>, MatrixError> {
+        if bounds.len() != self.ndims() {
+            Err(MatrixError::InvalidDimensions([bounds.len(), self.ndims()]))
+        } else {
+            let not_bounded = bounds.iter().enumerate().map(|(i, range)| match range.clone().max() {
+                Some(max) => max < self.shape[i],
+                None => false,
+            }).collect::<Vec<bool>>().contains(&false);
+
+            if not_bounded {
+                Err(MatrixError::InvalidBounds)
+            } else {
+                let mut new_shape = bounds.clone().map(|range| range.len()).to_vec();
+                new_shape.reverse();
+
+                //let full_len = new_shape.iter().product();
+                //let mut idx_vec = vec![vec![]; full_len];
+
+                //let mut b = vec![];
+                //for (i, range) in bounds.into_iter().enumerate() {
+                //    for j in range {
+                //        for bl in b {
+                //            bl.push(j);
+                //        }
+                //    }
+                //}
+
+
+                //for (i, range) in bounds.into_iter().enumerate() {
+                //    let num_repeated = full_len/range.len();
+                //    println!("num_repeated {}", num_repeated);
+                //    for reps in 0..num_repeated {
+                //        for (j, val) in range.clone().enumerate() {
+                //            //println!("{}, {}, {}, {}, {}, {}", reps, range.len(), j, reps*range.len(), reps*range.len()+j, val);
+                //            let offset = 1*reps;
+                //            let j_offset = (j+offset)%num_repeated;
+                //            println!("j {}, {}, {}, f {}, v {}", j, offset, j_offset, reps*range.len() + j_offset, val);
+                //            idx_vec[reps*range.len() + j].push(val);
+                //        }
+                //    }
+                //}
+
+
+                //println!("{:?}", idx_vec.clone());
+                //idx_vec.sort();
+                //println!("{:?}", idx_vec.clone());
+                            
+                let mut new_arr = vec![];
+                let iters = bounds.map(|range| range.collect::<Vec<usize>>());
+                for indices in cartesian_product::cartesian_product(iters) {
+                //for indices in idx_vec {
+                    let linear_index = self.linear_index_of(indices.clone());
+                    println!("indices {:?}, index {}", indices.clone(), linear_index);
+                    let idx_val = self.array[linear_index].clone();
+                    new_arr.push(idx_val);
+                }
+            
+                //panic!();
+                Ok(Matrix { shape:new_shape, array:new_arr, dtype:self.dtype }.swap_axes(0, 1))
+            }
+        }
     }
 }
 
-impl<const K:usize, T:Display+Clone> Index<[usize;K]> for Matrix<T> {
+
+
+//impl<const K:usize, T:Display+Clone> IndexMut<[Range<usize>;K]> for Matrix<T> {
+//    /// indexes a matrix by Ranges of indices
+//    fn index_mut(&mut self, idx:[Range<usize>;K]) -> &mut Matrix<T> {
+//
+//        let new_shape = idx.clone().map(|range| range.len()).to_vec();
+//
+//        let full_len = new_shape.iter().product();
+//
+//        let mut idx_vec = vec![vec![]; full_len];
+//
+//        for (i, range) in idx.into_iter().enumerate() {
+//            let num_repeated = full_len/range.len();
+//            for reps in 0..num_repeated {
+//                for val in range.clone() {
+//                    idx_vec[reps*range.len() + i].push(val);
+//                }
+//            }
+//        }
+//
+//        let mut new_arr = vec![];
+//        for indices in idx_vec {
+//            let linear_index = self.linear_index_of(indices);
+//            let idx_val = self.array[linear_index].clone();
+//            new_arr.push(idx_val);
+//        }
+//
+//        self.shape = new_shape;
+//        self.array = new_arr;
+//
+//        self
+//    }
+//}
+
+impl<const K:usize, T:Clone> Index<[usize;K]> for Matrix<T> {
     type Output = T;
 
     /// indexes a matrix by its indices
-    fn index(&self, idx:[usize;K]) -> &Self::Output {           
+    fn index(&self, idx:[usize;K]) -> &Self::Output {
         &self.array[self.linear_index_of(idx.to_vec())]
     }
 }
 
-impl<const K:usize, T:Display+Clone> IndexMut<[usize;K]> for Matrix<T> {
+impl<const K:usize, T:Clone> IndexMut<[usize;K]> for Matrix<T> {
     fn index_mut(&mut self, index: [usize;K]) -> &mut Self::Output {
         let linear_idx = self.linear_index_of(index.to_vec());
         &mut self.array[linear_idx]
@@ -181,7 +319,7 @@ impl<T:Display + Debug + PartialEq + IntoDataType + Clone> Display for Matrix<T>
 
 
 
-impl<T:Display + IntoDataType + Clone> Matrix<T> {
+impl<T:Clone> Matrix<T> {
 
     pub fn swap_axes(&self, axis1:usize, axis2:usize) -> Matrix<T> {
 
@@ -225,7 +363,7 @@ impl<T:Display + IntoDataType + Clone> Matrix<T> {
                 true => {
                     let row_len = self.shape[0];
                     let v = self.array[(idx*row_len)..(idx+1)*row_len].to_vec();
-                    Ok(Matrix::from_vec(v))},
+                    Ok(Matrix {shape:vec![v.len()], array:v, dtype:self.dtype})},
                 false => Err(MatrixError::InvalidIndex(idx)),
             }
         } else {

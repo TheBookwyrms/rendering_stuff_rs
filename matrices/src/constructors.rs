@@ -5,21 +5,11 @@ use crate::numbers::{DataTypes, Float};
 use crate::type_conversions::IntoDataType;
 use crate::errors::MatrixError;
 
-impl<T:Clone + Float + Display> Matrix<T> {
-    pub fn identity<const K:usize>(shape:[usize; K]) -> Matrix<T> {
-        let arr = vec![T::zero(); shape.iter().product()];
-        let mut identity_mat = Matrix {shape:shape.to_vec(), array:arr, dtype:T::as_dtype()};
-        let lowest_order = *shape.iter().min().unwrap();
-        for i in 0..lowest_order {
-            identity_mat[[i, i]] = T::one();
-        }
-        identity_mat
-    }
-    pub fn identity_from_vec(shape:Vec<usize>) -> Matrix<T> {
-        let arr = vec![T::zero(); shape.iter().product()];
-        let mut identity_mat = Matrix {shape:shape.to_vec(), array:arr, dtype:T::as_dtype()};
-        let lowest_order = *shape.iter().min().unwrap();
-        for i in 0..lowest_order {
+impl<T:Clone + Float> Matrix<T> {
+    pub fn identity(order:usize) -> Matrix<T> {
+        let arr = vec![T::zero(); order*order];
+        let mut identity_mat = Matrix {shape:vec![order, order], array:arr, dtype:T::as_dtype()};
+        for i in 0..order {
             identity_mat[[i, i]] = T::one();
         }
         identity_mat

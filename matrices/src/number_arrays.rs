@@ -6,7 +6,7 @@ use std::fmt::Display;
 use std::iter::Sum;
 use std::ops::{Add, Mul, MulAssign, Sub};
 
-impl<T:Clone+IntoDataType+Display+Add<Output = T>> Add for Matrix<T> {
+impl<T:Clone+IntoDataType+Add<Output = T>> Add for Matrix<T> {
     type Output = Result<Matrix<T>, MatrixError>;
 
     /// add two matrices together element-wise
@@ -54,7 +54,7 @@ impl<T:Clone+IntoDataType+Display+Sub<Output = T>> Sub for Matrix<T> {
     }
 }
 
-impl<T:Display + IntoDataType + Clone + Numerical + Mul<Output=T> + Sum + MulAssign> Matrix<T> {
+impl<T:IntoDataType + Clone + Numerical + Mul<Output=T> + Sum + MulAssign> Matrix<T> {
     
     /// performs the dot product of two vectors (1D matrices) 
     pub fn dot(&self, other:&Self) -> Result<T, MatrixError> {

@@ -188,10 +188,18 @@ impl<T:
         } else {
             let reduced_echelon = self.reduced_echelon()?;
             //error("a".to_string());
-            let identity = Matrix::<T>::identity_from_vec(reduced_echelon.shape.clone());
-            let re_minus_id = (reduced_echelon.clone()-identity.clone())?;
-            let without_results = re_minus_id.without_col(self.shape[0]-1)?;
-            let null = Matrix::<T>::null_from_vec(without_results.shape.clone());
+            let identity = Matrix::<T>::identity(self.shape[1]);
+
+            println!("{}", identity);
+
+            let reduced_matrix_left = reduced_echelon.get_submatrix([0..self.shape[0]-1, 0..self.shape[1]])?;
+                        println!("re {}", reduced_echelon);
+                        println!("rel {}", reduced_matrix_left);
+
+            
+            let re_minus_id = (reduced_matrix_left-identity.clone())?;
+
+            let null = Matrix::<T>::null_from_vec(re_minus_id.shape);
 
             //println!("a, {}", reduced_echelon);
             //println!("b, {}", identity);
@@ -201,18 +209,18 @@ impl<T:
 
 
             //println!("{}, {}", without_results.array.len(), null.array.len());
-            let shape_eq = without_results.shape == null.shape;
-            let dtype_eq = without_results.dtype == null.dtype;
-            let arr_eq = without_results.array == null.array;
+            println!("{:?}, {:?}", re_minus_id.array, null.array);
+            let dtype_eq = re_minus_id.dtype == null.dtype;
+            let arr_eq = re_minus_id.array == null.array;
             //for i in 0..without_results.array.len() {
             //    println!("{}, {}, {}, {}", i, without_results.array[i], null.array[i], without_results.array[i]==null.array[i])
             //}
 
-            if shape_eq && dtype_eq && arr_eq {
+            if dtype_eq && arr_eq {
                 let solution = reduced_echelon.get_col(self.shape[0]-1)?;
                 Ok(solution)
             } else {
-                Err(MatrixError::MatrixSolveError((shape_eq, dtype_eq, arr_eq)))
+                Err(MatrixError::MatrixSolveError((dtype_eq, arr_eq)))
             }
 
         }
