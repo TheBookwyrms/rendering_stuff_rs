@@ -1,5 +1,5 @@
 use matrices::matrix::Matrix;
-use matrices::numbers::DataTypes;
+use matrices::enums::DataTypes;
 
 use matrices::cartesian_product;
 
@@ -12,7 +12,7 @@ fn gauss_jordan_inverse() {
         [3., 9., 27.],
     ]);
 
-    let inv_mat = mat.reduced_echelon_inverse().unwrap();
+    let inv_mat = mat.gauss_jordan_inverse().unwrap();
 
     assert_eq!(inv_mat, Matrix::from_2darray([
         [-6.0, 4.5, -2./3.],

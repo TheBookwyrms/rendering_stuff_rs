@@ -1,5 +1,5 @@
 use crate::matrix::Matrix;
-use crate::errors::MatrixError;
+use crate::enums::MatrixError;
 
 impl Matrix<f32> {
     
@@ -75,8 +75,8 @@ impl Matrix<f32> {
         Ok(return_to_pos.matmul(&rotate.matmul(&translate_to_zero)?)?)
     }
 
-    /// creates world transform matrix
-    /// converts between right handed coordinates and opengl coordinate system 
+    /// creates matrix that transforms between right-handed
+    /// coordinate system and the opengl coordinate system
     pub fn opengl_to_right_handed() -> Matrix<f32> {
         Matrix::from_2darray([
             [1.,0.,0.,0.],

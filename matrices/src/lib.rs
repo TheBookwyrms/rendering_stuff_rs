@@ -1,13 +1,12 @@
 pub mod cartesian_product;
 
 pub mod matrix;
-pub mod errors;
+
+pub mod enums;
+pub mod traits;
 
 pub mod constructors;
 pub mod generic_arrays;
-
-pub mod type_conversions;
-pub mod numbers;
 
 pub mod number_arrays;
 

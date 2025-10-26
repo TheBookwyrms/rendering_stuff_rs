@@ -1,7 +1,6 @@
 use crate::matrix::Matrix;
-use crate::type_conversions::IntoDataType;
-use crate::numbers::Numerical;
-use crate::errors::MatrixError;
+use crate::traits::{IntoDataType, Numerical};
+use crate::enums::MatrixError;
 use std::iter::Sum;
 use std::ops::{Add, Mul, MulAssign, Sub};
 

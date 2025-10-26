@@ -1,24 +1,18 @@
+/// create the cartesian product of N vectors
 pub fn cartesian_product<const K:usize, T:Copy+Ord>(iters:[Vec<T>;K]) -> Vec<Vec<T>> {
-
-    let mut output = vec![];
-    let mut v1 = vec![];
-    let mut v_len = 0;
-    for (iter_idx, iter) in iters.clone().into_iter().enumerate() {
-        if iter_idx == 0 {
-            for val in iter {
-                output.push(vec![val]);
+    let mut output = vec![vec![]];
+    let mut subvec_outer = vec![];
+    let mut prior_vec_len = 0;
+    for iter in iters {
+        for val in iter {
+            for vec in output.clone().into_iter() {
+                let mut subvec_inner = vec;
+                subvec_inner.push(val);
+                subvec_outer.push(subvec_inner);
             }
-        } else {
-            for val in iter {
-                for vec in output.clone().into_iter() {
-                    let mut v2 = vec.clone();
-                    v2.push(val);
-                    v1.push(v2);
-                }
-            }
-            output = v1.clone()[v_len..v1.len()].to_vec();
         }
-        v_len = v1.len();
+        output = subvec_outer[prior_vec_len..subvec_outer.len()].to_vec();
+        prior_vec_len = subvec_outer.len();
     }
     output.sort();
     output

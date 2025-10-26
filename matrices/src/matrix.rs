@@ -1,4 +1,4 @@
-use crate::numbers::DataTypes;
+use crate::enums::DataTypes;
 
 #[derive(Debug, Clone)]
 /// struct to hold matrices of arbitrary type T

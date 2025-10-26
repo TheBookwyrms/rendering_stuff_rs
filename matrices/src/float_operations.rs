@@ -3,9 +3,8 @@ use std::iter::Sum;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use crate::matrix::Matrix;
-use crate::numbers::{DataTypes, Float, Numerical};
-use crate::errors::MatrixError;
-use crate::type_conversions::IntoDataType;
+use crate::traits::{Float, Numerical, IntoDataType};
+use crate::enums::{MatrixError, DataTypes};
 
 
 impl<T:
@@ -17,6 +16,7 @@ impl<T:
     > Matrix<T> {
 
     
+    /// gets the minor of a matrix for row i and column j
     pub fn minor(&self, row_i:usize, col_j:usize) -> Result<T, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
@@ -28,6 +28,7 @@ impl<T:
         }
     }
 
+    /// gets the cofactor of a matrix for row i and column j
     pub fn cofactor(&self, row_i:usize, col_j:usize) -> Result<T, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
@@ -39,16 +40,13 @@ impl<T:
             let r = T::usize_to_t(row_i);
             let c = T::usize_to_t(col_j);
 
-            //let r = f32::from(u16::try_from(u32::try_from(row_i).unwrap()).unwrap());
-            //let c = f32::from(u16::try_from(u32::try_from(col_j).unwrap()).unwrap());
-
             let n1 = -T::one();
             let cofactor = T::powf(n1, (r+T::one())+(c+T::one())) * minor;
-            //let cofactor = n1.powf((r+T::one())+(c+T::one())) * minor;
             Ok(cofactor)
         }
     }
 
+    /// get the determinant of a matrix via laplace expansion
     pub fn laplace_expansion(&self) -> Result<T, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
@@ -72,6 +70,7 @@ impl<T:
         }
     }
 
+    /// get the matrix of cofactors of the original matrix
     pub fn cofactor_matrix(&self) -> Result<Matrix<T>, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
@@ -89,13 +88,20 @@ impl<T:
         }
     }
 
+    /// get the inverse of a matrix
     pub fn inverse(&self) -> Result<Matrix<T>, MatrixError<T>> {
-        let determinant = self.laplace_expansion()?;
-        if determinant == T::zero() {
-            Err(MatrixError::DeterminantIsZero)
-        } else {
-            Ok(self.cofactor_matrix()?.transpose()?.multiply_by_constant(T::one()/determinant))
-        }
+
+        let inverse = self.gauss_jordan_inverse();
+        inverse
+
+        // laplace expansion method of getting inverse
+
+        //let determinant = self.laplace_expansion()?;
+        //if determinant == T::zero() {
+        //    Err(MatrixError::DeterminantIsZero)
+        //} else {
+        //    Ok(self.cofactor_matrix()?.transpose()?.multiply_by_constant(T::one()/determinant))
+        //}
     }
 
     /// determines if the column j of a matrix is null (zero)
@@ -209,7 +215,9 @@ impl<T:
         }
     }
 
-    pub fn reduced_echelon_inverse(&self) -> Result<Matrix<T>, MatrixError<T>> {
+    /// get the inverse of a matrix using gauss-jordan elimination
+    /// on the matrix augmented by the identity
+    pub fn gauss_jordan_inverse(&self) -> Result<Matrix<T>, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
         } else if self.shape[0] != self.shape[1] {
@@ -221,18 +229,8 @@ impl<T:
             let augmented_matrix = self.expand_along_axis(identity.clone(), 0)?;
             let reduced_echelon = augmented_matrix.reduced_echelon()?;
             
-            //println!("{}", identity);
-            //println!("{}", augmented_matrix);
-            //println!("{}", reduced_echelon);
-
-            //println!("{:?}", augmented_matrix.shape);
-            //println!("{:?}, {:?}, {:?}, {:?}", augmented_matrix.shape, 0..augmented_matrix.shape[0]/2, 0..augmented_matrix.shape[1], augmented_matrix.shape[0]/2..augmented_matrix.shape[0]);
-
             let reduced_matrix_left = reduced_echelon.get_submatrix([0..augmented_matrix.shape[0]/2, 0..augmented_matrix.shape[1]])?;
             let reduced_matrix_right = reduced_echelon.get_submatrix([augmented_matrix.shape[0]/2..augmented_matrix.shape[0], 0..augmented_matrix.shape[1]])?;
-
-            //println!("{}", reduced_matrix_left);
-            //println!("{}", reduced_matrix_right);
 
             let re_minus_id = (reduced_matrix_left-identity.clone())?;
             let null = Matrix::<T>::null_from_vec(re_minus_id.shape);
