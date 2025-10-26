@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use crate::matrix::Matrix;
 use crate::numbers::{DataTypes, Float};
 use crate::type_conversions::IntoDataType;
@@ -46,7 +44,7 @@ impl<T:IntoDataType + Clone> Matrix<T> {
         Matrix {shape:vec![vec.len()], array: vec, dtype}
     }
 
-    pub fn from_vec_of_vec(vec:Vec<Vec<T>>) -> Result<Matrix<T>, MatrixError> {
+    pub fn from_vec_of_vec(vec:Vec<Vec<T>>) -> Result<Matrix<T>, MatrixError<T>> {
         let dtype = vec[0][0].as_dtype();
         let mut homogenous_rows = true;
         let mut row_lengths = vec![];

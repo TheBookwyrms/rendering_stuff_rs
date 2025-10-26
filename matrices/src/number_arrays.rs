@@ -2,15 +2,14 @@ use crate::matrix::Matrix;
 use crate::type_conversions::IntoDataType;
 use crate::numbers::Numerical;
 use crate::errors::MatrixError;
-use std::fmt::Display;
 use std::iter::Sum;
 use std::ops::{Add, Mul, MulAssign, Sub};
 
 impl<T:Clone+IntoDataType+Add<Output = T>> Add for Matrix<T> {
-    type Output = Result<Matrix<T>, MatrixError>;
+    type Output = Result<Matrix<T>, MatrixError<T>>;
 
     /// add two matrices together element-wise
-    fn add(self, other: Self) -> Result<Matrix<T>, MatrixError> {
+    fn add(self, other: Self) -> Result<Matrix<T>, MatrixError<T>> {
         if self.ndims() != other.ndims() {
             Err(MatrixError::InvalidDimensions([self.ndims(), other.ndims()]))
         } else if self.dtype != other.dtype {
@@ -30,11 +29,11 @@ impl<T:Clone+IntoDataType+Add<Output = T>> Add for Matrix<T> {
     }
 }
 
-impl<T:Clone+IntoDataType+Display+Sub<Output = T>> Sub for Matrix<T> {
-    type Output = Result<Self, MatrixError>;
+impl<T:Clone+IntoDataType+Sub<Output = T>> Sub for Matrix<T> {
+    type Output = Result<Self, MatrixError<T>>;
 
     /// subtracts two matrices element-wise
-    fn sub(self, other: Self) -> Result<Self, MatrixError> {
+    fn sub(self, other: Self) -> Result<Self, MatrixError<T>> {
         if self.ndims() != other.ndims() {
             Err(MatrixError::InvalidDimensions([self.ndims(), other.ndims()]))
         } else if self.dtype != other.dtype {
@@ -57,7 +56,7 @@ impl<T:Clone+IntoDataType+Display+Sub<Output = T>> Sub for Matrix<T> {
 impl<T:IntoDataType + Clone + Numerical + Mul<Output=T> + Sum + MulAssign> Matrix<T> {
     
     /// performs the dot product of two vectors (1D matrices) 
-    pub fn dot(&self, other:&Self) -> Result<T, MatrixError> {
+    pub fn dot(&self, other:&Self) -> Result<T, MatrixError<T>> {
         if (self.ndims() != 1) || (other.ndims() != 1) {
             Err(MatrixError::InvalidDimensions([self.ndims(), other.ndims()]))
         } else if self.array.len() != other.array.len() {
@@ -74,24 +73,24 @@ impl<T:IntoDataType + Clone + Numerical + Mul<Output=T> + Sum + MulAssign> Matri
     }
 
     /// performs the matrix multiplication of 2 2D matrices
-    pub fn matmul(&self, other:&Self) -> Result<Matrix<T>, MatrixError> {
+    pub fn matmul(&self, other:&Self) -> Result<Matrix<T>, MatrixError<T>> {
         if (self.ndims() != 2) || (other.ndims() != 2) {
             Err(MatrixError::InvalidDimensions([self.ndims(), other.ndims()]))
         } else if !(self.shape[0]==other.shape[1]) {
             Err(MatrixError::InvalidShapes([self.shape.clone(), other.shape.clone()]))
-        } else {Ok(())}.unwrap();
-
-        let mut rows = vec![];
-        for r in 0..self.shape[1] {
-            let mut this_row = vec![];
-            for c in 0..other.shape[1] {
-                let row = self.get_row(r)?;
-                let col = &other.clone().get_col(c)?;
-                this_row.push(row.dot(&col)?);
+        } else {
+            let mut rows = vec![];
+            for r in 0..self.shape[1] {
+                let mut this_row = vec![];
+                for c in 0..other.shape[1] {
+                    let row = self.get_row(r)?;
+                    let col = &other.clone().get_col(c)?;
+                    this_row.push(row.dot(&col)?);
+                }
+                rows.push(this_row);
             }
-            rows.push(this_row);
+            Matrix::from_vec_of_vec(rows)
         }
-        Matrix::from_vec_of_vec(rows)
     }
 
     /// multiplies every element of an n-dimensional matrix by a scalar value

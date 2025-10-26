@@ -1,6 +1,5 @@
 use crate::cartesian_product;
 use crate::matrix::Matrix;
-use crate::numbers::DataTypes;
 use crate::type_conversions::IntoDataType;
 use crate::errors::MatrixError;
 
@@ -123,7 +122,7 @@ impl<T:Display + Clone> Matrix<T> {
 
 
 impl<T:Clone> Matrix<T> {
-    pub fn get_submatrix<const K:usize>(&self, bounds:[Range<usize>;K]) -> Result<Matrix<T>, MatrixError> {
+    pub fn get_submatrix<const K:usize>(&self, bounds:[Range<usize>;K]) -> Result<Matrix<T>, MatrixError<T>> {
         if bounds.len() != self.ndims() {
             Err(MatrixError::InvalidDimensions([bounds.len(), self.ndims()]))
         } else {
@@ -175,7 +174,7 @@ impl<T:Clone> Matrix<T> {
                 for indices in cartesian_product::cartesian_product(iters) {
                 //for indices in idx_vec {
                     let linear_index = self.linear_index_of(indices.clone());
-                    println!("indices {:?}, index {}", indices.clone(), linear_index);
+                    //println!("indices {:?}, index {}", indices.clone(), linear_index);
                     let idx_val = self.array[linear_index].clone();
                     new_arr.push(idx_val);
                 }
@@ -349,7 +348,7 @@ impl<T:Clone> Matrix<T> {
     }
 
 
-    pub fn transpose(&self) -> Result<Matrix<T>, MatrixError> {
+    pub fn transpose(&self) -> Result<Matrix<T>, MatrixError<T>> {
         if self.ndims() == 2 {
             Ok(self.swap_axes(0,1))
         } else {
@@ -357,7 +356,7 @@ impl<T:Clone> Matrix<T> {
         }
     }
 
-    pub fn get_row(&self, idx:usize) -> Result<Matrix<T>, MatrixError> {
+    pub fn get_row(&self, idx:usize) -> Result<Matrix<T>, MatrixError<T>> {
         if self.ndims() == 2 {
             match idx<self.shape[1] {
                 true => {
@@ -371,7 +370,7 @@ impl<T:Clone> Matrix<T> {
         }
     }
 
-    pub fn get_col(&self, idx:usize)  -> Result<Matrix<T>, MatrixError> {
+    pub fn get_col(&self, idx:usize)  -> Result<Matrix<T>, MatrixError<T>> {
         if self.ndims() == 2 {
             let tarr = self.transpose()?;
             tarr.get_row(idx)
@@ -391,7 +390,7 @@ impl<T:Clone> Matrix<T> {
         num_items*type_size
     }
 
-    pub fn without_rc(&self, row_i:usize, col_j:usize) -> Result<Matrix<T>, MatrixError> {
+    pub fn without_rc(&self, row_i:usize, col_j:usize) -> Result<Matrix<T>, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
         } else if !(row_i<self.shape[1] && col_j<self.shape[0]) {
@@ -415,7 +414,7 @@ impl<T:Clone> Matrix<T> {
         }
     }
 
-    pub fn without_col(&self, col_j:usize) -> Result<Matrix<T>, MatrixError> {
+    pub fn without_col(&self, col_j:usize) -> Result<Matrix<T>, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
         } else if !(col_j<self.shape[0]) {
@@ -438,16 +437,88 @@ impl<T:Clone> Matrix<T> {
         }
     }
 
-    pub fn expand_along_outer_dim(mut self, other:Matrix<T>) -> Result<Matrix<T>, MatrixError> {
-        if self.shape[0] != other.shape[0] {
-            Err(MatrixError::InvalidShapes([self.shape.to_vec(), other.shape.to_vec()]))
-        } else if (self.dtype != DataTypes::EMPTY) && (self.dtype != other.dtype) {
+    pub fn expand_along_axis(&self, other:Matrix<T>, axis:usize) -> Result<Matrix<T>, MatrixError<T>> {
+        if self.ndims() != other.ndims() {
+            Err(MatrixError::InvalidDimensions([self.ndims(), other.ndims()]))
+        } else if self.dtype != other.dtype {
             Err(MatrixError::InvalidDataTypes([self.dtype, other.dtype]))
         } else {
-            self.dtype = other.dtype;
-            self.shape[1] += other.shape[1];
-            self.array.extend(other.array);
-            Ok(self)
+            let mut shape1 = self.shape.clone();
+            let mut shape2 = other.shape.clone();
+
+            shape1.remove(axis);
+            shape2.remove(axis);
+
+            if !(shape1 == shape2) {
+                Err(MatrixError::InvalidShapes([self.shape.clone(), other.shape]))
+            } else {
+
+                let num_terms_per_axis:usize = self.shape[0..axis].iter().sum();
+                let num_terms_after_axis:usize = self.shape[(axis+1)..self.ndims()].iter().sum();
+                let self_axes_size = self.shape[axis];
+                let other_axes_size = other.shape[axis];
+
+
+                println!("{:?}, {:?}, {:?}, {:?}", self.shape, other.shape, shape1, shape2);
+                println!("terms {}, {}, {}, {}", num_terms_per_axis, num_terms_after_axis, self_axes_size, other_axes_size);
+
+                let mut v = vec![];
+                let mut new_shape = self.shape[0..axis].to_vec();
+                new_shape.push(self_axes_size+other_axes_size);
+                new_shape.extend_from_slice(&self.shape[(axis+1)..self.ndims()]);
+
+
+                if axis==0 && self.ndims()==2 { // expand along columns (expand in x)
+                    for n in 0..(num_terms_per_axis+num_terms_after_axis) {
+                        v.extend( self.array[(n*self_axes_size)..((n+1)*(self_axes_size))].to_vec());
+                        v.extend(other.array[(n*other_axes_size)..((n+1)*(other_axes_size))].to_vec());
+                    }
+                    Ok(Matrix {shape:new_shape, array:v, dtype:self.dtype})
+                } else if axis==1 && self.ndims()==2 { // expand along rows (expand in y)
+                    for n in 0..(num_terms_per_axis+num_terms_after_axis) {
+                        v.extend( self.array[(n*self_axes_size)..((n+1)*(self_axes_size))].to_vec());
+                    }
+                    for n in 0..(num_terms_per_axis+num_terms_after_axis) {
+                        v.extend(other.array[(n*other_axes_size)..((n+1)*(other_axes_size))].to_vec());
+                    }
+                    Ok(Matrix {shape:new_shape, array:v, dtype:self.dtype})
+                } else {
+                    Err(MatrixError::ExpansionAxisOrDimensionsNotImplemented((axis, self.ndims())))
+                }
+
+                //for n in 0..(num_terms_per_axis+num_terms_after_axis) {
+                //    println!("{}, {}, range points {}, {}", n, num_terms_per_axis, n*num_terms_per_axis, (n+1)*(num_terms_per_axis));
+                //    v.extend( self.array[(n*self_axes_size)..((n+1)*(self_axes_size))].to_vec());
+                //    //v.extend(other.array[(n*other_axes_size)..((n+1)*(other_axes_size))].to_vec());
+                //}
+                //for n in 0..(num_terms_per_axis+num_terms_after_axis) {
+                //    println!("{}, {}, range points {}, {}", n, num_terms_per_axis, n*num_terms_per_axis, (n+1)*(num_terms_per_axis));
+                //    //v.extend( self.array[(n*self_axes_size)..((n+1)*(self_axes_size))].to_vec());
+                //    v.extend(other.array[(n*other_axes_size)..((n+1)*(other_axes_size))].to_vec());
+                //}
+//
+                //let mut new_shape = self.shape[0..axis].to_vec();
+                //new_shape.push(self_axes_size+other_axes_size);
+                //new_shape.extend_from_slice(&self.shape[(axis+1)..self.ndims()]);
+//
+//
+                //Ok(Matrix {shape:new_shape, array:v, dtype:self.dtype})
+            }
         }
     }
+
+//    pub fn expand_along_outer_dim(mut self, other:Matrix<T>) -> Result<Matrix<T>, MatrixError<T>> {
+//        if self.ndims() != 2 {
+//            Err(MatrixError::InvalidDimension(self.ndims()))
+//        } else if self.shape[0] != other.shape[0] {
+//            Err(MatrixError::InvalidShapes([self.shape.to_vec(), other.shape.to_vec()]))
+//        } else if (self.dtype != DataTypes::EMPTY) && (self.dtype != other.dtype) {
+//            Err(MatrixError::InvalidDataTypes([self.dtype, other.dtype]))
+//        } else {
+//            self.dtype = other.dtype;
+//            self.shape[1] += other.shape[1];
+//            self.array.extend(other.array);
+//            Ok(self)
+//        }
+//    }
 }

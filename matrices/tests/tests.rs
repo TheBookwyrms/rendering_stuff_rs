@@ -5,6 +5,74 @@ use matrices::cartesian_product;
 
 
 #[test]
+fn gauss_jordan_inverse() {
+    let mat = Matrix::from_2darray([
+        [1., 2., 3.],
+        [2., 4., 8.],
+        [3., 9., 27.],
+    ]);
+
+    let inv_mat = mat.reduced_echelon_inverse().unwrap();
+
+    assert_eq!(inv_mat, Matrix::from_2darray([
+        [-6.0, 4.5, -2./3.],
+        [5., -3., 1./3.],
+        [-1., 0.5, 0.],
+    ]))
+}
+
+#[test]
+fn expand_along_axis_test2() {
+    let m1 = Matrix::from_2darray([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+    ]);
+
+    let m2 = Matrix::from_2darray([
+        [10, 11, 12],
+        [13, 14, 15],
+        [16, 17, 18],
+    ]);
+
+    let extend_ax0 = m1.expand_along_axis(m2, 0).unwrap();
+    println!("{}", extend_ax0);
+
+    assert_eq!(extend_ax0, Matrix::from_2darray([
+        [1, 2, 3, 10, 11, 12],
+        [4, 5, 6, 13, 14, 15],
+        [7, 8, 9, 16, 17, 18],])
+    );
+}
+
+#[test]
+fn expand_along_axis_test1() {
+    let m1 = Matrix::from_2darray([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+    ]);
+
+    let m2 = Matrix::from_2darray([
+        [10, 11, 12],
+        [13, 14, 15],
+    ]);
+
+    let extend_ax1 = m1.expand_along_axis(m2, 1).unwrap();
+
+    println!("{}", extend_ax1);
+
+    assert_eq!(extend_ax1, Matrix::from_2darray([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+        [10, 11, 12],
+        [13, 14, 15],])
+    );
+}
+
+
+#[test]
 fn cartesian_product_two_vec() {
     let a1 = vec![1, 2, 3];
     let a2 = vec![4, 5, 6];
@@ -145,10 +213,10 @@ fn column_zeroes() {
         [0.0, 0.0, 0.0],
     ]);
 
-    let is_zero1 = mat1.col_is_nul(0).unwrap();
-    let is_zero2 = mat1.col_is_nul(2).unwrap();
-    let is_zero4 = mat2.col_is_nul(0).unwrap();
-    let is_zero5 = mat2.col_is_nul(1).unwrap();
+    let is_zero1 = mat1.col_is_null(0).unwrap();
+    let is_zero2 = mat1.col_is_null(2).unwrap();
+    let is_zero4 = mat2.col_is_null(0).unwrap();
+    let is_zero5 = mat2.col_is_null(1).unwrap();
 
     assert_eq!(is_zero1, false);
     assert_eq!(is_zero2, false);

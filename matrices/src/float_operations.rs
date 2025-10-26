@@ -9,14 +9,15 @@ use crate::type_conversions::IntoDataType;
 
 
 impl<T:
-    Float + Clone + IntoDataType + Display + Debug + PartialEq + DivAssign
+    Float + Clone + IntoDataType + PartialEq + DivAssign
     + SubAssign + MulAssign + AddAssign + Mul + Sub + Numerical + Add<Output = T>
     + Mul<Output = T> + Sub<Output = T> + Sum + Neg<Output = T> + Div<Output = T>
     + IntoDataType
+    + Display + Debug
     > Matrix<T> {
 
     
-    pub fn minor(&self, row_i:usize, col_j:usize) -> Result<T, MatrixError> {
+    pub fn minor(&self, row_i:usize, col_j:usize) -> Result<T, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
         } else if self.shape[0] != self.shape[1] {
@@ -27,7 +28,7 @@ impl<T:
         }
     }
 
-    pub fn cofactor(&self, row_i:usize, col_j:usize) -> Result<T, MatrixError> {
+    pub fn cofactor(&self, row_i:usize, col_j:usize) -> Result<T, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
         } else if self.shape[0] != self.shape[1] {
@@ -48,7 +49,7 @@ impl<T:
         }
     }
 
-    pub fn laplace_expansion(&self) -> Result<T, MatrixError> {
+    pub fn laplace_expansion(&self) -> Result<T, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
         } else if self.shape[0] != self.shape[1] {
@@ -71,7 +72,7 @@ impl<T:
         }
     }
 
-    pub fn cofactor_matrix(&self) -> Result<Matrix<T>, MatrixError> {
+    pub fn cofactor_matrix(&self) -> Result<Matrix<T>, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
         }  else if self.shape[0] != self.shape[1] {
@@ -88,7 +89,7 @@ impl<T:
         }
     }
 
-    pub fn inverse(&self) -> Result<Matrix<T>, MatrixError> {
+    pub fn inverse(&self) -> Result<Matrix<T>, MatrixError<T>> {
         let determinant = self.laplace_expansion()?;
         if determinant == T::zero() {
             Err(MatrixError::DeterminantIsZero)
@@ -97,7 +98,8 @@ impl<T:
         }
     }
 
-    pub fn col_is_nul(&self, col_j:usize) -> Result<bool, MatrixError> {
+    /// determines if the column j of a matrix is null (zero)
+    pub fn col_is_null(&self, col_j:usize) -> Result<bool, MatrixError<T>> {
         if self.ndims() == 2 {
             let column = self.get_col(col_j)?;
             let zeroes = (0..column.array.len()).map(|i| column.array[i].is_zero()).all(|b| b==true);
@@ -108,8 +110,9 @@ impl<T:
     }
 
 
-    /// Gaussian elimination algorithm to get the row echelon form of a matrix
-    pub fn echelon(&self) -> Result<Matrix<T>, MatrixError> {
+    /// get the echelon form of a matrix
+    /// via Gaussian elimination algorithm
+    pub fn echelon(&self) -> Result<Matrix<T>, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
         } else {
@@ -155,8 +158,9 @@ impl<T:
         }
     }
 
-    /// Gauss-Jordan elimination algorithm
-    pub fn reduced_echelon(&self) -> Result<Matrix<T>, MatrixError> {
+    /// get the reduced echelon form of a matrix
+    /// via Gauss-Jordan elimination algorithm
+    pub fn reduced_echelon(&self) -> Result<Matrix<T>, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
         } else {
@@ -164,57 +168,37 @@ impl<T:
             let mut reduced_echelon_form = echelon_form.clone();
             for base in (0..echelon_form.shape[1]).rev() {
                 for row_i in (0..base).rev() {
-                    //println!("");
                     let val_above_pivot = reduced_echelon_form[[base, row_i]].clone();
                     for col_j in 0..self.shape[0] {
                         let pivot_value = reduced_echelon_form[[col_j, base]].clone();
-                        //let position_val = reduced_echelon_form[[col_j, row_i]].clone();
-                        //println!("{}, {}, {}", pivot_value.clone(), val_above_pivot.clone(), position_val.clone());
                         reduced_echelon_form[[col_j, row_i]] -= pivot_value.clone()*val_above_pivot.clone();
                     }
-                    //println!("{}", reduced_echelon_form);
                 }
             }
             Ok(reduced_echelon_form)
         }
     }
 
+    /// solve a system of linear equations
+    /// formatted as an augmented matrix
     /// via Gauss-Jordan elimination
-    pub fn solve(&self) -> Result<Matrix<T>, MatrixError> {
+    pub fn solve(&self) -> Result<Matrix<T>, MatrixError<T>> {
         if self.ndims() != 2 {
             Err(MatrixError::InvalidDimension(self.ndims()))
         } else if self.shape[0] != self.shape[1]+1 {
             Err(MatrixError::AugmentedMatrixShapeError)
         } else {
             let reduced_echelon = self.reduced_echelon()?;
-            //error("a".to_string());
+
             let identity = Matrix::<T>::identity(self.shape[1]);
-
-            println!("{}", identity);
-
             let reduced_matrix_left = reduced_echelon.get_submatrix([0..self.shape[0]-1, 0..self.shape[1]])?;
-                        println!("re {}", reduced_echelon);
-                        println!("rel {}", reduced_matrix_left);
-
             
             let re_minus_id = (reduced_matrix_left-identity.clone())?;
-
             let null = Matrix::<T>::null_from_vec(re_minus_id.shape);
 
-            //println!("a, {}", reduced_echelon);
-            //println!("b, {}", identity);
-            //println!("c, {}", re_minus_id);
-            //println!("d, {}", without_results);
-            //println!("e, {}", null);
 
-
-            //println!("{}, {}", without_results.array.len(), null.array.len());
-            println!("{:?}, {:?}", re_minus_id.array, null.array);
             let dtype_eq = re_minus_id.dtype == null.dtype;
             let arr_eq = re_minus_id.array == null.array;
-            //for i in 0..without_results.array.len() {
-            //    println!("{}, {}, {}, {}", i, without_results.array[i], null.array[i], without_results.array[i]==null.array[i])
-            //}
 
             if dtype_eq && arr_eq {
                 let solution = reduced_echelon.get_col(self.shape[0]-1)?;
@@ -222,7 +206,45 @@ impl<T:
             } else {
                 Err(MatrixError::MatrixSolveError((dtype_eq, arr_eq)))
             }
+        }
+    }
 
+    pub fn reduced_echelon_inverse(&self) -> Result<Matrix<T>, MatrixError<T>> {
+        if self.ndims() != 2 {
+            Err(MatrixError::InvalidDimension(self.ndims()))
+        } else if self.shape[0] != self.shape[1] {
+            Err(MatrixError::InvalidShape(self.shape.clone()))
+        } else {
+
+
+            let identity = Matrix::<T>::identity(self.shape[0]);
+            let augmented_matrix = self.expand_along_axis(identity.clone(), 0)?;
+            let reduced_echelon = augmented_matrix.reduced_echelon()?;
+            
+            //println!("{}", identity);
+            //println!("{}", augmented_matrix);
+            //println!("{}", reduced_echelon);
+
+            //println!("{:?}", augmented_matrix.shape);
+            //println!("{:?}, {:?}, {:?}, {:?}", augmented_matrix.shape, 0..augmented_matrix.shape[0]/2, 0..augmented_matrix.shape[1], augmented_matrix.shape[0]/2..augmented_matrix.shape[0]);
+
+            let reduced_matrix_left = reduced_echelon.get_submatrix([0..augmented_matrix.shape[0]/2, 0..augmented_matrix.shape[1]])?;
+            let reduced_matrix_right = reduced_echelon.get_submatrix([augmented_matrix.shape[0]/2..augmented_matrix.shape[0], 0..augmented_matrix.shape[1]])?;
+
+            //println!("{}", reduced_matrix_left);
+            //println!("{}", reduced_matrix_right);
+
+            let re_minus_id = (reduced_matrix_left-identity.clone())?;
+            let null = Matrix::<T>::null_from_vec(re_minus_id.shape);
+
+            let dtype_eq = re_minus_id.dtype == null.dtype;
+            let arr_eq = re_minus_id.array == null.array;
+            
+            if dtype_eq && arr_eq {
+                Ok(reduced_matrix_right)
+            } else {
+                Err(MatrixError::MatrixNotInversible(augmented_matrix))
+            }
         }
     }
 }

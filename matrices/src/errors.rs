@@ -1,7 +1,7 @@
-use crate::numbers::DataTypes;
+use crate::{matrix::Matrix, numbers::DataTypes};
 
 #[derive(Debug)]
-pub enum MatrixError {
+pub enum MatrixError<T> {
     InvalidShape(Vec<usize>),
     InvalidShapes([Vec<usize>; 2]),
     InvalidDimension(usize),
@@ -16,4 +16,6 @@ pub enum MatrixError {
     InvalidExpansionLength((Vec<usize>, usize)),
     MatrixSolveError((bool, bool)),
     InvalidBounds,
+    ExpansionAxisOrDimensionsNotImplemented((usize, usize)),
+    MatrixNotInversible(Matrix<T>)
 }
