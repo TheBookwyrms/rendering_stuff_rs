@@ -1,6 +1,7 @@
 use crate::matrix::Matrix;
 use crate::traits::{IntoDataType, Numerical};
 use crate::enums::MatrixError;
+use std::fmt::Debug;
 use std::iter::Sum;
 use std::ops::{Add, Mul, MulAssign, Sub};
 
@@ -52,7 +53,7 @@ impl<T:Clone+IntoDataType+Sub<Output = T>> Sub for Matrix<T> {
     }
 }
 
-impl<T:IntoDataType + Clone + Numerical + Mul<Output=T> + Sum + MulAssign> Matrix<T> {
+impl<T:IntoDataType + Clone + Numerical + Mul<Output=T> + Sum + MulAssign + Debug> Matrix<T> {
     
     /// performs the dot product of two vectors (1D matrices) 
     pub fn dot(&self, other:&Self) -> Result<T, MatrixError<T>> {
@@ -77,27 +78,29 @@ impl<T:IntoDataType + Clone + Numerical + Mul<Output=T> + Sum + MulAssign> Matri
             Err(MatrixError::InvalidDimensions([self.ndims(), other.ndims()]))
         } else if !(self.shape[0]==other.shape[1]) {
             Err(MatrixError::InvalidShapes([self.shape.clone(), other.shape.clone()]))
+        } else if self.dtype != other.dtype {
+            Err(MatrixError::InvalidDataTypes([self.dtype, other.dtype]))
         } else {
             let mut rows = vec![];
             for r in 0..self.shape[1] {
                 let mut this_row = vec![];
+                let row = self.get_row(r)?;
+
                 for c in 0..other.shape[1] {
-                    let row = self.get_row(r)?;
                     let col = &other.clone().get_col(c)?;
                     this_row.push(row.dot(&col)?);
                 }
-                rows.push(this_row);
+                rows.extend(this_row);
             }
-            Matrix::from_vec_of_vec(rows)
+
+            Ok(Matrix {shape:vec![other.shape[0], self.shape[1]], array:rows, dtype:self.dtype})
         }
     }
 
     /// multiplies every element of an n-dimensional matrix by a scalar value
     pub fn multiply_by_constant(&self, scalar:T) -> Matrix<T> {
         let mut narr = self.array.clone();
-        narr.iter_mut()
-            .zip(vec![scalar;self.array.len()])
-            .for_each(|(a1, a2)| *a1*=a2);
+        (0..self.array.len()).for_each(|i| narr[i] *= scalar.clone());
         Matrix {shape:self.shape.clone(), array:narr, dtype:self.dtype}
     }
 }

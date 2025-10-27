@@ -112,7 +112,53 @@ fn cartesian_product_three_vec() {
 }
 
 #[test]
-fn range_indexing() {
+fn range_indexing3d() {
+    let mat = Matrix::from_3darray([
+        [
+            [01, 02, 03, 04],
+            [05, 06, 07, 08],
+            [9, 10, 11, 12],
+            [13, 14, 15, 16],
+        ],
+        [
+            [17, 18, 19, 20],
+            [21, 22, 23, 24],
+            [25, 26, 27, 28],
+            [29, 30, 31, 32],
+        ],
+        [
+            [33, 34, 35, 36],
+            [37, 38, 39, 40],
+            [41, 42, 43, 44],
+            [45, 46, 47, 48],
+        ],
+        [
+            [49, 50, 51, 52],
+            [53, 54, 55, 56],
+            [57, 58, 59, 60],
+            [61, 62, 63, 64],
+        ],
+    ]);
+
+    let indexed_mat = mat.get_submatrix([0..3, 2..4, 1..3]).unwrap();
+    //0, 1, 2
+    //2, 3
+    //1, 2
+    println!("{}", indexed_mat);
+    assert_eq!(indexed_mat, Matrix::from_3darray([
+        [
+            [25, 26, 27],
+            [29, 30, 31],
+        ],
+        [
+            [41, 42, 43],
+            [45, 46, 47],
+        ],
+    ]));
+}
+
+#[test]
+fn range_indexing2d() {
     let mat = Matrix::from_2darray([
         [00, 01, 02, 03, 04, 05, 06, 07, 08, 09],
         [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
@@ -239,62 +285,61 @@ fn indices_conversion() {
     assert_eq!(19, mat.linear_index_of(vec![1, 0, 3]));
 }
 
+#[test]
+fn multiply_by_constant() {
+    let arr = Matrix::from_1darray([1, 2, 3]);
+    let new_arr = arr.multiply_by_constant(3);
+
+    assert_eq!(new_arr, Matrix::from_1darray([3, 6, 9]));
+}
+
+#[test]
+fn dot_product() {
+    let arr = Matrix::from_1darray([1.0, 2.0, 3.0, 4.0]);
+    let dot = arr.dot(&arr).unwrap();
+
+    assert_eq!(dot, 30.0);
+}
+
+#[test]
+fn swap_axes2d() {
+    let mat = Matrix::from_2darray([
+        [13.3, 18.3, 18.4],
+        [9.9, 29.9,  6.0],
+        [7.7, 19.9,  5.0],
+        [5.5, 39.9, 40.0],
+    ]);
+
+    let swap = mat.swap_axes(0, 1);
+
+    assert_eq!(swap, Matrix::from_2darray([
+        [13.3, 9.9, 7.7, 5.5],
+        [18.3, 29.9, 19.9, 39.9],
+        [18.4, 6.0, 5.0, 40.0],
+    ]));
+}
+
+#[test]
+fn without_rc() {
+    let mat = Matrix::from_2darray([
+        [1.1, 2.2, 9.3],
+        [9.9, 2.3, 8.3],
+        [7.7, 2.4, 7.3],
+        [5.5, 2.5, 6.3],
+    ]);
+
+    let without = mat.without_rc(0, 2).unwrap();
+
+    assert_eq!(without, Matrix::from_2darray([
+        [9.9, 2.3],
+        [7.7, 2.4],
+        [5.5, 2.5],
+    ]));
+}
 
 
 #[test]
-fn test() {
-
-    let a = Matrix::from_scalar(23.3);
-    let b = Matrix::from_1darray([1.0, 2.0, 3.0, 4.0]);
-    let c = Matrix::from_vec(vec![9.9, 8.3, 7.2]);
-    let d = Matrix::from_2darray([
-        [13.3],
-        [9.9],
-        [7.7],
-        [5.5],
-    ]);
-    println!("{}\n|| {:?} \n\n", a, a);
-    println!("{}\n|| {:?} \n\n", b, b);
-    println!("{}\n|| {:?} \n\n", c, c);
-    println!("{}\n|| {:?} \n\n", d, d);
-    let _e = Matrix::from_vec_of_vec(vec![
-        vec![13.3, 18.3, 18.3, 108.3],
-        vec![9.9, 29.9, 06.0, 0.9235],
-        vec![7.7, 19.9, 05.0, 0.18235],
-        vec![5.5, 39.9, 40.0, 0.235],
-    ]).unwrap();
-    let e = Matrix::from_vec_of_vec(vec![
-        vec![13.3, 18.3, 18.4],
-        vec![9.9, 29.9,  6.0],
-        vec![7.7, 19.9,  5.0],
-        vec![5.5, 39.9, 40.0],
-    ]).unwrap();
-    let f = e.swap_axes(0, 1);
-    println!("{}\n|| {:?} \n\n", e, e);
-    println!("{}\n|| {:?} \n\n", f, f);
-    let g = Matrix::from_3darray([
-        [
-            [1., 3.],
-            [4., 6.],
-            [7., 9.],
-        ],
-        [
-            [10., 12.,],
-            [13., 15.],
-            [16., 18.],
-        ],
-        [
-            [19., 21.],
-            [22., 24.,],
-            [25., 27.],
-        ]
-    ]);
-
-    println!("{:?}, {:?}", g.shape, g.array);
-    //println!("{}\n|| {:?} \n\n", g, g);
-    //let h = g.swap_axes(0, 1);
-    //println!("{}\n|| {:?} \n\n", h, h);
-
+fn matmul() {
     let m1 = Matrix::from_2darray([
         [1.1, 2.2, 9.3],
         [9.9, 2.3, 8.3],
@@ -306,27 +351,13 @@ fn test() {
         [7.3, 8.6, 0.9],
         [7.4, 7.1, 2.7],
     ]);
-    println!("e {}\n|| {:?} \n\n", e, e);
-    let f = m1.matmul(&m2).unwrap();
-    println!("f {}\n|| {:?} \n\n", f, f);
 
-    let rc = m1.without_rc(0, 2).unwrap();
-    println!("f {}\n|| {:?} \n\n", rc, rc);
+    let matmultiplied = m1.matmul(&m2).unwrap();
 
-    let inv = m2.inverse().unwrap();
-    //let inv = m2.cofactor_matrix().unwrap();
-    println!("f {}\n|| {:?} \n\n", inv, inv);
-
-    let b = Matrix::from_1darray([1.0, 2.0, 3.0, 4.0]);
-    let b = b.dot(&b).unwrap();
-    println!("f {}\n|| {:?} \n\n", b, b);
-
-    let k = Matrix::<i8>::from_1darray([1, 2, 3]);
-    let c = Matrix::<i16>::from(k.clone());
-    let _b = Matrix::<f32>::from(c);
-    //let d = Matrix::<i8>::from(b);
-
-    println!("{}", (k.multiply_by_constant(3)));
-
-    assert_eq!(2+3, 5);
+    assert_eq!(matmultiplied, Matrix::from_2darray([
+        [92.8, 88.58, 29.07],
+        [149.49, 111.38, 42.3],
+        [126.98, 97.88, 35.73],
+        [104.47, 84.38, 29.16],
+    ]));
 }

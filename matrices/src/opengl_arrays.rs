@@ -55,10 +55,12 @@ impl Matrix<f32> {
     }
 
     /// creates rotation matrix around an arbitrary point
+    /// 
     /// rotation is in degrees
-    /// translates the position to be at the origin
-    /// rotates it accordingly
-    /// translates back to the original position
+    /// 
+    /// first translates the position to be at the origin,
+    /// then rotates it accordingly,
+    /// lastly translates back to the original position
     pub fn rotate_around_p(p:(f32, f32, f32), r:(f32, f32, f32)) -> Result<Matrix<f32>, MatrixError<f32>> {
 
         // p in form (x_offset, y_offset, z_offset)

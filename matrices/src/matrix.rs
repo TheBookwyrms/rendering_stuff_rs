@@ -1,7 +1,7 @@
 use crate::enums::DataTypes;
 
 #[derive(Debug, Clone)]
-/// struct to hold matrices of arbitrary type T
+/// struct to hold matrices of (mostly) arbitrary type T
 pub struct Matrix<T> {
     /// shape of the matrix
     /// goes from inner to outer dimensions

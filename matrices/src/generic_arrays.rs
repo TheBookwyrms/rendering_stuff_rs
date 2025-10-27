@@ -16,54 +16,6 @@ fn error(msg:String) {
     }.unwrap();
 }
 
-impl<T:Clone> Matrix<T> {
-
-    /// converts linear index into corresponding matrix indices
-    pub fn indices_of(&self, linear_index:usize) -> Vec<usize> {
-
-        let mut indices = self.shape.clone();
-
-        let mut curr_max :usize = self.shape.iter().product();
-        let mut curr_lin_idx = linear_index.clone();
-
-        for (i, s_size) in self.shape.iter().enumerate().rev() {
-            // IMPORTANT!!!
-            // The divisions here truncate the values
-            // not a pure division with exact values
-            // ex: 3.75 is truncated to 3
-            let section_len = curr_max/s_size;
-            let section = curr_lin_idx/section_len;
-            curr_lin_idx -= section*section_len;
-            curr_max = curr_max/s_size;
-            indices[i] = section;
-        }
-        indices
-    }
-
-    /// turns matrix indices into corresponding linear index
-    pub fn linear_index_of(&self, indices:Vec<usize>) -> usize {        
-        let mut linear_idx = 0;
-        
-        for i in (0..self.ndims()).into_iter().rev() {
-            let mut idx_max = 1;
-            for j in 0..i {
-                idx_max *= self.shape[j];
-            }
-            linear_idx += indices[i]*idx_max;
-        }
-        linear_idx
-    }
-
-    pub fn ndims(&self) -> usize {
-        self.shape.len()
-    }
-
-    pub fn as_ptr(&self) -> *const T {
-        self.array.as_ptr()
-    }
-}
-
-
 impl<T:Display + Clone> Matrix<T> {
     /// gets the longest length of any item
     /// contained by the matrix for use
@@ -89,39 +41,6 @@ impl<T:Display + Clone> Matrix<T> {
         (length_left, length_right)
     }
 }
-
-
-impl<T:Clone> Matrix<T> {
-    /// index a matrix by Ranges, returning a submatrix composed of the included bounds
-    pub fn get_submatrix<const K:usize>(&self, bounds:[Range<usize>;K]) -> Result<Matrix<T>, MatrixError<T>> {
-        if bounds.len() != self.ndims() {
-            Err(MatrixError::InvalidDimensions([bounds.len(), self.ndims()]))
-        } else {
-            let not_bounded = bounds.iter().enumerate().map(|(i, range)| match range.clone().max() {
-                Some(max) => max < self.shape[i],
-                None => false,
-            }).collect::<Vec<bool>>().contains(&false);
-
-            if not_bounded {
-                Err(MatrixError::InvalidBounds)
-            } else {
-                let mut new_shape = bounds.clone().map(|range| range.len()).to_vec();
-                new_shape.reverse();
- 
-                let mut new_arr = vec![];
-                let iters = bounds.map(|range| range.collect::<Vec<usize>>());
-                for indices in cartesian_product::cartesian_product(iters) {
-                    let linear_index = self.linear_index_of(indices.clone());
-                    let idx_val = self.array[linear_index].clone();
-                    new_arr.push(idx_val);
-                }
-            
-                Ok(Matrix { shape:new_shape, array:new_arr, dtype:self.dtype }.swap_axes(0, 1))
-            }
-        }
-    }
-}
-
 
 impl<const K:usize, T:Clone> Index<[usize;K]> for Matrix<T> {
     type Output = T;
@@ -222,6 +141,80 @@ impl<T:Display + Debug + PartialEq + IntoDataType + Clone> Display for Matrix<T>
 
 
 impl<T:Clone> Matrix<T> {
+
+    /// converts linear index into corresponding matrix indices
+    pub fn indices_of(&self, linear_index:usize) -> Vec<usize> {
+
+        let mut indices = self.shape.clone();
+
+        let mut curr_max :usize = self.shape.iter().product();
+        let mut curr_lin_idx = linear_index.clone();
+
+        for (i, s_size) in self.shape.iter().enumerate().rev() {
+            // IMPORTANT!!!
+            // The divisions here truncate the values
+            // not a pure division with exact values
+            // ex: 3.75 is truncated to 3
+            let section_len = curr_max/s_size;
+            let section = curr_lin_idx/section_len;
+            curr_lin_idx -= section*section_len;
+            curr_max = curr_max/s_size;
+            indices[i] = section;
+        }
+        indices
+    }
+
+    /// turns matrix indices into corresponding linear index
+    pub fn linear_index_of(&self, indices:Vec<usize>) -> usize {        
+        let mut linear_idx = 0;
+        
+        for i in (0..self.ndims()).into_iter().rev() {
+            let mut idx_max = 1;
+            for j in 0..i {
+                idx_max *= self.shape[j];
+            }
+            linear_idx += indices[i]*idx_max;
+        }
+        linear_idx
+    }
+
+    pub fn ndims(&self) -> usize {
+        self.shape.len()
+    }
+
+    pub fn as_ptr(&self) -> *const T {
+        self.array.as_ptr()
+    }
+    
+    /// index a matrix by Ranges, returning a submatrix composed of the included bounds
+    pub fn get_submatrix<const K:usize>(&self, bounds:[Range<usize>;K]) -> Result<Matrix<T>, MatrixError<T>> {
+        if bounds.len() != self.ndims() {
+            Err(MatrixError::InvalidDimensions([bounds.len(), self.ndims()]))
+        } else {
+            let not_bounded = bounds.iter().enumerate().map(|(i, range)| match range.clone().max() {
+                Some(max) => max < self.shape[i],
+                None => false,
+            }).collect::<Vec<bool>>().contains(&false);
+
+            if not_bounded {
+                Err(MatrixError::InvalidBounds)
+            } else {
+                let mut new_shape = bounds.clone().map(|range| range.len()).to_vec();
+                new_shape.reverse();
+ 
+                let mut new_arr = vec![];
+                let iters = bounds.map(|range| range.collect::<Vec<usize>>());
+                let c = cartesian_product::cartesian_product(iters);
+                for indices in c {
+                    let linear_index = self.linear_index_of(indices.clone());
+                    let idx_val = self.array[linear_index].clone();
+                    new_arr.push(idx_val);
+                }
+
+                Ok(Matrix { shape:new_shape, array:new_arr, dtype:self.dtype }.swap_axes(0, self.ndims()-1))
+            }
+        }
+    }
 
     /// swap two axes of an N-dimensional array
     pub fn swap_axes(&self, axis1:usize, axis2:usize) -> Matrix<T> {
