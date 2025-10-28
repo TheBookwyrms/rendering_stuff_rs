@@ -2,11 +2,11 @@ use std::str::Utf8Error;
 use std::num::TryFromIntError;
 use std::ffi::NulError;
 
-use matrices::errors::MatrixError;
+use numeracy::matrices::enums::MatrixError;
 
 
 #[derive(Debug)] // Copy
-pub enum GlError {
+pub enum GlError<T> {
     CStringError(NulError),
     InvalidShaderType(ShaderType),
     InvalidBufferType(BufferType),
@@ -20,7 +20,7 @@ pub enum GlError {
     EmbedError,
     TextError(Utf8Error),
     InvalidProgramVariantUsage(ProgramVariant),
-    MatrixError(MatrixError),
+    MatrixError(MatrixError<T>),
     TryFromIntError(TryFromIntError),
 }
 

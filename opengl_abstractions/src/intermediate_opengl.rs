@@ -19,7 +19,7 @@ pub fn load_opengl_with<T:FnMut(&'static str) -> *const c_void>(loadfn: T) -> Gl
 }
 
 
-pub fn clear_colour(opengl:&Gl, r:f32, g:f32, b:f32, a:f32) -> Result<(), GlError> {
+pub fn clear_colour<T>(opengl:&Gl, r:f32, g:f32, b:f32, a:f32) -> Result<(), GlError<T>> {
     let validity = vec![r, g, b, a].into_iter().filter(|c| 0.0<=*c && *c<=1.0).count();
     match validity {
         4 => Ok(raw_opengl::clear_colour(opengl, r, g, b, a)),
@@ -54,7 +54,7 @@ pub fn gl_blendfunc(opengl:&Gl, setting:BlendFunc) {
     }
 }
 
-pub fn create_shader(opengl:&Gl, shader_type:ShaderType) -> Result<u32, GlError> {
+pub fn create_shader<T>(opengl:&Gl, shader_type:ShaderType) -> Result<u32, GlError<T>> {
     match shader_type {
         ShaderType::VertexShader   => Ok(raw_opengl::create_shader(opengl, gl::VERTEX_SHADER)),
         ShaderType::FragmentShader => Ok(raw_opengl::create_shader(opengl, gl::FRAGMENT_SHADER)),
@@ -63,7 +63,7 @@ pub fn create_shader(opengl:&Gl, shader_type:ShaderType) -> Result<u32, GlError>
 }
 
 
-pub fn shader_source(opengl:&Gl, shader_id:u32, source:&str) -> Result<(), GlError> {
+pub fn shader_source<T>(opengl:&Gl, shader_id:u32, source:&str) -> Result<(), GlError<T>> {
     match CString::new(source) {
         Ok(binding) => {
             let source_ptr = binding.as_c_str().as_ptr();
@@ -74,7 +74,7 @@ pub fn shader_source(opengl:&Gl, shader_id:u32, source:&str) -> Result<(), GlErr
     }
 }
 
-pub fn create_shader_variant(opengl:&Gl, str_text:&str, shader_type:ShaderType) -> Result<u32, GlError> {
+pub fn create_shader_variant<T>(opengl:&Gl, str_text:&str, shader_type:ShaderType) -> Result<u32, GlError<T>> {
     let shader_id = create_shader(opengl, shader_type)?;
 
     shader_source(opengl, shader_id, str_text)?;
@@ -85,7 +85,7 @@ pub fn create_shader_variant(opengl:&Gl, str_text:&str, shader_type:ShaderType) 
     Ok(shader_id)
 }
 
-pub fn use_program(opengl:&Gl, program:ProgramVariant) -> Result<(), GlError> {
+pub fn use_program<T>(opengl:&Gl, program:ProgramVariant) -> Result<(), GlError<T>> {
     match program {
         ProgramVariant::BlinnPhongOrthographic(id) => Ok(raw_opengl::use_program(opengl, id)),
         ProgramVariant::SimpleOrthographic(id) => Ok(raw_opengl::use_program(opengl, id)),
@@ -97,7 +97,7 @@ pub fn remove_shader_variant(opengl:&Gl, program_id:u32, shader_id:u32) {
     raw_opengl::delete_shader(opengl, shader_id);
 }
 
-pub fn create_shader_program(opengl:&Gl, vertex_id:u32, fragment_id:u32) -> Result<u32, GlError> {
+pub fn create_shader_program<T>(opengl:&Gl, vertex_id:u32, fragment_id:u32) -> Result<u32, GlError<T>> {
     let program_id = raw_opengl::create_program(opengl);
     
     raw_opengl::attach_shader(opengl, program_id,   vertex_id);
@@ -112,9 +112,9 @@ pub fn create_shader_program(opengl:&Gl, vertex_id:u32, fragment_id:u32) -> Resu
 
 
 
-pub fn set_uniform(opengl:&Gl, program_id:u32,
+pub fn set_uniform<T>(opengl:&Gl, program_id:u32,
                     uniform_name:&str, uniform_type:UniformType,
-                    value:*const f32) -> Result<(), GlError> {
+                    value:*const f32) -> Result<(), GlError<T>> {
     let location_name = get_uniform_location(opengl, program_id, uniform_name)?;
     match uniform_type {
         UniformType::Float => raw_opengl::set_uniform_float(opengl, location_name, value),
@@ -124,7 +124,7 @@ pub fn set_uniform(opengl:&Gl, program_id:u32,
     Ok(())
 }
 
-pub fn get_uniform_location(opengl:&Gl, program_id:u32, uniform_name:&str) -> Result<i32, GlError> {
+pub fn get_uniform_location<T>(opengl:&Gl, program_id:u32, uniform_name:&str) -> Result<i32, GlError<T>> {
     match CString::new(uniform_name) {
         Ok(cstring) => {
             let cname = cstring.as_bytes_with_nul().as_ptr() as *const i8;
@@ -135,7 +135,7 @@ pub fn get_uniform_location(opengl:&Gl, program_id:u32, uniform_name:&str) -> Re
 }
 
 
-pub fn read_info_log_error(
+pub fn read_info_log_error<T>(
     opengl:&Gl,
     iv_func: &dyn Fn(&Gl, u32, u32, *mut i32) -> (),
     log_func: &dyn Fn(&Gl, u32, i32, *mut i32, *mut i8) -> (),
@@ -156,23 +156,23 @@ pub fn read_info_log_error(
 }
 
 
-pub fn get_compilation_error(opengl:&Gl, id:u32, shader_type:ShaderType) -> Result<(), GlError> {
+pub fn get_compilation_error<T>(opengl:&Gl, id:u32, shader_type:ShaderType) -> Result<(), GlError<T>> {
 
     let mut success = 0; // this defaults error unless it worked // 1 is good, 0 is bad
     let error_msg = match shader_type {
         ShaderType::VertexShader => {
             raw_opengl::get_shader_iv(opengl, id, gl::COMPILE_STATUS, &mut success);
-            read_info_log_error(opengl, &raw_opengl::get_shader_iv,
+            read_info_log_error::<T>(opengl, &raw_opengl::get_shader_iv,
                                 &raw_opengl::get_shader_info_log, id)
         },
         ShaderType::FragmentShader => {
             raw_opengl::get_shader_iv(opengl, id, gl::COMPILE_STATUS, &mut success);
-            read_info_log_error(opengl, &raw_opengl::get_shader_iv,
+            read_info_log_error::<T>(opengl, &raw_opengl::get_shader_iv,
                                 &raw_opengl::get_shader_info_log, id)
         },
         ShaderType::ShaderProgram => {
             raw_opengl::get_program_iv(opengl, id, gl::LINK_STATUS, &mut success);
-            read_info_log_error(opengl, &raw_opengl::get_program_iv,
+            read_info_log_error::<T>(opengl, &raw_opengl::get_program_iv,
                                 &raw_opengl::get_program_info_log, id)
         },
     };
@@ -208,8 +208,8 @@ pub fn buffer_data(
     }
 }
 
-pub fn set_vertex_attrib(opengl:&Gl, layout_location:u32, store_normals:bool, dtype_size:i32
-) -> Result<(), GlError>{
+pub fn set_vertex_attrib<T>(opengl:&Gl, layout_location:u32, store_normals:bool, dtype_size:i32
+) -> Result<(), GlError<T>>{
     
     let n_per_vertice : i32 = 3;
     let n_per_colour  : i32 = 3;

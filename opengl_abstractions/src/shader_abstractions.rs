@@ -4,7 +4,7 @@ use crate::{high_level_abstractions, intermediate_opengl};
 
 use crate::shaders;
 
-use matrices::matrix::Matrix;
+use numeracy::matrices::matrix::Matrix;
 
 
 #[derive(Clone, Copy)]
@@ -13,10 +13,10 @@ pub struct ProgramHolder {
     pub blinn_phone_orthographic:ProgramVariant
 }
 impl ProgramHolder {
-    pub fn new(
+    pub fn new<T>(
         simple_orthographic_shader:ProgramVariant,
         blinn_phone_orthographic_shader:ProgramVariant
-    ) -> Result<ProgramHolder, GlError> {
+    ) -> Result<ProgramHolder, GlError<T>> {
 
         let simple_orthographic = match simple_orthographic_shader {
             ProgramVariant::SimpleOrthographic(id) => Ok(ProgramVariant::SimpleOrthographic(id)),
@@ -31,7 +31,7 @@ impl ProgramHolder {
         Ok(ProgramHolder { simple_orthographic, blinn_phone_orthographic })
     }
 
-    pub fn use_program(&self, opengl:&Gl, program:ProgramSelect) -> Result<(), GlError> {
+    pub fn use_program<T>(&self, opengl:&Gl, program:ProgramSelect) -> Result<(), GlError<T>> {
         match program {
             ProgramSelect::SelectSimpleOrthographic => intermediate_opengl::use_program(opengl, self.simple_orthographic),
             ProgramSelect::SelectBlinnPhongOrthographic => intermediate_opengl::use_program(opengl, self.blinn_phone_orthographic),
@@ -52,11 +52,11 @@ impl WithProgram<'_> {
         }
     }
 
-    pub fn use_program(&self) -> Result<(), GlError> {
+    pub fn use_program<T>(&self) -> Result<(), GlError<T>> {
         intermediate_opengl::use_program(self.opengl, self.program_variant)
     }
 
-    pub fn set_uniform(&self, uniform_name:&str, uniform_type:UniformType, value:Matrix<f32>) -> Result<(), GlError> {
+    pub fn set_uniform<T>(&self, uniform_name:&str, uniform_type:UniformType, value:Matrix<f32>) -> Result<(), GlError<T>> {
         high_level_abstractions::set_uniform(self.opengl, self.program_variant, uniform_name, uniform_type, value.as_ptr())
     }
 }
@@ -64,7 +64,7 @@ impl WithProgram<'_> {
 
 
 
-pub fn create_program(opengl:&Gl, program_type:ProgramSelect) -> Result<ProgramVariant, GlError> {
+pub fn create_program<T>(opengl:&Gl, program_type:ProgramSelect) -> Result<ProgramVariant, GlError<T>> {
     match program_type {
         ProgramSelect::SelectBlinnPhongOrthographic => {
             let vertex_text = shaders::BLINN_PHONG_ORTHOGRAPHIC_VERTEX;

@@ -9,4 +9,5 @@ build = "build.rs"
 gl_generator = "0.14"
 
 [dependencies]
-matrices = {path = "../matrices"}
+numeracy = {git = "https://github.com/TheBookwyrms/numeracy.git"}
+#matrices = {path = "../matrices"}
