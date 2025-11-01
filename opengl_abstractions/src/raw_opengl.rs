@@ -136,6 +136,10 @@ pub fn draw_arrays(opengl:&Gl, mode:gl::types::GLenum, num_shapes:i32) {
     unsafe { opengl.DrawArrays(mode, 0, num_shapes) }
 }
 
+pub fn draw_elements(opengl:&Gl, mode:gl::types::GLenum, num_indices: i32) {
+    unsafe { opengl.DrawElements(mode, num_indices, gl::UNSIGNED_INT, 0 as *const c_void); }
+}
+
 pub fn viewport(opengl:&Gl, x_low:i32, y_low:i32, x_high:i32, y_high:i32) {
     unsafe { opengl.Viewport(x_low, y_low, x_high, y_high);}
 }

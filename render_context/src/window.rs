@@ -14,6 +14,7 @@ pub struct Window {
     pub events:GlfwReceiver<(f64, WindowEvent)>,
     pub opengl:Gl,
     pub last_cursor_pos : [f32; 2],
+    pub aspect_ratio:f32,
 }
 
 impl Window {
@@ -32,7 +33,7 @@ impl Window {
                         let opengl = opengl::intermediate_opengl::load_opengl_with(
                                                                             get_glfw_loadfn(&mut window)
                                                                         );
-                        Ok(Window { glfw, window, events, opengl, last_cursor_pos:[0.0, 0.0] })
+                        Ok(Window { glfw, window, events, opengl, last_cursor_pos:[0.0, 0.0], aspect_ratio:width as f32 / height as f32 })
                     },
                     None => Err(RenderError::GLFWNoWindowCreated),
                 }
@@ -47,18 +48,8 @@ impl Window {
     pub fn set_polling(&mut self)  { self.window.set_all_polling(true); }
     pub fn swap_buffers(&mut self) { self.window.swap_buffers(); }
     pub fn make_current(&mut self) { self.window.make_current(); }
-    pub fn width(&self) -> Result<u32, RenderError> { 
-        match self.window.get_size().0.try_into() {
-            Ok(u) => Ok(u),
-            Err(err) => Err(RenderError::TryFromIntError(err)),
-        }
-    }
-    pub fn height(&self) -> Result<u32, RenderError> { 
-        match self.window.get_size().1.try_into() {
-            Ok(u) => Ok(u),
-            Err(err) => Err(RenderError::TryFromIntError(err)),
-        }
-    }
+    pub fn width(&self) -> i32 { self.window.get_size().0 }
+    pub fn height(&self) -> i32 { self.window.get_size().1 }
 
     pub fn clear(&self, masks:Vec<BufferBit>) { opengl::intermediate_opengl::clear(&self.opengl, masks) }
     pub fn clear_to_colour(&self, rgb:(f32, f32, f32), a:f32) -> Result<(), GlError> {

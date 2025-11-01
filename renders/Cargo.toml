@@ -7,6 +7,7 @@ edition = "2024"
 
 
 [dependencies]
-matrices = {path = "../matrices"}
+numeracy = {git = "https://github.com/TheBookwyrms/numeracy.git"}
 #ppm_viewer = {path = "../ppm_viewer"}
 render_context   = {path = "../render_context"}
+opengl   = {path = "../opengl_abstractions"}

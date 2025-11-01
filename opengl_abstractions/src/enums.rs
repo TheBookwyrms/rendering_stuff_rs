@@ -2,14 +2,14 @@ use std::str::Utf8Error;
 use std::num::TryFromIntError;
 use std::ffi::NulError;
 
-use numeracy::matrices::enums::MatrixError;
+use numeracy::enums::MatrixError;
 
 
 #[derive(Debug)] // Copy
-pub enum GlError<T> {
+pub enum GlError {
     CStringError(NulError),
     InvalidShaderType(ShaderType),
-    InvalidBufferType(BufferType),
+    InvalidBufferType(BufferObject),
     InvalidDrawType(DrawType),
     InvalidLayoutLocation(u32),
     InvalidDrawMode(DrawMode),
@@ -17,11 +17,13 @@ pub enum GlError<T> {
     InvalidDataDims(usize),
     InvalidColour(f32, f32, f32, f32),
     FileError(std::io::Error),
-    EmbedError,
     TextError(Utf8Error),
     InvalidProgramVariantUsage(ProgramVariant),
-    MatrixError(MatrixError<T>),
+    MatrixError(MatrixError),
     TryFromIntError(TryFromIntError),
+    DataLengthError(usize),
+    InvalidObjectType,
+    NotImplementedYet,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -51,8 +53,14 @@ pub enum ProgramSelect {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum BufferType {
-    ArrayBuffer,
+pub enum BufferObject {
+    VertexBufferObject,
+    ElementBufferObject,
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum ArrayObject {
+    VertexArrayObject,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -67,6 +75,7 @@ pub enum DrawMode {
     GlTriangles,
     GlPoints,
     GlLines,
+    GlTriangleStrip,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -88,8 +97,8 @@ pub enum GlEnable {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum VertexObject {
-    Array,
-    Buffer,
-    ArrayAndBuffer,
+pub enum Object {
+    VAO,
+    VBO,
+    EBO,
 }

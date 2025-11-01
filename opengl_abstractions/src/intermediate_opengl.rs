@@ -2,10 +2,10 @@ use crate::gl;
 use crate::gl::Gl;
 use crate::raw_opengl;
 use crate::enums::{
-    BlendFunc, BufferBit, BufferType,
-    DrawMode, DrawType, GlEnable,
-    GlError, ProgramVariant, ShaderType,
-    UniformType,
+    ArrayObject, BlendFunc, BufferBit,
+    BufferObject, DrawMode, DrawType,
+    GlEnable, GlError, ProgramVariant,
+    ShaderType, UniformType, Object
 };
 
 use std::ffi::CString;
@@ -18,8 +18,16 @@ pub fn load_opengl_with<T:FnMut(&'static str) -> *const c_void>(loadfn: T) -> Gl
     gl::Gl::load_with(loadfn)
 }
 
+pub fn generate(opengl:&Gl, object:Object) -> u32 {
+    match object {
+        Object::VBO => { raw_opengl::gen_buffers(opengl) },
+        Object::VAO => { raw_opengl::gen_vertex_arrays(opengl) },
+        Object::EBO => { raw_opengl::gen_buffers(opengl) },
+    }
+}
 
-pub fn clear_colour<T>(opengl:&Gl, r:f32, g:f32, b:f32, a:f32) -> Result<(), GlError<T>> {
+
+pub fn clear_colour(opengl:&Gl, r:f32, g:f32, b:f32, a:f32) -> Result<(), GlError> {
     let validity = vec![r, g, b, a].into_iter().filter(|c| 0.0<=*c && *c<=1.0).count();
     match validity {
         4 => Ok(raw_opengl::clear_colour(opengl, r, g, b, a)),
@@ -54,7 +62,7 @@ pub fn gl_blendfunc(opengl:&Gl, setting:BlendFunc) {
     }
 }
 
-pub fn create_shader<T>(opengl:&Gl, shader_type:ShaderType) -> Result<u32, GlError<T>> {
+pub fn create_shader(opengl:&Gl, shader_type:ShaderType) -> Result<u32, GlError> {
     match shader_type {
         ShaderType::VertexShader   => Ok(raw_opengl::create_shader(opengl, gl::VERTEX_SHADER)),
         ShaderType::FragmentShader => Ok(raw_opengl::create_shader(opengl, gl::FRAGMENT_SHADER)),
@@ -63,7 +71,7 @@ pub fn create_shader<T>(opengl:&Gl, shader_type:ShaderType) -> Result<u32, GlErr
 }
 
 
-pub fn shader_source<T>(opengl:&Gl, shader_id:u32, source:&str) -> Result<(), GlError<T>> {
+pub fn shader_source(opengl:&Gl, shader_id:u32, source:&str) -> Result<(), GlError> {
     match CString::new(source) {
         Ok(binding) => {
             let source_ptr = binding.as_c_str().as_ptr();
@@ -74,7 +82,7 @@ pub fn shader_source<T>(opengl:&Gl, shader_id:u32, source:&str) -> Result<(), Gl
     }
 }
 
-pub fn create_shader_variant<T>(opengl:&Gl, str_text:&str, shader_type:ShaderType) -> Result<u32, GlError<T>> {
+pub fn create_shader_variant(opengl:&Gl, str_text:&str, shader_type:ShaderType) -> Result<u32, GlError> {
     let shader_id = create_shader(opengl, shader_type)?;
 
     shader_source(opengl, shader_id, str_text)?;
@@ -85,7 +93,7 @@ pub fn create_shader_variant<T>(opengl:&Gl, str_text:&str, shader_type:ShaderTyp
     Ok(shader_id)
 }
 
-pub fn use_program<T>(opengl:&Gl, program:ProgramVariant) -> Result<(), GlError<T>> {
+pub fn use_program(opengl:&Gl, program:ProgramVariant) -> Result<(), GlError> {
     match program {
         ProgramVariant::BlinnPhongOrthographic(id) => Ok(raw_opengl::use_program(opengl, id)),
         ProgramVariant::SimpleOrthographic(id) => Ok(raw_opengl::use_program(opengl, id)),
@@ -97,7 +105,7 @@ pub fn remove_shader_variant(opengl:&Gl, program_id:u32, shader_id:u32) {
     raw_opengl::delete_shader(opengl, shader_id);
 }
 
-pub fn create_shader_program<T>(opengl:&Gl, vertex_id:u32, fragment_id:u32) -> Result<u32, GlError<T>> {
+pub fn create_shader_program(opengl:&Gl, vertex_id:u32, fragment_id:u32) -> Result<u32, GlError> {
     let program_id = raw_opengl::create_program(opengl);
     
     raw_opengl::attach_shader(opengl, program_id,   vertex_id);
@@ -112,9 +120,9 @@ pub fn create_shader_program<T>(opengl:&Gl, vertex_id:u32, fragment_id:u32) -> R
 
 
 
-pub fn set_uniform<T>(opengl:&Gl, program_id:u32,
+pub fn set_uniform(opengl:&Gl, program_id:u32,
                     uniform_name:&str, uniform_type:UniformType,
-                    value:*const f32) -> Result<(), GlError<T>> {
+                    value:*const f32) -> Result<(), GlError> {
     let location_name = get_uniform_location(opengl, program_id, uniform_name)?;
     match uniform_type {
         UniformType::Float => raw_opengl::set_uniform_float(opengl, location_name, value),
@@ -124,7 +132,7 @@ pub fn set_uniform<T>(opengl:&Gl, program_id:u32,
     Ok(())
 }
 
-pub fn get_uniform_location<T>(opengl:&Gl, program_id:u32, uniform_name:&str) -> Result<i32, GlError<T>> {
+pub fn get_uniform_location(opengl:&Gl, program_id:u32, uniform_name:&str) -> Result<i32, GlError> {
     match CString::new(uniform_name) {
         Ok(cstring) => {
             let cname = cstring.as_bytes_with_nul().as_ptr() as *const i8;
@@ -135,7 +143,7 @@ pub fn get_uniform_location<T>(opengl:&Gl, program_id:u32, uniform_name:&str) ->
 }
 
 
-pub fn read_info_log_error<T>(
+pub fn read_info_log_error(
     opengl:&Gl,
     iv_func: &dyn Fn(&Gl, u32, u32, *mut i32) -> (),
     log_func: &dyn Fn(&Gl, u32, i32, *mut i32, *mut i8) -> (),
@@ -156,23 +164,23 @@ pub fn read_info_log_error<T>(
 }
 
 
-pub fn get_compilation_error<T>(opengl:&Gl, id:u32, shader_type:ShaderType) -> Result<(), GlError<T>> {
+pub fn get_compilation_error(opengl:&Gl, id:u32, shader_type:ShaderType) -> Result<(), GlError> {
 
     let mut success = 0; // this defaults error unless it worked // 1 is good, 0 is bad
     let error_msg = match shader_type {
         ShaderType::VertexShader => {
             raw_opengl::get_shader_iv(opengl, id, gl::COMPILE_STATUS, &mut success);
-            read_info_log_error::<T>(opengl, &raw_opengl::get_shader_iv,
+            read_info_log_error(opengl, &raw_opengl::get_shader_iv,
                                 &raw_opengl::get_shader_info_log, id)
         },
         ShaderType::FragmentShader => {
             raw_opengl::get_shader_iv(opengl, id, gl::COMPILE_STATUS, &mut success);
-            read_info_log_error::<T>(opengl, &raw_opengl::get_shader_iv,
+            read_info_log_error(opengl, &raw_opengl::get_shader_iv,
                                 &raw_opengl::get_shader_info_log, id)
         },
         ShaderType::ShaderProgram => {
             raw_opengl::get_program_iv(opengl, id, gl::LINK_STATUS, &mut success);
-            read_info_log_error::<T>(opengl, &raw_opengl::get_program_iv,
+            read_info_log_error(opengl, &raw_opengl::get_program_iv,
                                 &raw_opengl::get_program_info_log, id)
         },
     };
@@ -184,32 +192,44 @@ pub fn get_compilation_error<T>(opengl:&Gl, id:u32, shader_type:ShaderType) -> R
 }
 
 
-pub fn bind_buffer(opengl:&Gl, target:BufferType, buffer:u32) {
+pub fn bind_buffer(opengl:&Gl, target:BufferObject, buffer:u32) {
     match target {
-        BufferType::ArrayBuffer =>  raw_opengl::bind_buffer(opengl, gl::ARRAY_BUFFER, buffer),
+        BufferObject::VertexBufferObject => raw_opengl::bind_buffer(opengl, gl::ARRAY_BUFFER, buffer),
+        BufferObject::ElementBufferObject => raw_opengl::bind_buffer(opengl, gl::ELEMENT_ARRAY_BUFFER, buffer),
+    }
+}
+
+pub fn bind_vertex_array(opengl:&Gl, target:ArrayObject, object:u32) {
+    match target {
+        ArrayObject::VertexArrayObject => raw_opengl::bind_vertex_array(opengl, object),
     }
 }
 
 pub fn buffer_data(
     opengl:&Gl,
-    target:BufferType,
+    target:BufferObject,
     size:gl::types::GLsizeiptr,
     data_ptr:*const gl::types::GLvoid,
     draw_type:DrawType,
 ) {
-    match target {
-        BufferType::ArrayBuffer => {
-            match draw_type {
-                DrawType::StaticDraw  => raw_opengl::buffer_data(opengl, gl::ARRAY_BUFFER, size, data_ptr, gl::STATIC_DRAW),
-                DrawType::StreamDraw  => raw_opengl::buffer_data(opengl, gl::ARRAY_BUFFER, size, data_ptr, gl::STREAM_DRAW),
-                DrawType::DynamicDraw => raw_opengl::buffer_data(opengl, gl::ARRAY_BUFFER, size, data_ptr, gl::DYNAMIC_DRAW),
-            }
-        },
-    }
+    let gl_target = match target {
+        BufferObject::VertexBufferObject => gl::ARRAY_BUFFER,
+        BufferObject::ElementBufferObject => gl::ELEMENT_ARRAY_BUFFER,
+    };
+
+    let gl_drawtype = match draw_type {
+        DrawType::StaticDraw => gl::STATIC_DRAW,
+        DrawType::StreamDraw => gl::STREAM_DRAW,
+        DrawType::DynamicDraw => gl::DYNAMIC_DRAW,
+    };
+
+    raw_opengl::buffer_data(opengl, gl_target, size, data_ptr, gl_drawtype);
+
 }
 
-pub fn set_vertex_attrib<T>(opengl:&Gl, layout_location:u32, store_normals:bool, dtype_size:i32
-) -> Result<(), GlError<T>>{
+
+pub fn set_vertex_attrib(opengl:&Gl, layout_location:u32, store_normals:bool, dtype_size:i32
+) -> Result<(), GlError>{
     
     let n_per_vertice : i32 = 3;
     let n_per_colour  : i32 = 3;
@@ -234,11 +254,12 @@ pub fn set_vertex_attrib<T>(opengl:&Gl, layout_location:u32, store_normals:bool,
 }
 
 
-pub fn buffer_sub_data(opengl:&Gl, target:BufferType, size:isize, data:*const c_void) {
+pub fn buffer_sub_data(opengl:&Gl, target:BufferObject, size:isize, data:*const c_void) {
     match target {
-        BufferType::ArrayBuffer => raw_opengl::buffer_sub_data(opengl, gl::ARRAY_BUFFER, size, data)
+        BufferObject::VertexBufferObject => raw_opengl::buffer_sub_data(opengl, gl::ARRAY_BUFFER, size, data),
+        BufferObject::ElementBufferObject => raw_opengl::buffer_sub_data(opengl, gl::ELEMENT_ARRAY_BUFFER, size, data),
     }
-}    
+}
 
 
 pub fn draw_arrays(opengl:&Gl, mode:DrawMode, num_shapes:i32) {
@@ -247,6 +268,18 @@ pub fn draw_arrays(opengl:&Gl, mode:DrawMode, num_shapes:i32) {
         DrawMode::GlPoints =>    raw_opengl::draw_arrays(opengl, gl::POINTS, num_shapes),
         DrawMode::GlLines =>     raw_opengl::draw_arrays(opengl, gl::LINES, num_shapes),
         DrawMode::GlTriangles => raw_opengl::draw_arrays(opengl, gl::TRIANGLES, num_shapes),
+        DrawMode::GlTriangleStrip => raw_opengl::draw_arrays(opengl, gl::TRIANGLE_STRIP, num_shapes),
+    }
+}
+
+
+pub fn draw_elements(opengl:&Gl, mode:DrawMode, num_indices:i32) {
+    raw_opengl::point_size(opengl, 10.0);
+    match mode {
+        DrawMode::GlPoints =>    raw_opengl::draw_elements(opengl, gl::POINTS, num_indices),
+        DrawMode::GlLines =>     raw_opengl::draw_elements(opengl, gl::LINES, num_indices),
+        DrawMode::GlTriangles => raw_opengl::draw_elements(opengl, gl::TRIANGLES, num_indices),
+        DrawMode::GlTriangleStrip => raw_opengl::draw_elements(opengl, gl::TRIANGLE_STRIP, num_indices),
     }
 }
 

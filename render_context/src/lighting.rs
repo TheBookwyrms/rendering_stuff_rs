@@ -1,4 +1,4 @@
-use matrices::matrix::Matrix;
+use numeracy::matrices::matrix::Matrix;
 
 
 pub struct Lighting {

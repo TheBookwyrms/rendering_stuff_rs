@@ -1,5 +1,5 @@
-use matrices::matrix::Matrix;
-use matrices::errors::MatrixError;
+use numeracy::matrices::matrix::Matrix;
+use numeracy::enums::MatrixError;
 
 
 pub struct Camera {
@@ -17,7 +17,8 @@ impl Camera {
     pub fn new() -> Camera {
         Camera {
             render_distance:512,
-            angle_xyz:(90.0, -90.0, 0.0), // default orientation to view xy plane
+            //angle_xyz:(90.0, -90.0, 0.0), // default orientation to view xy plane
+            angle_xyz:(90.0, 0.0, 0.0),
             pan_xyz:(0.0, 0.0, 0.0),
             zoom:20.0,
             pan_sensitivity:0.001,
@@ -26,12 +27,12 @@ impl Camera {
             background_colour:(0.5, 0.5, 0.5),
         }
     }
-    pub fn get_orthographic_projection(&self, width:u32, height:u32)
+    pub fn get_orthographic_projection(&self, aspect_ratio:f32)
                 -> Matrix<f32> {
-        let l = -1.0 * (width / height) as f32 * self.zoom;
-        let r = (width / height) as f32 * self.zoom;
-        let b = -1.0 * self.zoom as f32;
-        let t = self.zoom as f32;
+        let l = -1.0 * aspect_ratio * self.zoom;
+        let r = aspect_ratio * self.zoom;
+        let b = -1.0 * self.zoom;
+        let t = self.zoom;
         let n = -1.0 * self.render_distance as f32;
         let f = self.render_distance as f32;
 

@@ -1,6 +1,6 @@
 [package]
 name = "opengl"
-version = "0.8.0"
+version = "1.1.0"
 edition = "2024"
 build = "build.rs"
 
@@ -10,4 +10,3 @@ gl_generator = "0.14"
 
 [dependencies]
 numeracy = {git = "https://github.com/TheBookwyrms/numeracy.git"}
-#matrices = {path = "../matrices"}

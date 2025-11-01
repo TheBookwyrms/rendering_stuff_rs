@@ -1,4 +1,3 @@
-extern crate matrices;
 extern crate opengl;
 extern crate glfw;
 

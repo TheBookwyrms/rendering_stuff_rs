@@ -1,12 +1,16 @@
 use std::time::{Duration, Instant};
 
-use opengl;
-use opengl::enums::{BufferBit, DrawMode, GlError, ProgramSelect, UniformType};
+use opengl::{self, intermediate_opengl};
+use opengl::enums::{
+    BufferBit, DrawMode, GlError,
+    ProgramSelect, UniformType, Object,
+    BufferObject, DrawType, ArrayObject
+};
 use opengl::shader_abstractions;
 use opengl::shader_abstractions::{ProgramHolder, WithProgram};
-use opengl::high_level_abstractions::WithVertexObject;
+use opengl::high_level_abstractions::WithObject;
 //use matrices::_tests::matrix_as_1_array::Matrix;
-use matrices::matrix::Matrix;
+use numeracy::matrices::matrix::Matrix;
 
 use glfw;
 use glfw::{Action, Key};
@@ -62,9 +66,9 @@ impl Render {
     }
 
     fn clear_bindings(&self) {
-        WithVertexObject::vao(    &self.window.opengl, 0);
-        WithVertexObject::vbo(    &self.window.opengl, 0);
-        //opengl::high_level_abstractions::WithVertexObject::program(&self.window.opengl, 0);
+        WithObject::existing(&self.window.opengl, Object::VBO, 0);
+        WithObject::existing(&self.window.opengl, Object::VAO, 0);
+        //opengl::high_level_abstractions::WithObject::program(&self.window.opengl, 0);
     }
     
     pub fn end_render_actions(&mut self) -> Result<(), RenderError> {
@@ -78,7 +82,7 @@ impl Render {
             t => t,};
         //println!("dt {}", dt);
         let fps = 1.0/dt;
-        println!("fps {}", fps);
+        //println!("fps {}", fps);
         self.current_time = Instant::now();
 
 
@@ -89,6 +93,52 @@ impl Render {
     }
 
 
+    pub fn create_vao_vbo_ebo(&self, vertices:&Matrix<f32>, indices:&Matrix<i32>
+    ) -> Result<(u32, u32, u32), RenderError> {
+        let gl = &self.window.opengl;
+
+
+        let with_vao = WithObject::new(&self.window.opengl, Object::VAO);
+        
+        let with_vbo = WithObject::new(&self.window.opengl, Object::VBO);
+        with_vbo.buffer_data(vertices, DrawType::DynamicDraw)?;
+
+        let with_ebo = WithObject::new(&self.window.opengl, Object::EBO);
+        with_ebo.buffer_data(indices, DrawType::DynamicDraw)?;
+
+
+        with_vao.set_vertex_attribs(false, vertices.dtype_memsize() as i32)?;
+
+        let vao = with_vao.vao;
+        let vbo = with_vbo.vbo;
+        let ebo = with_vbo.ebo;
+        drop(with_vbo);
+        drop(with_vao);
+        //drop(with_ebo);
+        intermediate_opengl::bind_buffer(gl, BufferObject::ElementBufferObject, 0);
+
+        Ok((vao, vbo, ebo))
+
+        //let with_vao = WithObject::new(&self.window.opengl, opengl::enums::Object::VAO);
+        //let with_vbo = WithObject::new(&self.window.opengl, opengl::enums::Object::VBO);
+//
+        ////println!("{}", with_ebo.ebo);
+//
+        //with_vbo.buffer_data(&vertices, DrawType::DynamicDraw)?;
+//
+        //let with_ebo = WithObject::new(&self.window.opengl, opengl::enums::Object::EBO);
+        //with_ebo.buffer_data(&indices, DrawType::DynamicDraw)?;
+//
+        //println!("vi {}, {}", vertices.dtype_memsize(), indices.dtype_memsize());
+//
+        //match vertices.dtype_memsize().try_into() {
+        //    Ok(dtype_size) => with_vao.set_vertex_attribs(false, dtype_size),
+        //    Err(error) => Err(GlError::TryFromIntError(error)),
+        //}?;
+//
+        //Ok((with_vao.vao, with_vbo.vbo, with_ebo.ebo))
+    }
+
 
     pub fn create_vao_vbo(&self, data:&Matrix<f32>) -> Result<(u32, u32), RenderError> {
         let store_normals = match data.shape[0] {
@@ -97,12 +147,30 @@ impl Render {
             n => Err(RenderError::DataLengthError(n)),
         }?;
 
-        Ok(WithVertexObject::new_vao_vbo(&self.window.opengl, store_normals, data)?)
+        let with_vao = WithObject::new(&self.window.opengl, Object::VAO);
+        let with_vbo = WithObject::new(&self.window.opengl, Object::VBO);
+
+        with_vbo.buffer_data(data, DrawType::DynamicDraw)?;
+
+        match data.dtype_memsize().try_into() {
+            Ok(dtype_size) => with_vao.set_vertex_attribs(store_normals, dtype_size),
+            Err(error) => Err(GlError::TryFromIntError(error)),
+        }?;
+
+        Ok((with_vao.vao, with_vbo.vbo))
+    }
+
+    pub fn draw_vao_ebo(&self, mode:DrawMode, vao:u32, count:i32) {
+        intermediate_opengl::bind_vertex_array(&self.window.opengl, opengl::enums::ArrayObject::VertexArrayObject, vao);
+        //intermediate_opengl::draw_elements(&self.window.opengl, mode, data.shape[1].try_into().unwrap());
+        intermediate_opengl::draw_elements(&self.window.opengl, mode, count);
+        intermediate_opengl::bind_vertex_array(&self.window.opengl, opengl::enums::ArrayObject::VertexArrayObject, 0);
+
     }
 
     pub fn draw_vao(&self, mode:DrawMode, vao:u32, data:&Matrix<f32>) -> Result<(), RenderError> {
-        let with_vao = WithVertexObject::vao(&self.window.opengl, vao);
-        Ok(with_vao.draw_vao(mode, data)?)
+        let with_vao = WithObject::existing(&self.window.opengl, Object::VAO, vao);
+        Ok(with_vao.draw(mode, data)?)
     }
 
 
@@ -125,7 +193,7 @@ impl Render {
     fn set_orthographic_camera_uniforms(&self, with_program:&WithProgram<'_>) -> Result<(), RenderError> {
         with_program.set_uniform("world_transform", UniformType::Mat4, Matrix::opengl_to_right_handed())?;
         with_program.set_uniform("orthographic_projection", UniformType::Mat4,
-            self.camera.get_orthographic_projection(self.window.width()?, self.window.height()?))?;
+            self.camera.get_orthographic_projection(self.window.aspect_ratio))?;
         let camera_transform = match self.camera.get_camera_transform() {
             Ok(mat) => Ok(mat),
             Err(error) => Err(GlError::MatrixError(error)),
@@ -241,12 +309,11 @@ impl Render {
                 glfw::WindowEvent::Size(width, height) => {
                     match (width==0) || (height==0) {
                         true => Err(RenderError::GLFWResizeBoundsError((width, height))),
-                        false => Ok(opengl::intermediate_opengl::viewport(&self.window.opengl, width, height),),
+                        false => {
+                            self.window.aspect_ratio = width as f32/height as f32;
+                            Ok(opengl::intermediate_opengl::viewport(&self.window.opengl, width, height))
+                        },
                     }
-                    //self.width, self.height = width, height
-                    //self.zoom = self.zoom*self.aspect_ratio*self.height/self.width
-                    //self.aspect_ratio = width/height
-                    //glViewport(0, 0, width, height)
                 },
 
                 glfw::WindowEvent::Key(_, _, _, _) => {Ok(())},

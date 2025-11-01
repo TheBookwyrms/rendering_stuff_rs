@@ -28,11 +28,11 @@ checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 [[package]]
 name = "numeracy"
 version = "1.2.0"
-source = "git+https://github.com/TheBookwyrms/numeracy.git#8b196f98b7a98e0743b8f46f4169f5b95813a79a"
+source = "git+https://github.com/TheBookwyrms/numeracy.git#514b699059022d6f731b5cd17e2c95a259c783c8"
 
 [[package]]
 name = "opengl"
-version = "0.8.0"
+version = "1.1.0"
 dependencies = [
  "gl_generator",
  "numeracy",
@@ -40,6 +40,6 @@ dependencies = [
 
 [[package]]
 name = "xml-rs"
-version = "0.8.27"
+version = "0.8.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fd8403733700263c6eb89f192880191f1b83e332f7a20371ddcf421c4a337c7"
+checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"

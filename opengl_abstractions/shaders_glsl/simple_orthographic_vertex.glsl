@@ -12,12 +12,7 @@ uniform mat4 camera_transformation;
 uniform mat4 world_transform;
 
 void main() {
-    //gl_Position = vec4(point_pos, 1.0);
     gl_Position = orthographic_projection * camera_transformation * world_transform * vec4(point_pos, 1.0);
-    //gl_Position = world_transform * vec4(point_pos, 1.0);
-    //gl_Position = camera_transformation * vec4(point_pos, 1.0);
-    //gl_Position = orthographic_projection * vec4(point_pos, 1.0); // GOOD
-    //gl_Position = orthographic_projection * camera_transformation * vec4(point_pos, 1.0); // GOOD
     point_colour = point_col;
     point_opacity = point_o;
 }

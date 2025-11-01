@@ -49,13 +49,14 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
 name = "log"
-version = "0.4.27"
+version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
+checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 
 [[package]]
-name = "matrices"
-version = "1.0.0"
+name = "numeracy"
+version = "1.2.0"
+source = "git+https://github.com/TheBookwyrms/numeracy.git#514b699059022d6f731b5cd17e2c95a259c783c8"
 
 [[package]]
 name = "objc-sys"
@@ -81,10 +82,10 @@ checksum = "ef25abbcd74fb2609453eb695bd2f860d389e457f67dc17cafc8b8cbc89d0c33"
 
 [[package]]
 name = "opengl"
-version = "0.8.0"
+version = "1.1.0"
 dependencies = [
  "gl_generator",
- "matrices",
+ "numeracy",
 ]
 
 [[package]]
@@ -104,7 +105,7 @@ name = "render_context"
 version = "0.8.0"
 dependencies = [
  "glfw",
- "matrices",
+ "numeracy",
  "opengl",
 ]
 
@@ -112,7 +113,8 @@ dependencies = [
 name = "renders"
 version = "0.8.0"
 dependencies = [
- "matrices",
+ "numeracy",
+ "opengl",
  "render_context",
 ]
 
@@ -140,6 +142,6 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "xml-rs"
-version = "0.8.27"
+version = "0.8.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fd8403733700263c6eb89f192880191f1b83e332f7a20371ddcf421c4a337c7"
+checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"
