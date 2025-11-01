@@ -1,7 +1,5 @@
 use crate::enums::{
-    BufferObject, ArrayObject, DrawMode,
-    DrawType, GlError, ProgramVariant,
-    ShaderType, UniformType, Object,
+    ArrayObject, BufferObject, DrawCall, DrawMode, DrawType, GlError, Object, ProgramVariant, ShaderType, UniformType
 };
 use crate::gl::Gl;
 use crate::intermediate_opengl;
@@ -115,24 +113,17 @@ impl WithObject<'_> {
         Ok(())
     }
 
-    pub fn draw<T:Clone>(&self, mode:DrawMode, data:&Matrix<T>) -> Result<(), GlError> {
+    pub fn draw<T:Clone>(&self, call:DrawCall, mode:DrawMode, data:&Matrix<T>) -> Result<(), GlError> {
         if data.ndims() != 2 { Err(GlError::InvalidDataDims(data.ndims()))? }
 
-        let count : i32 = match data.shape[1].try_into() {
-            Ok(i) => Ok(i),
-            Err(error) => Err(GlError::TryFromIntError(error)),
-        }?;
+        match call {
+            DrawCall::Vertices => {
+                if self.object_type != Object::VBO { Err(GlError::InvalidObjectType)? }
 
-        let dtype_memsize = match data.dtype_memsize().try_into() {
-            Ok(dtype_size) => Ok(dtype_size),
-            Err(error) => Err(GlError::TryFromIntError(error)),
-        }?;
-
-
-        match self.object_type {
-            Object::VAO => { Ok(intermediate_opengl::draw_arrays(self.opengl, mode, count)) },
-            Object::EBO => { Ok(intermediate_opengl::draw_elements(self.opengl, mode, count)) },
-            Object::VBO => {
+                let dtype_memsize = match data.dtype_memsize().try_into() {
+                    Ok(dtype_size) => Ok(dtype_size),
+                    Err(error) => Err(GlError::TryFromIntError(error)),
+                }?;
 
                 intermediate_opengl::set_vertex_attrib(self.opengl, 0, false, dtype_memsize)?;
                 intermediate_opengl::set_vertex_attrib(self.opengl, 1, false, dtype_memsize)?;
@@ -146,21 +137,28 @@ impl WithObject<'_> {
                     n => Err(GlError::DataLengthError(n)),
                 }
             },
+            DrawCall::Arrays => {
+                if self.object_type != Object::VAO { Err(GlError::InvalidObjectType)? }
+
+                let count : i32 = match data.shape[1].try_into() {
+                    Ok(i) => Ok(i),
+                    Err(error) => Err(GlError::TryFromIntError(error)),
+                }?;
+
+                intermediate_opengl::draw_arrays(self.opengl, mode, count);
+                Ok(())
+            },
+            DrawCall::Elements => {
+                if self.object_type != Object::VAO { Err(GlError::InvalidObjectType)? }
+
+                let count = data.shape.iter().map(|s| *s as i32).product();
+
+                intermediate_opengl::draw_elements(&self.opengl, mode, count);
+                Ok(())
+            },
         }
     }
-
-    //pub fn draw_vao(&self, mode:DrawMode, data:&Matrix<f32>) -> Result<(), GlError> {
-    //    match data.ndims() {
-    //        2 => {
-    //            let data1 : i32 = match data.shape[1].try_into() {
-    //                Ok(i) => Ok(i),
-    //                Err(error) => Err(GlError::TryFromIntError(error)),
-    //            }?;
-    //            Ok(intermediate_opengl::draw_arrays(self.opengl, mode, data1))
-    //        },
-    //        _ => Err(GlError::InvalidDataDims(data.ndims())),
-    //    }
-    //}
+    
 }
 impl Drop for WithObject<'_> {
     fn drop(&mut self) {

@@ -1,21 +1,16 @@
 use std::time::{Duration, Instant};
 
-use opengl::{self, intermediate_opengl};
 use opengl::enums::{
-    BufferBit, DrawMode, GlError,
-    ProgramSelect, UniformType, Object,
-    BufferObject, DrawType, ArrayObject
+    BufferBit, DrawCall, DrawMode, DrawType, GlError, Object, ProgramSelect, UniformType
 };
 use opengl::shader_abstractions;
 use opengl::shader_abstractions::{ProgramHolder, WithProgram};
 use opengl::high_level_abstractions::WithObject;
-//use matrices::_tests::matrix_as_1_array::Matrix;
 use numeracy::matrices::matrix::Matrix;
 
 use glfw;
 use glfw::{Action, Key};
 use crate::errors::RenderError;
-//use shaders::{ProgramHolder, ProgramType};
 use crate::{camera::Camera};
 use crate::lighting::Lighting;
 use crate::window::Window;
@@ -81,8 +76,8 @@ impl Render {
             0.0 => 0.0,
             t => t,};
         //println!("dt {}", dt);
-        let fps = 1.0/dt;
-        //println!("fps {}", fps);
+        let _fps = 1.0/dt;
+        //println!("_fps {}", fps);
         self.current_time = Instant::now();
 
 
@@ -95,8 +90,6 @@ impl Render {
 
     pub fn create_vao_vbo_ebo(&self, vertices:&Matrix<f32>, indices:&Matrix<i32>
     ) -> Result<(u32, u32, u32), RenderError> {
-        let gl = &self.window.opengl;
-
 
         let with_vao = WithObject::new(&self.window.opengl, Object::VAO);
         
@@ -106,37 +99,9 @@ impl Render {
         let with_ebo = WithObject::new(&self.window.opengl, Object::EBO);
         with_ebo.buffer_data(indices, DrawType::DynamicDraw)?;
 
-
         with_vao.set_vertex_attribs(false, vertices.dtype_memsize() as i32)?;
-
-        let vao = with_vao.vao;
-        let vbo = with_vbo.vbo;
-        let ebo = with_vbo.ebo;
-        drop(with_vbo);
-        drop(with_vao);
-        //drop(with_ebo);
-        intermediate_opengl::bind_buffer(gl, BufferObject::ElementBufferObject, 0);
-
-        Ok((vao, vbo, ebo))
-
-        //let with_vao = WithObject::new(&self.window.opengl, opengl::enums::Object::VAO);
-        //let with_vbo = WithObject::new(&self.window.opengl, opengl::enums::Object::VBO);
-//
-        ////println!("{}", with_ebo.ebo);
-//
-        //with_vbo.buffer_data(&vertices, DrawType::DynamicDraw)?;
-//
-        //let with_ebo = WithObject::new(&self.window.opengl, opengl::enums::Object::EBO);
-        //with_ebo.buffer_data(&indices, DrawType::DynamicDraw)?;
-//
-        //println!("vi {}, {}", vertices.dtype_memsize(), indices.dtype_memsize());
-//
-        //match vertices.dtype_memsize().try_into() {
-        //    Ok(dtype_size) => with_vao.set_vertex_attribs(false, dtype_size),
-        //    Err(error) => Err(GlError::TryFromIntError(error)),
-        //}?;
-//
-        //Ok((with_vao.vao, with_vbo.vbo, with_ebo.ebo))
+        
+        Ok((with_vao.vao, with_vbo.vbo, with_vbo.ebo))
     }
 
 
@@ -152,25 +117,15 @@ impl Render {
 
         with_vbo.buffer_data(data, DrawType::DynamicDraw)?;
 
-        match data.dtype_memsize().try_into() {
-            Ok(dtype_size) => with_vao.set_vertex_attribs(store_normals, dtype_size),
-            Err(error) => Err(GlError::TryFromIntError(error)),
-        }?;
+        with_vao.set_vertex_attribs(store_normals, data.dtype_memsize() as i32)?;
 
         Ok((with_vao.vao, with_vbo.vbo))
     }
 
-    pub fn draw_vao_ebo(&self, mode:DrawMode, vao:u32, count:i32) {
-        intermediate_opengl::bind_vertex_array(&self.window.opengl, opengl::enums::ArrayObject::VertexArrayObject, vao);
-        //intermediate_opengl::draw_elements(&self.window.opengl, mode, data.shape[1].try_into().unwrap());
-        intermediate_opengl::draw_elements(&self.window.opengl, mode, count);
-        intermediate_opengl::bind_vertex_array(&self.window.opengl, opengl::enums::ArrayObject::VertexArrayObject, 0);
 
-    }
-
-    pub fn draw_vao(&self, mode:DrawMode, vao:u32, data:&Matrix<f32>) -> Result<(), RenderError> {
+    pub fn draw<T:Clone>(&self, call:DrawCall, mode:DrawMode, vao:u32, data:&Matrix<T>) -> Result<(), RenderError> {
         let with_vao = WithObject::existing(&self.window.opengl, Object::VAO, vao);
-        Ok(with_vao.draw(mode, data)?)
+        Ok(with_vao.draw(call, mode, data)?)
     }
 
 

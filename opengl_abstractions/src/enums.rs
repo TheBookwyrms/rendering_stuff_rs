@@ -102,3 +102,10 @@ pub enum Object {
     VBO,
     EBO,
 }
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum DrawCall {
+    Vertices,
+    Arrays,
+    Elements,
+}
