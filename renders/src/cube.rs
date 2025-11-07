@@ -1,10 +1,10 @@
-use numeracy::{enums::MatrixDataTypes, matrices::matrix::Matrix};
+use numeracy::{enums::MatrixDataTypes, matrices::Matrix};
 
 fn arr7d(pos:[f32; 3], col:[f32; 3], a:f32) -> [f32; 7] {
     [pos[0], pos[1], pos[2], col[0], col[1], col[2], a]
 }
 
-pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32) -> [[f32; 7]; 8] {
+pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32, v:bool) -> [[f32; 7]; 8] {
     let (x, y, z) = centre;
 
     let top_front_right    = [x+side_len/2.0, y+side_len/2.0, z+side_len/2.0];
@@ -20,6 +20,12 @@ pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32) -> [[f32; 7]; 
     let c1 = [0.4, 0.6, 0.8];
     let c2 = [0.6, 0.8, 0.2];
     let c3 = [0.8, 0.2, 0.4];
+    //let [c0, c1, c2, c3] = if v {
+    //    [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]
+    //} else {
+    //    [[0.2, 0.4, 0.6], [0.4, 0.6, 0.8], [0.6, 0.8, 0.2], [0.8, 0.2, 0.4]]
+    //    //[[0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0]]
+    //};
 
     let a = 1.0;
 
@@ -42,7 +48,7 @@ pub fn ebo_cube(centre:(f32, f32, f32), side_len:f32) -> (Matrix<f32>, Matrix<i3
 
     let vertices_matrix = Matrix {
         shape:vec![7, 8],
-        array:create_cube_vertices(centre, side_len).concat(),
+        array:create_cube_vertices(centre, side_len, true).concat(),
         dtype:MatrixDataTypes::F32
     };
 
@@ -79,7 +85,7 @@ pub fn cube(centre:(f32, f32, f32), side_len:f32) -> Matrix<f32> {
     
     let [
         tbr, tfr, tfl, tbl, bbr, bfr, bfl, bbl
-    ] = create_cube_vertices(centre, side_len);
+    ] = create_cube_vertices(centre, side_len, false);
 
 
     let top1     = [tbr, tbl, tfr];

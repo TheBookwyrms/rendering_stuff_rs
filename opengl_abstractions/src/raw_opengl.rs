@@ -57,6 +57,10 @@ pub fn get_uniform_location(opengl:&Gl, program_id:u32, uniform_name:*const i8) 
     unsafe { opengl.GetUniformLocation(program_id, uniform_name) }
 }
 
+pub fn set_uniform_int(opengl:&Gl, uniform_location:i32, int:i32) {
+    unsafe { opengl.Uniform1i(uniform_location, int) }
+}
+
 pub fn set_uniform_float(opengl:&Gl, uniform_location:i32, float:*const f32) {
     unsafe { opengl.Uniform1f(uniform_location, *float) }
 }
@@ -160,4 +164,50 @@ pub fn blendfunc(opengl:&Gl, sfactor:gl::types::GLenum, dfactor:gl::types::GLenu
     unsafe {
         opengl.BlendFunc(sfactor, dfactor)
     }
+}
+
+
+
+
+pub fn gen_textures(opengl:&Gl) -> u32 {
+    let mut texture = 0;
+    unsafe { opengl.GenTextures(1, &mut texture) }
+    texture
+}
+
+pub fn active_texture(opengl:&Gl, texture: u32) {
+    unsafe { opengl.ActiveTexture(texture); }
+}
+
+pub fn bind_texture(opengl:&Gl, target: u32, texture: u32) {
+    unsafe { opengl.BindTexture(target, texture) }
+}
+
+pub fn tex_image_2d(
+    opengl:&Gl, target: u32, level: i32,
+    internalformat: i32, width: i32, height: i32,
+    format: u32, type_: u32, pixels: *const c_void
+) {
+    unsafe { opengl.TexImage2D(
+                        target, level, internalformat,
+                        width, height, 0, // border is always 0, according to Learn OpenGL.com
+                        format, type_, pixels
+                    )
+            }
+}
+
+pub fn tex_parameter_i(opengl:&Gl, target: u32, pname: u32, param: i32) {
+    unsafe { opengl.TexParameteri(target, pname, param) }
+}
+
+pub fn tex_parameter_f(opengl:&Gl, target: u32, pname: u32, param: f32) {
+    unsafe { opengl.TexParameterf(target, pname, param) }
+}
+
+pub fn tex_parameter_fv(opengl:&Gl, target: u32, pname: u32, params: *const f32) {
+    unsafe { opengl.TexParameterfv(target, pname, params); }
+}
+
+pub fn generate_mipmap(opengl:&Gl, target: u32) {
+    unsafe { opengl.GenerateMipmap(target) }
 }

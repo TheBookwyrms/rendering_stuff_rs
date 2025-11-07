@@ -1,12 +1,11 @@
 use std::time::{Duration, Instant};
 
 use opengl::enums::{
-    BufferBit, DrawCall, DrawMode, DrawType, GlError, Object, ProgramSelect, UniformType
+    BufferBit, DataFormat, DrawCall, DrawMode, DrawType, GlError, Object, ProgramSelect, UniformType
 };
-use opengl::shader_abstractions;
-use opengl::shader_abstractions::{ProgramHolder, WithProgram};
-use opengl::high_level_abstractions::WithObject;
-use numeracy::matrices::matrix::Matrix;
+use opengl::intermediate_opengl;
+use opengl::abstractions::{Programs, WithObject};
+use numeracy::matrices::Matrix;
 
 use glfw;
 use glfw::{Action, Key};
@@ -20,10 +19,10 @@ pub struct Render {
     pub window:Window,
     pub camera:Camera,
     pub lighting:Lighting,
-    pub programs:ProgramHolder,
+    pub programs:Programs,
     pub paused:bool,
     pub pause_time:Instant,
-    pub current_time:Instant
+    pub current_time:Instant,
 }
 impl Render {
     pub fn default() -> Result<Self, RenderError> {
@@ -31,21 +30,16 @@ impl Render {
         let camera = Camera::new();
         let lighting = Lighting::new();
 
-        let simple_orthographic_shader = shader_abstractions::create_program(&window.opengl, ProgramSelect::SelectSimpleOrthographic)?;
-        let blinn_phone_orthographic_shader = shader_abstractions::create_program(&window.opengl, ProgramSelect::SelectBlinnPhongOrthographic)?;
+        let programs = Programs::compile(&window.opengl)?;
 
-        let programs = ProgramHolder::new(simple_orthographic_shader, blinn_phone_orthographic_shader)?;
-
-        Ok(Self { window, camera, lighting, programs:programs,
-            paused:false, pause_time:Instant::now(), current_time:Instant::now() })
+        Ok(Self {
+            window, camera, lighting, programs:programs,
+            paused:false, pause_time:Instant::now(), current_time:Instant::now(),
+         })
     }
     pub fn render_over(&self) -> bool { self.window.window.should_close() }
     pub fn poll_events(&mut self) { self.window.poll_events(); }
 
-    pub fn new(window:Window, camera:Camera, lighting:Lighting, programs:ProgramHolder) -> Render {
-        Render { window, camera, lighting, programs:programs,
-            paused:false, pause_time:Instant::now(), current_time:Instant::now() }
-    }
 
     pub fn setup_render(&mut self) {
         self.window.default_gl_settings();
@@ -60,9 +54,10 @@ impl Render {
 
     }
 
-    fn clear_bindings(&self) {
-        WithObject::existing(&self.window.opengl, Object::VBO, 0);
-        WithObject::existing(&self.window.opengl, Object::VAO, 0);
+    fn clear_bindings(&mut self) {
+        self.programs.disuse_program(&self.window.opengl);
+        WithObject::unbind(&self.window.opengl, Object::VBO);
+        WithObject::unbind(&self.window.opengl, Object::VAO);
         //opengl::high_level_abstractions::WithObject::program(&self.window.opengl, 0);
     }
     
@@ -88,106 +83,102 @@ impl Render {
     }
 
 
-    pub fn create_vao_vbo_ebo(&self, vertices:&Matrix<f32>, indices:&Matrix<i32>
+
+    pub fn create_vao_vbo_ebo(&self, vertices:&Matrix<f32>, indices:&Matrix<i32>, format:DataFormat
     ) -> Result<(u32, u32, u32), RenderError> {
 
-        let with_vao = WithObject::new(&self.window.opengl, Object::VAO);
+        let with_vao = WithObject::new(&self.window.opengl, Object::VAO, format);
         
-        let with_vbo = WithObject::new(&self.window.opengl, Object::VBO);
+        let with_vbo = WithObject::new(&self.window.opengl, Object::VBO, format);
         with_vbo.buffer_data(vertices, DrawType::DynamicDraw)?;
 
-        let with_ebo = WithObject::new(&self.window.opengl, Object::EBO);
+        let with_ebo = WithObject::new(&self.window.opengl, Object::EBO, format);
         with_ebo.buffer_data(indices, DrawType::DynamicDraw)?;
 
-        with_vao.set_vertex_attribs(false, vertices.dtype_memsize() as i32)?;
+        with_vao.set_vertex_attribs(vertices.dtype_memsize() as i32)?;
         
         Ok((with_vao.vao, with_vbo.vbo, with_vbo.ebo))
     }
 
 
-    pub fn create_vao_vbo(&self, data:&Matrix<f32>) -> Result<(u32, u32), RenderError> {
-        let store_normals = match data.shape[0] {
-            7 => Ok(false),
-            10 => Ok(true),
-            n => Err(RenderError::DataLengthError(n)),
-        }?;
-
-        let with_vao = WithObject::new(&self.window.opengl, Object::VAO);
-        let with_vbo = WithObject::new(&self.window.opengl, Object::VBO);
+    pub fn create_vao_vbo(&self, data:&Matrix<f32>, format:DataFormat) -> Result<(u32, u32), RenderError> {
+        let with_vao = WithObject::new(&self.window.opengl, Object::VAO, format);
+        let with_vbo = WithObject::new(&self.window.opengl, Object::VBO, format);
 
         with_vbo.buffer_data(data, DrawType::DynamicDraw)?;
 
-        with_vao.set_vertex_attribs(store_normals, data.dtype_memsize() as i32)?;
+        with_vao.set_vertex_attribs(data.dtype_memsize() as i32)?;
 
         Ok((with_vao.vao, with_vbo.vbo))
     }
 
 
-    pub fn draw<T:Clone>(&self, call:DrawCall, mode:DrawMode, vao:u32, data:&Matrix<T>) -> Result<(), RenderError> {
-        let with_vao = WithObject::existing(&self.window.opengl, Object::VAO, vao);
-        Ok(with_vao.draw(call, mode, data)?)
+    pub fn draw<T:Clone>(&self, call:DrawCall, mode:DrawMode, vao:u32, data:&Matrix<T>, format:DataFormat) -> Result<(), RenderError> {
+        Ok(self.programs.draw(&self.window.opengl, call, mode, vao, data, format)?)
     }
 
 
-    pub fn use_program(&self, program_type:ProgramSelect) -> Result<(), RenderError> {
+    pub fn use_program(&mut self, program_type:ProgramSelect) -> Result<(), RenderError> {
 
-        let with_program = WithProgram::program(&self.window.opengl, program_type, self.programs);
-        with_program.use_program()?;
+        self.programs.use_program(&self.window.opengl, program_type)?;
+
         match program_type {
             ProgramSelect::SelectSimpleOrthographic => {
-                self.set_orthographic_camera_uniforms(&with_program)?;
+                self.set_orthographic_camera_uniforms()?;
             },
             ProgramSelect::SelectBlinnPhongOrthographic => {
-                self.set_orthographic_camera_uniforms(&with_program)?;
-                self.set_blinn_phong_uniforms(&with_program)?;
+                self.set_orthographic_camera_uniforms()?;
+                self.set_blinn_phong_uniforms()?;
             },
+            ProgramSelect::SelectSimpleTexture => {
+                self.set_orthographic_camera_uniforms()?;
+            }
         }
         Ok(())
     }
 
-    fn set_orthographic_camera_uniforms(&self, with_program:&WithProgram<'_>) -> Result<(), RenderError> {
-        with_program.set_uniform("world_transform", UniformType::Mat4, Matrix::opengl_to_right_handed())?;
-        with_program.set_uniform("orthographic_projection", UniformType::Mat4,
+    fn set_orthographic_camera_uniforms(&self) -> Result<(), RenderError> {
+        // opengl, id, uniform_name, uniform_type, value
+        self.programs.set_uniform(&self.window.opengl, "world_transform", UniformType::Mat4, Matrix::opengl_to_right_handed())?;
+        self.programs.set_uniform(&self.window.opengl, "orthographic_projection", UniformType::Mat4,
             self.camera.get_orthographic_projection(self.window.aspect_ratio))?;
         let camera_transform = match self.camera.get_camera_transform() {
             Ok(mat) => Ok(mat),
             Err(error) => Err(GlError::MatrixError(error)),
         }?;
-        with_program.set_uniform("camera_transformation", UniformType::Mat4,
+        self.programs.set_uniform(&self.window.opengl, "camera_transformation", UniformType::Mat4,
             camera_transform)?;
         Ok(())
     }
 
 
 
-    fn set_blinn_phong_uniforms(&self, with_program:&WithProgram<'_>) -> Result<(), RenderError> {
-        with_program.set_uniform("ambient_strength", UniformType::Float,
+    fn set_blinn_phong_uniforms(&self) -> Result<(), RenderError> {
+        self.programs.set_uniform(&self.window.opengl,"ambient_strength", UniformType::Float,
             Matrix::from_scalar(self.lighting.ambient_strength))?;
-        with_program.set_uniform("ambient_colour", UniformType::Vec3, 
+        self.programs.set_uniform(&self.window.opengl,"ambient_colour", UniformType::Vec3, 
             Matrix::from_1darray(self.lighting.ambient_colour.into()))?;
         Ok(())
 
-        //with_program.set_uniform("diffuse_strength", UniformType::Float,
+        //self.programs.set_uniform(&self.window.opengl,"diffuse_strength", UniformType::Float,
         //    Matrix::from_float(self.lighting.diffuse_strength));
-        //with_program.set_uniform("diffuse_base", UniformType::Float,
+        //self.programs.set_uniform(&self.window.opengl,"diffuse_base", UniformType::Float,
         //    Matrix::from_float(self.lighting.diffuse_base));
-        //with_program.set_uniform("light_source_pos", UniformType::Vec3,
+        //self.programs.set_uniform(&self.window.opengl,"light_source_pos", UniformType::Vec3,
         //    Matrix::from_1darray(self.lighting.light_source_pos.into()));
-        //with_program.set_uniform("light_source_colour", UniformType::Vec3,
+        //self.programs.set_uniform(&self.window.opengl,"light_source_colour", UniformType::Vec3,
         //    Matrix::from_1darray(self.lighting.light_source_colour.into()));
-        //with_program.set_uniform("specular_strength", UniformType::Float,
+        //self.programs.set_uniform(&self.window.opengl,"specular_strength", UniformType::Float,
         //    Matrix::from_float(self.lighting.specular_strength));
-        //with_program.set_uniform("specular_power", UniformType::Float,
+        //self.programs.set_uniform(&self.window.opengl,"specular_power", UniformType::Float,
         //    Matrix::from_float(self.lighting.specular_power as f32));
         //let view_vec = self.lighting.view_vec;
         //let view_vec3 = (view_vec.0, view_vec.1, view_vec.2);
-        //with_program.set_uniform("camera_viewpos", UniformType::Vec3,
+        //self.programs.set_uniform(&self.window.opengl,"camera_viewpos", UniformType::Vec3,
         //    Matrix::from_1darray(view_vec3.into()));
-        //with_program.set_uniform("light_y_transform", UniformType::Mat4,
+        //self.programs.set_uniform(&self.window.opengl,"light_y_transform", UniformType::Mat4,
         //    self.lighting.light_y_transform.clone());
     }
-
-
 
 
 

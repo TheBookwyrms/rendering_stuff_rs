@@ -1,4 +1,4 @@
-use numeracy::matrices::matrix::Matrix;
+use numeracy::matrices::Matrix;
 use numeracy::enums::MatrixError;
 
 
@@ -20,6 +20,7 @@ impl Camera {
             //angle_xyz:(90.0, -90.0, 0.0), // default orientation to view xy plane
             angle_xyz:(90.0, 0.0, 0.0),
             pan_xyz:(0.0, 0.0, 0.0),
+            //pan_xyz:(0.0, 0.0, -80.0),
             zoom:20.0,
             pan_sensitivity:0.001,
             angle_sensitivity:0.01,
@@ -27,6 +28,9 @@ impl Camera {
             background_colour:(0.5, 0.5, 0.5),
         }
     }
+
+    // reference
+    // https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/orthographic-projection-matrix.html
     pub fn get_orthographic_projection(&self, aspect_ratio:f32)
                 -> Matrix<f32> {
         let l = -1.0 * aspect_ratio * self.zoom;
@@ -34,12 +38,14 @@ impl Camera {
         let b = -1.0 * self.zoom;
         let t = self.zoom;
         let n = -1.0 * self.render_distance as f32;
+        //let n = 0.1;
         let f = self.render_distance as f32;
+        //let f = 0.0;
 
         let orthographic_projection = Matrix::from_2darray([
             [2.0/(r-l), 0.0, 0.0, 0.0],
             [0.0, 2.0/(t-b), 0.0, 0.0],
-            [0.0, 0.0, 2.0/(f-n), 0.0],
+            [0.0, 0.0, -2.0/(f-n), 0.0],
             [-1.0*(r+l)/(r-l), -1.0*(t+b)/(t-b), -1.0*(f+n)/(f-n), 1.0],
         ]);
 

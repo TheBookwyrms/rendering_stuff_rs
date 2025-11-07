@@ -1,15 +1,15 @@
-use crate::gl;
+use crate::{gl, intermediate_opengl};
 use crate::gl::Gl;
 use crate::raw_opengl;
 use crate::enums::{
     ArrayObject, BlendFunc, BufferBit,
     BufferObject, DrawMode, DrawType,
-    GlEnable, GlError, ProgramVariant,
+    GlEnable, GlError,
     ShaderType, UniformType, Object
 };
 
 use std::ffi::CString;
-use std::os::raw::c_void;
+use std::os::raw::{self, c_void};
 
 
 
@@ -93,11 +93,15 @@ pub fn create_shader_variant(opengl:&Gl, str_text:&str, shader_type:ShaderType) 
     Ok(shader_id)
 }
 
-pub fn use_program(opengl:&Gl, program:ProgramVariant) -> Result<(), GlError> {
+pub fn use_program(opengl:&Gl, program:u32) -> Result<(), GlError> {
     match program {
-        ProgramVariant::BlinnPhongOrthographic(id) => Ok(raw_opengl::use_program(opengl, id)),
-        ProgramVariant::SimpleOrthographic(id) => Ok(raw_opengl::use_program(opengl, id)),
+        0 => Err(GlError::InvalidProgramID),
+        n => Ok(raw_opengl::use_program(opengl, n)),
     }
+}
+
+pub fn disuse_program(opengl:&Gl) {
+    raw_opengl::use_program(opengl, 0);
 }
 
 pub fn remove_shader_variant(opengl:&Gl, program_id:u32, shader_id:u32) {
@@ -227,30 +231,53 @@ pub fn buffer_data(
 
 }
 
+pub fn set_vertex_attrib_position_3(opengl:&Gl, loc:u32, len:i32, offset:i32, dtype_size:i32) {
+    set_vertex_attrib(opengl, loc, 3, len, offset, dtype_size);
+}
 
-pub fn set_vertex_attrib(opengl:&Gl, layout_location:u32, store_normals:bool, dtype_size:i32
-) -> Result<(), GlError>{
+pub fn set_vertex_attrib_normal_3(opengl:&Gl, loc:u32, len:i32, offset:i32, dtype_size:i32) {
+    set_vertex_attrib(opengl, loc, 3, len, offset, dtype_size);
+}
+
+pub fn set_vertex_attrib_colour_3(opengl:&Gl, loc:u32, len:i32, offset:i32, dtype_size:i32) {
+    set_vertex_attrib(opengl, loc, 3, len, offset, dtype_size);
+}
+
+pub fn set_vertex_attrib_alpha_1(opengl:&Gl, loc:u32, len:i32, offset:i32, dtype_size:i32) {
+    set_vertex_attrib(opengl, loc, 1, len, offset, dtype_size);
+}
+
+pub fn set_vertex_attrib_texture_2(opengl:&Gl, loc:u32, len:i32, offset:i32, dtype_size:i32) {
+    set_vertex_attrib(opengl, loc, 2, len, offset, dtype_size);
+}
+
+
+pub fn set_vertex_attrib(opengl:&Gl, layout_location:u32, num_items:i32, stride:i32, offset:i32, dtype_size:i32){
+//) -> Result<(), GlError>{
     
-    let n_per_vertice : i32 = 3;
-    let n_per_colour  : i32 = 3;
-    let n_per_opacity : i32 = 1;
-    let n_per_normal  : i32 = 3;
-    let len_ptr = n_per_vertice + n_per_colour +
-                            n_per_opacity + if store_normals
-                            {n_per_normal} else {0};
-    let stride = len_ptr * dtype_size;
-    let (num_items, offset) = match layout_location {
-        0 => Ok((n_per_vertice, 0 as *const c_void)),
-        1 => Ok(( n_per_colour , ((n_per_vertice) * dtype_size) as *const c_void)),
-        2 => Ok((n_per_opacity, ((n_per_vertice + n_per_colour) * dtype_size) as *const c_void)),
-        3 => if store_normals {
-                Ok((n_per_normal, ((n_per_vertice + n_per_colour + n_per_opacity) * dtype_size) as *const c_void))
-            } else {Err(GlError::InvalidLayoutLocation(3))},
-        n => Err(GlError::InvalidLayoutLocation(n)),
-    }?;
+    let stride = stride * dtype_size;
+    let offset = (offset * dtype_size) as *const c_void;
+
+    //let n_per_vertice : i32 = 3;
+    //let n_per_colour  : i32 = 3;
+    //let n_per_opacity : i32 = 1;
+    //let n_per_normal  : i32 = 3;
+    //let len_ptr = n_per_vertice + n_per_colour +
+    //                        n_per_opacity + if store_normals
+    //                        {n_per_normal} else {0};
+    //let stride = len_ptr * dtype_size;
+    //let (num_items, offset) = match layout_location {
+    //    0 => Ok((n_per_vertice, 0 as *const c_void)),
+    //    1 => Ok(( n_per_colour , ((n_per_vertice) * dtype_size) as *const c_void)),
+    //    2 => Ok((n_per_opacity, ((n_per_vertice + n_per_colour) * dtype_size) as *const c_void)),
+    //    3 => if store_normals {
+    //            Ok((n_per_normal, ((n_per_vertice + n_per_colour + n_per_opacity) * dtype_size) as *const c_void))
+    //        } else {Err(GlError::InvalidLayoutLocation(3))},
+    //    n => Err(GlError::InvalidLayoutLocation(n)),
+    //}?;
     raw_opengl::enable_vertex_attrib_array(opengl, layout_location);
     raw_opengl::vertex_attrib_pointer(opengl, layout_location, num_items, gl::FLOAT, gl::FALSE, stride, offset);
-    Ok(())
+    //Ok(())
 }
 
 
@@ -286,4 +313,35 @@ pub fn draw_elements(opengl:&Gl, mode:DrawMode, num_indices:i32) {
 
 pub fn viewport(opengl:&Gl, width:i32, height:i32) {
     raw_opengl::viewport(opengl, 0, 0, width, height);
+}
+
+
+
+
+
+pub fn texture_test_1(opengl:&Gl, width:*mut i32, height:*mut i32, pixels: *const u8) -> u32 {
+
+    let tex_id = raw_opengl::gen_textures(opengl);
+    raw_opengl::bind_texture(opengl, gl::TEXTURE_2D, tex_id);
+
+    raw_opengl::tex_parameter_i(opengl, gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::MIRRORED_REPEAT.try_into().unwrap());
+    raw_opengl::tex_parameter_i(opengl, gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::MIRRORED_REPEAT.try_into().unwrap());
+    //raw_opengl::tex_parameter_i(opengl, gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT.try_into().unwrap());
+    //raw_opengl::tex_parameter_i(opengl, gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT.try_into().unwrap());
+    //raw_opengl::tex_parameter_i(opengl, gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE.try_into().unwrap());
+    //raw_opengl::tex_parameter_i(opengl, gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE.try_into().unwrap());
+
+    raw_opengl::tex_parameter_i(opengl, gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_NEAREST.try_into().unwrap());
+    //raw_opengl::tex_parameter_i(opengl, gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR.try_into().unwrap());
+    //raw_opengl::tex_parameter_i(opengl, gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST.try_into().unwrap());
+    raw_opengl::tex_parameter_i(opengl, gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR.try_into().unwrap());
+    
+    raw_opengl::tex_image_2d(
+        opengl, gl::TEXTURE_2D, 0,
+        gl::RGB.try_into().unwrap(), width as i32, height as i32,
+        gl::RGB, gl::UNSIGNED_BYTE, pixels as *const c_void);
+
+    raw_opengl::generate_mipmap(opengl, gl::TEXTURE_2D);
+
+    tex_id
 }

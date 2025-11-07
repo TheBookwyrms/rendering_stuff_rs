@@ -1,6 +1,7 @@
 use std::num::TryFromIntError;
 
 use glfw::{InitError, WindowEvent};
+use numeracy::enums::MatrixError;
 use opengl::enums::GlError;
 
 #[derive(Debug)]
@@ -12,10 +13,17 @@ pub enum RenderError {
     GLError(GlError),
     TryFromIntError(TryFromIntError),
     DataLengthError(usize),
+    MatrixError(MatrixError),
 }
 
 impl From<GlError> for RenderError {
     fn from(value: GlError) -> Self {
         Self::GLError(value)
+    }
+}
+
+impl From<MatrixError> for RenderError {
+    fn from(value: MatrixError) -> Self {
+        Self::MatrixError(value)
     }
 }
