@@ -56,8 +56,10 @@ impl Render {
 
     fn clear_bindings(&mut self) {
         self.programs.disuse_program(&self.window.opengl);
-        WithObject::unbind(&self.window.opengl, Object::VBO);
-        WithObject::unbind(&self.window.opengl, Object::VAO);
+        //WithObject::unbind(&self.window.opengl, Object::VBO);
+        //WithObject::unbind(&self.window.opengl, Object::VAO);
+        //WithObject::unbind(&self.window.opengl, Object::EBO);
+        //WithObject::unbind(&self.window.opengl, Object::Texture2D);
         //opengl::high_level_abstractions::WithObject::program(&self.window.opengl, 0);
     }
     
@@ -90,14 +92,14 @@ impl Render {
         let with_vao = WithObject::new(&self.window.opengl, Object::VAO, format);
         
         let with_vbo = WithObject::new(&self.window.opengl, Object::VBO, format);
-        with_vbo.buffer_data(vertices, DrawType::DynamicDraw)?;
+        with_vbo.buffer_data(vertices, DrawType::DynamicDraw, Object::VBO)?;
 
         let with_ebo = WithObject::new(&self.window.opengl, Object::EBO, format);
-        with_ebo.buffer_data(indices, DrawType::DynamicDraw)?;
+        with_ebo.buffer_data(indices, DrawType::DynamicDraw, Object::EBO)?;
 
         with_vao.set_vertex_attribs(vertices.dtype_memsize() as i32)?;
-        
-        Ok((with_vao.vao, with_vbo.vbo, with_vbo.ebo))
+
+        Ok((with_vao.vao, with_vbo.vbo, with_ebo.ebo))
     }
 
 
@@ -105,7 +107,7 @@ impl Render {
         let with_vao = WithObject::new(&self.window.opengl, Object::VAO, format);
         let with_vbo = WithObject::new(&self.window.opengl, Object::VBO, format);
 
-        with_vbo.buffer_data(data, DrawType::DynamicDraw)?;
+        with_vbo.buffer_data(data, DrawType::DynamicDraw, Object::VBO)?;
 
         with_vao.set_vertex_attribs(data.dtype_memsize() as i32)?;
 
@@ -113,9 +115,9 @@ impl Render {
     }
 
 
-    pub fn draw<T:Clone>(&self, call:DrawCall, mode:DrawMode, vao:u32, data:&Matrix<T>, format:DataFormat) -> Result<(), RenderError> {
-        Ok(self.programs.draw(&self.window.opengl, call, mode, vao, data, format)?)
-    }
+    //pub fn draw<T:Clone>(&self, call:DrawCall, mode:DrawMode, vao:u32, data:&Matrix<T>, format:DataFormat) -> Result<(), RenderError> {
+    //    Ok(self.programs.draw(&self.window.opengl, call, mode, vao, data, format)?)
+    //}
 
 
     pub fn use_program(&mut self, program_type:ProgramSelect) -> Result<(), RenderError> {

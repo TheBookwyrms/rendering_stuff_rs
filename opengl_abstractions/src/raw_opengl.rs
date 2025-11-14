@@ -57,8 +57,8 @@ pub fn get_uniform_location(opengl:&Gl, program_id:u32, uniform_name:*const i8) 
     unsafe { opengl.GetUniformLocation(program_id, uniform_name) }
 }
 
-pub fn set_uniform_int(opengl:&Gl, uniform_location:i32, int:i32) {
-    unsafe { opengl.Uniform1i(uniform_location, int) }
+pub fn set_uniform_int(opengl:&Gl, uniform_location:i32, int:*const i32) {
+    unsafe { opengl.Uniform1i(uniform_location, *int) }
 }
 
 pub fn set_uniform_float(opengl:&Gl, uniform_location:i32, float:*const f32) {

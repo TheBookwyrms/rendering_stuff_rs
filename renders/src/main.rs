@@ -5,18 +5,27 @@
 
 
 mod cube;
+mod image_processing;
+mod enums;
 
 
-use opengl::abstractions::{WithObject};
+use opengl::abstractions::{self, WithObject, TextureSetup};
+use opengl::enums::{InternalFormat, TextureMagFilter, TextureMinFilter, TextureWrapping};
 use opengl::{gl, intermediate_opengl, raw_opengl};
 use render_context::errors::RenderError;
 use render_context::render::Render;
-use render_context::enums::{GlError, ProgramSelect, DrawMode, DrawCall, DataFormat};
+use render_context::enums::{GlError, ProgramSelect, DrawMode, DrawCall, DataFormat, TextureTarget, UniformType};
 use numeracy::matrices::Matrix;
 use zune_jpeg;
+use zune_png;
+use enums::ImageFormat;
+
 
 use std::ffi::{CStr, CString};
+use std::io::Read;
 use std::os::raw::c_void;
+
+use crate::image_processing::Image;
 
 //use ppm_viewer;
 
@@ -39,10 +48,10 @@ fn main() -> Result<(), RenderError> {
 
     let texture_triangle = Matrix::from_2darray([
           // positions      // texture coords
-        [ 350.,  350., 0.0,   1.0, 1.0],   // top right
-        [ 350., -350., 0.0,   1.0, 0.0],   // bottom right
-        [-350., -350., 0.0,   0.0, 0.0],   // bottom left
-        [-350.,  350., 0.0,   0.0, 1.0],   // top left 
+        [ 35.,  35., 0.0,   5.0, 5.0],   // top right
+        [ 35., -35., 0.0,   5.0, 0.0],   // bottom right
+        [-35., -35., 0.0,   0.0, 0.0],   // bottom left
+        [-35.,  35., 0.0,   0.0, 5.0],   // top left 
     ]);
     //let texture_triangle = Matrix::from_2darray([
     //      // positions      // colors             // texture coords
@@ -68,46 +77,40 @@ fn main() -> Result<(), RenderError> {
 
     let (t_vao, t_vbo) = render.create_vao_vbo(&triangle, DataFormat::Position3Colour3Alpha1Normal3)?;
     let (tex_vao, tex_vbo, tex_ebo) = render.create_vao_vbo_ebo(&texture_triangle, &triangle_indices, DataFormat::Position3Texture2)?;
+    
+    
     //let (t_vao, t_vbo, t_ebo) = render.create_vao_vbo_ebo(&triangle, &triangle_indices)?;
 
-    let wall_data = include_bytes!("wall.jpg");
-    //let wall_data = include_bytes!("../images/shazi.jpg");
-    //let wall_data = include_bytes!("1bafc004e22b8b5fbd9a2616be16ff02.jpg");
-    //let wall_data = include_bytes!("green dragon.jpg");
-    //let wall_data = include_bytes!("unknown_by_korbox_d2scgt2-pre.jpg");
-    //let wall_data = include_bytes!("zudarts-lee-180308(1).jpg");
 
-    //let (tex_width, tex_height, maybe_pixel_data, _) = opengl::image_decoding::jpeg::get_jpeg_width_length_from_multiple(wall_data).unwrap();
-
-
-    let cwd_and_file = std::env::current_dir().unwrap().join("images").join("wall.jpg");
-    let cwd_and_file = std::env::current_dir().unwrap().join("images").join("Shazi.jpg");
-
-    let be = std::fs::read(cwd_and_file).unwrap();
-    let mut decoder = zune_jpeg::JpegDecoder::new(&be);
-    let pixels = decoder.decode().unwrap();
-
-    let (width, height) = decoder.dimensions().unwrap();
-    let nchannels = decoder.get_output_colorspace().unwrap().num_components();
+    let awesomeface = Image::decode("images/awesomeface.png", ImageFormat::PNG, true);
+    let bluefaces = Image::decode("images/bluefaces.png", ImageFormat::PNG, true);
     
-    let data = Matrix {shape:vec![width*nchannels, height], array:pixels, dtype:numeracy::enums::MatrixDataTypes::U8};
-    let flipped_data = data.flip_vertically()?;
-    
-    let texture_id = intermediate_opengl::texture_test_1(
-        &render.window.opengl, width as *mut i32, height as *mut i32, flipped_data.array.as_ptr() as *const u8
-    );
+    //let texture_id = intermediate_opengl::texture_test_1(
+    //    &render.window.opengl, bluefaces.width as *mut i32, bluefaces.height as *mut i32, bluefaces.pixels.as_ptr() as *const u8
+    //);
+
+    let texture_id = TextureSetup::get(
+            &render.window.opengl, TextureTarget::Texture2D,
+            bluefaces.width as i32, bluefaces.height as i32, bluefaces.pixels, bluefaces.format.into()
+        )
+        .set_texture_image_and_mipmap(0)
+        //.create_mipmap()
+        .set_filters(TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear)
+        //.set_st_wrapping(TextureWrapping::ClampToBorder(1.0, 1.0, 1.0, 1.0), TextureWrapping::ClampToEdge)
+        .set_st_wrapping(TextureWrapping::MirroredRepeat, TextureWrapping::MirroredRepeat)
+        .get_prepared_texture()?.texture;
 
 
-
-
+    raw_opengl::active_texture(&render.window.opengl, gl::TEXTURE0);
     render.use_program(ProgramSelect::SelectSimpleTexture);
-    raw_opengl::set_uniform_int(
-        &render.window.opengl,
-        intermediate_opengl::get_uniform_location(
-            &render.window.opengl, render.programs.current_program.unwrap(), "texture1"
-        ).unwrap(),
-        0);
+    intermediate_opengl::set_uniform(
+        &render.window.opengl, render.programs.current_program.unwrap(),
+        "texture1", UniformType::Int, Matrix::from_scalar(0).as_ptr()
+    )?;
     render.programs.disuse_program(&render.window.opengl);
+    intermediate_opengl::bind_texture(&render.window.opengl, TextureTarget::Texture2D, 0);
+    //raw_opengl::bind_texture(&render.window.opengl, gl::TEXTURE_2D, 0);
+
 
     while !render.render_over() {
         render.begin_render_actions()?;
@@ -115,21 +118,22 @@ fn main() -> Result<(), RenderError> {
 
         
         //render.use_program(ProgramSelect::SelectSimpleOrthographic);
-        //render.draw(DrawCall::Arrays, DrawMode::GlTriangles, c_vao, &cube, DataFormat::Position3Colour3Alpha1)?;
+        //let with_relevant = WithObject::existing(&render.window.opengl, opengl::enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1);
+        //render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &cube)?;
 
         //render.use_program(ProgramSelect::SelectBlinnPhongOrthographic);
-        //render.draw(DrawCall::Arrays, DrawMode::GlTriangles, t_vao, &triangle, DataFormat::Position3Colour3Alpha1Normal3)?;
+        //let with_relevant = WithObject::existing(&render.window.opengl, opengl::enums::Object::VAO, t_vao, DataFormat::Position3Colour3Alpha1Normal3);
+        //render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &triangle)?;
 
         render.use_program(ProgramSelect::SelectSimpleTexture);
-        //raw_opengl::set_uniform_int(
-        //    &render.window.opengl,
-        //    intermediate_opengl::get_uniform_location(
-        //        &render.window.opengl, render.programs.current_program.unwrap(), "texture1"
-        //    ).unwrap(),
-        //    0);
-        raw_opengl::active_texture(&render.window.opengl, gl::TEXTURE0);
-        raw_opengl::bind_texture(&render.window.opengl, gl::TEXTURE_2D, texture_id);
-        render.draw(DrawCall::Elements, DrawMode::GlTriangles, tex_vao, &triangle_indices, DataFormat::Position3Texture2)?;
+        let with_relevant = WithObject::existing(&render.window.opengl, opengl::enums::Object::VAO, tex_vao, DataFormat::Position3Texture2)
+                                                        .add(opengl::enums::Object::EBO, tex_ebo)?
+                                                        .add(opengl::enums::Object::Texture2D, texture_id)?;
+        render.programs.draw(with_relevant, DrawCall::Elements, DrawMode::GlTriangles, &triangle_indices)?;
+
+
+
+
 
         // unknown data type
         //render.draw(DrawCall::Elements, DrawMode::GlTriangles, vao, &indices_matrix)?;

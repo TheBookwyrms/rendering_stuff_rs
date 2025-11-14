@@ -10,5 +10,3 @@ pub mod intermediate_opengl;
 pub mod enums;
 
 pub mod abstractions;
-
-pub mod image_decoding;

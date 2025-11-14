@@ -13,3 +13,4 @@ render_context   = {path = "../render_context"}
 opengl   = {path = "../opengl_abstractions"}
 
 zune-jpeg = "=0.4.21"
+zune-png = "0.4.10"
