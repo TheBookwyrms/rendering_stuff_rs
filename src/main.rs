@@ -5,20 +5,19 @@
 
 
 mod cube;
-mod image_processing;
-mod enums;
 
 
-use opengl::abstractions::{self, WithObject, TextureSetup};
-use opengl::enums::{InternalFormat, TextureMagFilter, TextureMinFilter, TextureWrapping};
-use opengl::{gl, intermediate_opengl, raw_opengl};
-use render_context::errors::RenderError;
-use render_context::render::Render;
-use render_context::enums::{GlError, ProgramSelect, DrawMode, DrawCall, DataFormat, TextureTarget, UniformType};
+use atmospheric::image_processing;
+use atmospheric::enums;
+use atmospheric::opengl;
+use atmospheric::opengl::abstractions::{self, TextureSetup, Textures, WithObject};
+use atmospheric::enums::{InternalFormat, TextureMagFilter, TextureMinFilter, TextureWrapping};
+use atmospheric::opengl::{gl, intermediate_opengl, raw_opengl};
+use atmospheric::enums::ContextError;
+use atmospheric::enums::ImageFormat;
+use atmospheric::context::Context;
+use atmospheric::enums::{DataFormat, DrawCall, DrawMode, GlError, OpenglTexture, ProgramSelect, TextureTarget, UniformType};
 use numeracy::matrices::Matrix;
-use zune_jpeg;
-use zune_png;
-use enums::ImageFormat;
 
 
 use std::ffi::{CStr, CString};
@@ -32,7 +31,7 @@ use crate::image_processing::Image;
 
 
 
-fn main() -> Result<(), RenderError> {
+fn main() -> Result<(), ContextError> {
 
     let cube = cube::cube((0.0, 0.0, 0.0), 8.0);
 
@@ -66,7 +65,7 @@ fn main() -> Result<(), RenderError> {
     ]);
 
 
-    let mut render = Render::default()?;
+    let mut render = Context::default()?;
     render.setup_render();
 
 
@@ -83,33 +82,20 @@ fn main() -> Result<(), RenderError> {
 
 
     let awesomeface = Image::decode("images/awesomeface.png", ImageFormat::PNG, true);
-    let bluefaces = Image::decode("images/bluefaces.png", ImageFormat::PNG, true);
+    let bluefaces   = Image::decode("images/bluefaces.png", ImageFormat::PNG, true);
     
-    //let texture_id = intermediate_opengl::texture_test_1(
-    //    &render.window.opengl, bluefaces.width as *mut i32, bluefaces.height as *mut i32, bluefaces.pixels.as_ptr() as *const u8
-    //);
 
-    let texture_id = TextureSetup::get(
+    let prepared_bluefaces = TextureSetup::get(
             &render.window.opengl, TextureTarget::Texture2D,
-            bluefaces.width as i32, bluefaces.height as i32, bluefaces.pixels, bluefaces.format.into()
+            bluefaces
+            //bluefaces.width, bluefaces.height, bluefaces.pixels, bluefaces.format.into()
         )
         .set_texture_image_and_mipmap(0)
-        //.create_mipmap()
         .set_filters(TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear)
         //.set_st_wrapping(TextureWrapping::ClampToBorder(1.0, 1.0, 1.0, 1.0), TextureWrapping::ClampToEdge)
         .set_st_wrapping(TextureWrapping::MirroredRepeat, TextureWrapping::MirroredRepeat)
-        .get_prepared_texture()?.texture;
+        .get_prepared_texture()?;
 
-
-    raw_opengl::active_texture(&render.window.opengl, gl::TEXTURE0);
-    render.use_program(ProgramSelect::SelectSimpleTexture);
-    intermediate_opengl::set_uniform(
-        &render.window.opengl, render.programs.current_program.unwrap(),
-        "texture1", UniformType::Int, Matrix::from_scalar(0).as_ptr()
-    )?;
-    render.programs.disuse_program(&render.window.opengl);
-    intermediate_opengl::bind_texture(&render.window.opengl, TextureTarget::Texture2D, 0);
-    //raw_opengl::bind_texture(&render.window.opengl, gl::TEXTURE_2D, 0);
 
 
     while !render.render_over() {
@@ -126,11 +112,16 @@ fn main() -> Result<(), RenderError> {
         //render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &triangle)?;
 
         render.use_program(ProgramSelect::SelectSimpleTexture);
-        let with_relevant = WithObject::existing(&render.window.opengl, opengl::enums::Object::VAO, tex_vao, DataFormat::Position3Texture2)
-                                                        .add(opengl::enums::Object::EBO, tex_ebo)?
-                                                        .add(opengl::enums::Object::Texture2D, texture_id)?;
-        render.programs.draw(with_relevant, DrawCall::Elements, DrawMode::GlTriangles, &triangle_indices)?;
 
+        
+        &render.textures.activate(
+            &render.window.opengl, OpenglTexture::Texture0, &prepared_bluefaces, &render.programs
+        )?;
+    
+        let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tex_vao, DataFormat::Position3Texture2)
+                                                        .add(enums::Object::EBO, tex_ebo)?;
+                                                        //.add(opengl::enums::Object::Texture2D, texture_id)?;
+        render.programs.draw(with_relevant, DrawCall::Elements, DrawMode::GlTriangles, &triangle_indices)?;
 
 
 

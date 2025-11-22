@@ -7,6 +7,7 @@ edition = "2024"
 
 
 [dependencies]
-matrices = {path = "../matrices"}
-opengl = {path = "../opengl_abstractions"}
-render_context   = {path = "../render_context"}
+#numeracy = {path = "../../numeracy"}
+numeracy = {git = "https://github.com/TheBookwyrms/numeracy.git", branch = "working_branch"}
+#atmospheric = {path = "../../atmospheric"}
+atmospheric = {git = "https://github.com/TheBookwyrms/atmospheric.git", branch = "working_branch"}
