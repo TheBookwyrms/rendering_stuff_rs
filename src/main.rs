@@ -27,11 +27,22 @@ use std::os::raw::c_void;
 use crate::image_processing::Image;
 
 //use ppm_viewer;
+use ray_tracer;
 
-
+fn error(msg:String) {
+    let a = true;
+    let _b = match a {
+        true =>Err(msg),
+        false =>Ok(msg),
+    }.unwrap();
+}
 
 
 fn main() -> Result<(), ContextError> {
+
+    //let ppm = ray_tracer::hello_ppm();
+    //let b = ray_tracer::ppm_to_file("ppm_viewer/src/test.ppm", ppm).unwrap();
+    //error("hi".to_string());
 
     let cube = cube::cube((0.0, 0.0, 0.0), 8.0);
 
@@ -81,9 +92,12 @@ fn main() -> Result<(), ContextError> {
     //let (t_vao, t_vbo, t_ebo) = render.create_vao_vbo_ebo(&triangle, &triangle_indices)?;
 
 
-    let awesomeface = Image::decode("images/awesomeface.png", ImageFormat::PNG, true);
-    let bluefaces   = Image::decode("images/bluefaces.png", ImageFormat::PNG, true);
-    
+    let awesomeface = Image::decode_from_path("images/awesomeface.png", ImageFormat::PNG, true);
+    let bluefaces   = Image::decode_from_path("images/bluefaces.png", ImageFormat::PNG, true);
+    //let ppm = Image::decode("ppm_viewer/src/test.ppm", ImageFormat::PPMP3, false);
+    let ppm = Image::decode_from_path("ray_tracer/test.txt", ImageFormat::PPMP3, true);
+    //let ppm = Image::decode("ray_tracer/hey.txt", ImageFormat::PPMP3, false);
+
 
     let prepared_bluefaces = TextureSetup::get(
             &render.window.opengl, TextureTarget::Texture2D,
@@ -95,8 +109,32 @@ fn main() -> Result<(), ContextError> {
         //.set_st_wrapping(TextureWrapping::ClampToBorder(1.0, 1.0, 1.0, 1.0), TextureWrapping::ClampToEdge)
         .set_st_wrapping(TextureWrapping::MirroredRepeat, TextureWrapping::MirroredRepeat)
         .get_prepared_texture()?;
+    let prepared_ppm = TextureSetup::get(
+            &render.window.opengl, TextureTarget::Texture2D,
+            ppm
+            //bluefaces.width, bluefaces.height, bluefaces.pixels, bluefaces.format.into()
+        )
+        .set_texture_image_and_mipmap(0)
+        .set_filters(TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear)
+        //.set_st_wrapping(TextureWrapping::ClampToBorder(1.0, 1.0, 1.0, 1.0), TextureWrapping::ClampToEdge)
+        .set_st_wrapping(TextureWrapping::Repeat, TextureWrapping::Repeat)
+        .get_prepared_texture()?;
+
+    let prepared_awesomeface = TextureSetup::get(
+            &render.window.opengl, TextureTarget::Texture2D,
+            awesomeface
+            //bluefaces.width, bluefaces.height, bluefaces.pixels, bluefaces.format.into()
+        )
+        .set_texture_image_and_mipmap(0)
+        .set_filters(TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear)
+        //.set_st_wrapping(TextureWrapping::ClampToBorder(1.0, 1.0, 1.0, 1.0), TextureWrapping::ClampToEdge)
+        .set_st_wrapping(TextureWrapping::Repeat, TextureWrapping::Repeat)
+        .get_prepared_texture()?;
 
 
+        let vertex_text   = std::fs::read("src/two_texture_vertex.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+        let fragment_text = std::fs::read("src/two_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+        let shader_id = render.compile_custom_program(vertex_text.as_str(), fragment_text.as_str())?;
 
     while !render.render_over() {
         render.begin_render_actions()?;
@@ -111,11 +149,21 @@ fn main() -> Result<(), ContextError> {
         //let with_relevant = WithObject::existing(&render.window.opengl, opengl::enums::Object::VAO, t_vao, DataFormat::Position3Colour3Alpha1Normal3);
         //render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &triangle)?;
 
-        render.use_program(ProgramSelect::SelectSimpleTexture);
+        //render.use_program(ProgramSelect::SelectSimpleTexture);
+
+        render.use_custom_program(shader_id);
+        render.set_orthographic_camera_uniforms()?;
+        //render.set_custom_uniform(sa, uniform, value)
 
         
+        //&render.textures.activate(
+        //    &render.window.opengl, OpenglTexture::Texture0, &prepared_bluefaces, &render.programs
+        //)?;
+        //&render.textures.activate(
+        //    &render.window.opengl, OpenglTexture::Texture1, &prepared_ppm, &render.programs
+        //)?;
         &render.textures.activate(
-            &render.window.opengl, OpenglTexture::Texture0, &prepared_bluefaces, &render.programs
+            &render.window.opengl, OpenglTexture::Texture1, &prepared_awesomeface, &render.programs
         )?;
     
         let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tex_vao, DataFormat::Position3Texture2)

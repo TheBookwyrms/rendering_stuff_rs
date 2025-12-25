@@ -12,4 +12,5 @@ numeracy = {path = "../numeracy"}
 atmospheric = {path = "../atmospheric"}
 #atmospheric = {git = "https://github.com/TheBookwyrms/atmospheric.git", branch = "working_branch"}
 
-#ppm_viewer = {path = "../ppm_viewer"}
+#ppm_viewer = {path = "ppm_viewer"}
+ray_tracer = {path = "ray_tracer"}
