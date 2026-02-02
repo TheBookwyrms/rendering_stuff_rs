@@ -4,7 +4,16 @@ fn arr7d(pos:[f32; 3], col:[f32; 3], a:f32) -> [f32; 7] {
     [pos[0], pos[1], pos[2], col[0], col[1], col[2], a]
 }
 
-pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32, v:bool) -> [[f32; 7]; 8] {
+fn arr3_of_arr7_from_arr3_of_arr3(positions:[[f32;3];3], col:[f32;3], a:f32) -> [[f32;7];3] {
+    [
+        arr7d(positions[0], col, a),
+        arr7d(positions[1], col, a),
+        arr7d(positions[2], col, a),
+    ]
+}
+
+//pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32, v:bool) -> [[f32; 7]; 8] {
+pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32, v:bool) -> [[f32; 3]; 8] {
     let (x, y, z) = centre;
 
     let top_front_right    = [x+side_len/2.0, y+side_len/2.0, z+side_len/2.0];
@@ -16,10 +25,12 @@ pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32, v:bool) -> [[f
     let bottom_front_left  = [x-side_len/2.0, y-side_len/2.0, z+side_len/2.0];
     let bottom_back_left   = [x-side_len/2.0, y-side_len/2.0, z-side_len/2.0];
 
-    let c0 = [0.2, 0.4, 0.6];
-    let c1 = [0.4, 0.6, 0.8];
-    let c2 = [0.6, 0.8, 0.2];
-    let c3 = [0.8, 0.2, 0.4];
+    let c0 = [1.0, 0.0, 0.0];
+    let c1 = [0.0, 1.0, 0.0];
+    let c2 = [0.0, 1.0, 1.0];
+    let c3 = [1.0, 0.0, 0.0];
+    let c4 = [1.0, 1.0, 1.0];
+    let c5 = [0.0, 0.0, 1.0];
     //let [c0, c1, c2, c3] = if v {
     //    [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]
     //} else {
@@ -31,14 +42,22 @@ pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32, v:bool) -> [[f
 
     let cb = [0.0; 3];
 
-    let tbr = arr7d(top_back_right,     c0, a);
-    let tfr = arr7d(top_front_right,    c1, a);
-    let tfl = arr7d(top_front_left,     c2, a);
-    let tbl = arr7d(top_back_left,      c3, a);
-    let bbr = arr7d(bottom_back_right,  c2, a);
-    let bfr = arr7d(bottom_front_right, c3, a);
-    let bfl = arr7d(bottom_front_left,  c0, a);
-    let bbl = arr7d(bottom_back_left,   c1, a);
+    //let tbr = arr7d(top_back_right,     c0, a);
+    //let tfr = arr7d(top_front_right,    c1, a);
+    //let tfl = arr7d(top_front_left,     c2, a);
+    //let tbl = arr7d(top_back_left,      c3, a);
+    //let bbr = arr7d(bottom_back_right,  c2, a);
+    //let bfr = arr7d(bottom_front_right, c3, a);
+    //let bfl = arr7d(bottom_front_left,  c0, a);
+    //let bbl = arr7d(bottom_back_left,   c1, a);
+    let tbr = top_back_right;
+    let tfr = top_front_right;
+    let tfl = top_front_left;
+    let tbl = top_back_left;
+    let bbr = bottom_back_right;
+    let bfr = bottom_front_right;
+    let bfl = bottom_front_left;
+    let bbl = bottom_back_left;
 
     [tbr, tfr, tfl, tbl, bbr, bfr, bfl, bbl]
 }
@@ -87,24 +106,26 @@ pub fn cube(centre:(f32, f32, f32), side_len:f32) -> Matrix<f32> {
         tbr, tfr, tfl, tbl, bbr, bfr, bfl, bbl
     ] = create_cube_vertices(centre, side_len, false);
 
-
-    let top1     = [tbr, tbl, tfr];
-    let top2     = [tfl, tbl, tfr];
-
-    let front1   = [tfl, bfl, tfr];
-    let front2   = [bfr, bfl, tfr];
-
-    let bottom1  = [bfr, bfl, bbr];
-    let bottom2  = [bbl, bfl, bbr];
-
-    let back1    = [bbl, tbl, bbr];
-    let back2    = [tbr, tbl, bbr];
-
-    let right1   = [tbr, tfr, bbr];
-    let right2   = [bfr, tfr, bbr];
     
-    let left1    = [tfl, tbl, bfl];
-    let left2    = [bbl, tbl, bfl];
+    let c0 = [1.0, 0.0, 0.0];
+    let c1 = [0.0, 1.0, 0.0];
+    let c2 = [0.0, 0.0, 1.0];
+    let c3 = [1.0, 1.0, 0.0];
+    let c4 = [1.0, 0.0, 1.0];
+    let c5 = [0.0, 1.0, 1.0];
+
+    let top1     = arr3_of_arr7_from_arr3_of_arr3([tbr, tbl, tfr], c0, 1.0);
+    let top2     = arr3_of_arr7_from_arr3_of_arr3([tfl, tbl, tfr], c0, 1.0);
+    let front1   = arr3_of_arr7_from_arr3_of_arr3([tfl, bfl, tfr], c1, 1.0);
+    let front2   = arr3_of_arr7_from_arr3_of_arr3([bfr, bfl, tfr], c1, 1.0);
+    let bottom1  = arr3_of_arr7_from_arr3_of_arr3([bfr, bfl, bbr], c2, 1.0);
+    let bottom2  = arr3_of_arr7_from_arr3_of_arr3([bbl, bfl, bbr], c2, 1.0);
+    let back1    = arr3_of_arr7_from_arr3_of_arr3([bbl, tbl, bbr], c3, 1.0);
+    let back2    = arr3_of_arr7_from_arr3_of_arr3([tbr, tbl, bbr], c3, 1.0);
+    let right1   = arr3_of_arr7_from_arr3_of_arr3([tbr, tfr, bbr], c4, 1.0);
+    let right2   = arr3_of_arr7_from_arr3_of_arr3([bfr, tfr, bbr], c4, 1.0);
+    let left1    = arr3_of_arr7_from_arr3_of_arr3([tfl, tbl, bfl], c5, 1.0);
+    let left2    = arr3_of_arr7_from_arr3_of_arr3([bbl, tbl, bfl], c5, 1.0);
 
 
     let mut cube = vec![];

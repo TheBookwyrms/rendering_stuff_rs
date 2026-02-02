@@ -18,6 +18,7 @@ use atmospheric::enums::ImageFormat;
 use atmospheric::context::Context;
 use atmospheric::enums::{DataFormat, DrawCall, DrawMode, GlError, OpenglTexture, ProgramSelect, TextureTarget, UniformType};
 use numeracy::matrices::Matrix;
+use numeracy::vectors::Vector;
 
 
 use std::ffi::{CStr, CString};
@@ -44,7 +45,7 @@ fn main() -> Result<(), ContextError> {
     //let b = ray_tracer::ppm_to_file("ppm_viewer/src/test.ppm", ppm).unwrap();
     //error("hi".to_string());
 
-    let cube = cube::cube((0.0, 0.0, 0.0), 8.0);
+    let cube = cube::cube((0.0, 0.0, 0.0), 14.0);
 
     let (vertices_matrix, indices_matrix) = cube::ebo_cube((0.0, 0.0, 0.0), 8.0);
     //let (vertices_matrix, indices_matrix) = cube::ebo_cube((0.0, 0.0, 0.0), 50.0);
@@ -58,11 +59,17 @@ fn main() -> Result<(), ContextError> {
 
     let texture_triangle = Matrix::from_2darray([
           // positions      // texture coords
-        [ 35.,  35., 0.0,   5.0, 5.0],   // top right
-        [ 35., -35., 0.0,   5.0, 0.0],   // bottom right
-        [-35., -35., 0.0,   0.0, 0.0],   // bottom left
-        [-35.,  35., 0.0,   0.0, 5.0],   // top left 
+        [ 35.,  35., -30.0,   1.0, 1.0],   // top right
+        [ 35., -35., -30.0,   1.0, 0.0],   // bottom right
+        [-35., -35., -30.0,   0.0, 0.0],   // bottom left
+        [-35.,  35., -30.0,   0.0, 1.0],   // top left 
     ]);
+
+    let zero = Matrix::from_2darray([[0., 0., 0., 0., 0., 0., 1.]]);
+    let x    = Matrix::from_2darray([[5., 0., 0., 1., 0., 0., 1.]]);
+    let y    = Matrix::from_2darray([[0., 5., 0., 0., 1., 0., 1.]]);
+    let z    = Matrix::from_2darray([[0., 0., 10., 0., 0., 1., 1.]]);
+
     //let texture_triangle = Matrix::from_2darray([
     //      // positions      // colors             // texture coords
     //    [ 5.0,  5.0, 0.0,   1.0, 0.0, 0.0, 1.0,   1.0, 1.0],   // top right
@@ -87,7 +94,11 @@ fn main() -> Result<(), ContextError> {
 
     let (t_vao, t_vbo) = render.create_vao_vbo(&triangle, DataFormat::Position3Colour3Alpha1Normal3)?;
     let (tex_vao, tex_vbo, tex_ebo) = render.create_vao_vbo_ebo(&texture_triangle, &triangle_indices, DataFormat::Position3Texture2)?;
-    
+    let (zero_vao, zero_vbo) = render.create_vao_vbo(&zero, DataFormat::Position3Colour3Alpha1)?;
+    let (x_vao, z_vbo) = render.create_vao_vbo(&x, DataFormat::Position3Colour3Alpha1)?;
+    let (y_vao, z_vbo) = render.create_vao_vbo(&y, DataFormat::Position3Colour3Alpha1)?;
+    let (z_vao, z_vbo) = render.create_vao_vbo(&z, DataFormat::Position3Colour3Alpha1)?;
+
     
     //let (t_vao, t_vbo, t_ebo) = render.create_vao_vbo_ebo(&triangle, &triangle_indices)?;
 
@@ -156,9 +167,9 @@ fn main() -> Result<(), ContextError> {
         //render.set_custom_uniform(sa, uniform, value)
 
         
-        //&render.textures.activate(
-        //    &render.window.opengl, OpenglTexture::Texture0, &prepared_bluefaces, &render.programs
-        //)?;
+        &render.textures.activate(
+            &render.window.opengl, OpenglTexture::Texture0, &prepared_bluefaces, &render.programs
+        )?;
         //&render.textures.activate(
         //    &render.window.opengl, OpenglTexture::Texture1, &prepared_ppm, &render.programs
         //)?;
@@ -166,18 +177,33 @@ fn main() -> Result<(), ContextError> {
             &render.window.opengl, OpenglTexture::Texture1, &prepared_awesomeface, &render.programs
         )?;
     
-        let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tex_vao, DataFormat::Position3Texture2)
-                                                        .add(enums::Object::EBO, tex_ebo)?;
-                                                        //.add(opengl::enums::Object::Texture2D, texture_id)?;
-        render.programs.draw(with_relevant, DrawCall::Elements, DrawMode::GlTriangles, &triangle_indices)?;
+        //let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tex_vao, DataFormat::Position3Texture2)
+        //                                                .add(enums::Object::EBO, tex_ebo)?;
+        //                                                //.add(opengl::enums::Object::Texture2D, texture_id)?;
+        //render.programs.draw(with_relevant, DrawCall::Elements, DrawMode::GlTriangles, &triangle_indices)?;
 
 
+        // if !render.paused {
+        //     render.camera.angle_xyz += Vector::from_1darray([0.0, 0.50, 0.0]);
+        // }
 
 
-        // unknown data type
-        //render.draw(DrawCall::Elements, DrawMode::GlTriangles, vao, &indices_matrix)?;
-        //render.draw(DrawCall::Elements, DrawMode::GlTriangles, t_vao, &triangle_indices)?;
+         render.use_program(ProgramSelect::SelectSimpleOrthographic)?;
 
+        /// origin, x, y, and z points
+        // let with_zero = WithObject::existing(&render.window.opengl, enums::Object::VAO, zero_vao, DataFormat::Position3Colour3Alpha1);
+        // render.programs.draw(with_zero, DrawCall::Arrays, DrawMode::GlPoints, &zero)?;
+        // let with_x = WithObject::existing(&render.window.opengl, enums::Object::VAO, x_vao, DataFormat::Position3Colour3Alpha1);
+        // render.programs.draw(with_x, DrawCall::Arrays, DrawMode::GlPoints, &x)?;
+        // let with_y = WithObject::existing(&render.window.opengl, enums::Object::VAO, y_vao, DataFormat::Position3Colour3Alpha1);
+        // render.programs.draw(with_y, DrawCall::Arrays, DrawMode::GlPoints, &y)?;
+        // let with_z = WithObject::existing(&render.window.opengl, enums::Object::VAO, z_vao, DataFormat::Position3Colour3Alpha1);
+        // render.programs.draw(with_z, DrawCall::Arrays, DrawMode::GlPoints, &z)?;
+
+        let with_cube = WithObject::existing(&render.window.opengl, enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1);
+        render.programs.draw(with_cube, DrawCall::Arrays, DrawMode::GlTriangles, &cube)?;
+
+        render.camera.camera_position += Vector::from_1darray([0., 0., 0.005]);
 
         render.end_render_actions()?;
     }
