@@ -190,7 +190,7 @@ fn main() -> Result<(), ContextError> {
 
          render.use_program(ProgramSelect::SelectSimpleOrthographic)?;
 
-        /// origin, x, y, and z points
+        // origin, x, y, and z points
         // let with_zero = WithObject::existing(&render.window.opengl, enums::Object::VAO, zero_vao, DataFormat::Position3Colour3Alpha1);
         // render.programs.draw(with_zero, DrawCall::Arrays, DrawMode::GlPoints, &zero)?;
         // let with_x = WithObject::existing(&render.window.opengl, enums::Object::VAO, x_vao, DataFormat::Position3Colour3Alpha1);
@@ -200,10 +200,21 @@ fn main() -> Result<(), ContextError> {
         // let with_z = WithObject::existing(&render.window.opengl, enums::Object::VAO, z_vao, DataFormat::Position3Colour3Alpha1);
         // render.programs.draw(with_z, DrawCall::Arrays, DrawMode::GlPoints, &z)?;
 
+        let cam_x = -8.;
+        render.camera.camera_target[0] = cam_x;
+        render.camera.camera_position[0] = cam_x;
+        //render.camera.camera_position[2] = -20.0;
         let with_cube = WithObject::existing(&render.window.opengl, enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1);
         render.programs.draw(with_cube, DrawCall::Arrays, DrawMode::GlTriangles, &cube)?;
 
-        render.camera.camera_position += Vector::from_1darray([0., 0., 0.005]);
+
+        let tr = Matrix::translate(Vector::from_1darray([-16.0, 0.0, 0.0]));
+        render.programs.set_uniform(&render.window.opengl, "world_transform", UniformType::Mat4,
+            Matrix::opengl_to_right_handed().matmul(&tr).unwrap())?;
+        let with_cube = WithObject::existing(&render.window.opengl, enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1);
+        render.programs.draw(with_cube, DrawCall::Arrays, DrawMode::GlTriangles, &cube)?;
+
+        render.camera.camera_position += Vector::from_1darray([0.0, 0., 0.005]);
 
         render.end_render_actions()?;
     }
