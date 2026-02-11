@@ -1,4 +1,4 @@
-use numeracy::{enums::MatrixDataTypes, matrices::Matrix};
+use numeracy::matrices::Matrix;
 
 fn arr7d(pos:[f32; 3], col:[f32; 3], a:f32) -> [f32; 7] {
     [pos[0], pos[1], pos[2], col[0], col[1], col[2], a]
@@ -68,7 +68,6 @@ pub fn ebo_cube(centre:(f32, f32, f32), side_len:f32) -> (Matrix<f32>, Matrix<i3
     let vertices_matrix = Matrix {
         shape:vec![7, 8],
         array:create_cube_vertices(centre, side_len, true).concat(),
-        dtype:MatrixDataTypes::F32
     };
 
     let indices_arr = [
@@ -89,7 +88,6 @@ pub fn ebo_cube(centre:(f32, f32, f32), side_len:f32) -> (Matrix<f32>, Matrix<i3
     let indices_matrix = Matrix {
         shape:vec![3, 12],
         array:indices_arr.to_vec(),
-        dtype:MatrixDataTypes::I32
     };
 
     (vertices_matrix, indices_matrix)
@@ -149,5 +147,5 @@ pub fn cube(centre:(f32, f32, f32), side_len:f32) -> Matrix<f32> {
     cube.extend(left2.concat());
 
 
-    Matrix { shape: vec![7, cube.len()/7], array: cube, dtype: numeracy::enums::MatrixDataTypes::F32 }
+    Matrix { shape: vec![7, cube.len()/7], array: cube }
 }

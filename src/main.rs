@@ -200,9 +200,9 @@ fn main() -> Result<(), ContextError> {
         // let with_z = WithObject::existing(&render.window.opengl, enums::Object::VAO, z_vao, DataFormat::Position3Colour3Alpha1);
         // render.programs.draw(with_z, DrawCall::Arrays, DrawMode::GlPoints, &z)?;
 
-        let cam_x = -8.;
-        render.camera.camera_target[0] = cam_x;
-        render.camera.camera_position[0] = cam_x;
+        //let cam_x = -8.;
+        //render.camera.camera_target[0] = cam_x;
+        //render.camera.camera_position[0] = cam_x;
         //render.camera.camera_position[2] = -20.0;
         let with_cube = WithObject::existing(&render.window.opengl, enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1);
         render.programs.draw(with_cube, DrawCall::Arrays, DrawMode::GlTriangles, &cube)?;
@@ -214,7 +214,17 @@ fn main() -> Result<(), ContextError> {
         let with_cube = WithObject::existing(&render.window.opengl, enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1);
         render.programs.draw(with_cube, DrawCall::Arrays, DrawMode::GlTriangles, &cube)?;
 
-        render.camera.camera_position += Vector::from_1darray([0.0, 0., 0.005]);
+
+        //render.camera.translate_independant_of_external_information(Vector::from_1darray([0.0, 0.0, 0.05]));
+        
+        // forwards testing
+        //render.camera.translate_relative_to_the_target(-0.05, 0.00, 0.0)?;
+        //render.camera.camera_position += Vector::from_1darray([0.0, 0., 0.05]);
+
+        // right testing
+        render.camera.translate_relative_to_the_target(0., 0.05, 0.0)?;
+        //render.camera.translate_relative_to_the_target(0., 0.5, 0.0)?;
+        render.camera.translate_relative_to_the_target(0., 0.0, 0.05)?;
 
         render.end_render_actions()?;
     }
