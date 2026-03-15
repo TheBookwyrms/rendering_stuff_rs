@@ -12,7 +12,7 @@ use atmospheric::image_processing;
 use atmospheric::enums;
 use atmospheric::opengl;
 use atmospheric::opengl::abstractions::{self, TextureSetup, Textures, WithObject};
-use atmospheric::enums::{InternalFormat, TextureMagFilter, TextureMinFilter, TextureWrapping};
+use atmospheric::enums::{InternalFormat, TextureMagFilter, TextureMinFilter, TextureWrapping, CameraAxis, CameraVector};
 use atmospheric::opengl::{gl, intermediate_opengl, raw_opengl};
 use atmospheric::enums::ContextError;
 use atmospheric::enums::ImageFormat;
@@ -69,7 +69,8 @@ fn main() -> Result<(), ContextError> {
     let zero = Matrix::from_2darray([[0., 0., 0., 0., 0., 0., 1.]]);
     let x    = Matrix::from_2darray([[5., 0., 0., 1., 0., 0., 1.]]);
     let y    = Matrix::from_2darray([[0., 5., 0., 0., 1., 0., 1.]]);
-    let z    = Matrix::from_2darray([[0., 0., 10., 0., 0., 1., 1.]]);
+    let z    = Matrix::from_2darray([[0., 0., 5., 0., 0., 1., 1.]]);
+   // let z    = Matrix::from_2darray([[0., 0., 10., 0., 0., 1., 1.]]);
 
     //let texture_triangle = Matrix::from_2darray([
     //      // positions      // colors             // texture coords
@@ -106,7 +107,7 @@ fn main() -> Result<(), ContextError> {
     let (x_vao, z_vbo) = render.create_vao_vbo(&x, DataFormat::Position3Colour3Alpha1)?;
     let (y_vao, z_vbo) = render.create_vao_vbo(&y, DataFormat::Position3Colour3Alpha1)?;
     let (z_vao, z_vbo) = render.create_vao_vbo(&z, DataFormat::Position3Colour3Alpha1)?;
-    let (target_vao, target_vbo) = render.create_vao_vbo(&target_to_matrix(render.camera.camera_target.clone(), (1.0, 1.0, 1.0), 1.0), DataFormat::Position3Colour3Alpha1)?;
+    let (target_vao, target_vbo) = render.create_vao_vbo(&target_to_matrix(render.camera.camera_info_matrix.get_camera(CameraVector::Target), (1.0, 1.0, 1.0), 1.0), DataFormat::Position3Colour3Alpha1)?;
 
     
     //let (t_vao, t_vbo, t_ebo) = render.create_vao_vbo_ebo(&triangle, &triangle_indices)?;
@@ -192,9 +193,6 @@ fn main() -> Result<(), ContextError> {
         //render.programs.draw(with_relevant, DrawCall::Elements, DrawMode::GlTriangles, &triangle_indices)?;
 
 
-        // if !render.paused {
-        //     render.camera.angle_xyz += Vector::from_1darray([0.0, 0.50, 0.0]);
-        // }
 
 
          render.use_program(ProgramSelect::SelectSimpleOrthographic)?;
@@ -208,18 +206,11 @@ fn main() -> Result<(), ContextError> {
         render.programs.draw(with_y, DrawCall::Arrays, DrawMode::GlPoints, &y)?;
         let with_z = WithObject::existing(&render.window.opengl, enums::Object::VAO, z_vao, DataFormat::Position3Colour3Alpha1);
         render.programs.draw(with_z, DrawCall::Arrays, DrawMode::GlPoints, &z)?;
-        // let with_target = WithObject::existing(&render.window.opengl, enums::Object::VAO, target_vao, DataFormat::Position3Colour3Alpha1)
-        //         .add(Object::VBO, target_vbo)?;
-        // //let with_target_vbo = WithObject::existing(&render.window.opengl, enums::Object::VBO, target_vbo, DataFormat::Position3Colour3Alpha1);
-        // let data = target_to_matrix(render.camera.camera_target.clone(), (1.0, 1.0, 1.0), 1.0);
-        // with_target.buffer_sub_data(&data, Object::VBO)?;
-        // //println!("p {:?}, t {:?}", render.camera.camera_position, data);
-        // render.programs.draw(with_target, DrawCall::Arrays, DrawMode::GlPoints, &data)?;
-
-        //let cam_x = -8.;
-        //render.camera.camera_target[0] = cam_x;
-        //render.camera.camera_position[0] = cam_x;
-        //render.camera.camera_position[2] = -20.0;
+        let with_target = WithObject::existing(&render.window.opengl, enums::Object::VAO, target_vao, DataFormat::Position3Colour3Alpha1)
+                 .add(Object::VBO, target_vbo)?;
+        let data = target_to_matrix(render.camera.camera_info_matrix.get_camera(CameraVector::Target), (1.0, 1.0, 1.0), 1.0);
+        with_target.buffer_sub_data(&data, Object::VBO)?;
+        render.programs.draw(with_target, DrawCall::Arrays, DrawMode::GlPoints, &data)?;
 
          // cube 1
          let with_cube = WithObject::existing(&render.window.opengl, enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1);
@@ -234,31 +225,41 @@ fn main() -> Result<(), ContextError> {
 
         let a = (render.window.get_time_since_glfw_init().sin()/10.) as f32;
 
-        //render.camera.translate_independant_of_external_information(Vector::from_1darray([0.0, 0.0, 0.05]));
-        //render.camera.translate_independant_of_external_information(Vector::from_1darray([0.0, 0.0, -0.005]));
-        //render.camera.translate_independant_of_external_information(Vector::from_1darray([0.0, 0.005, -0.00]));
-        //render.camera.translate_independant_of_external_information(Vector::from_1darray([0.0, 0.005, -0.001]));
-        render.camera.translate_independant_of_external_information(Vector::from_1darray([0.0, a, -0.001]));
+        //render.camera.translation_by_xyz(Vector::from_1darray([0.0, 0.0, 0.05]));
+        //render.camera.translation_by_xyz(Vector::from_1darray([0.0, 0.0, -0.005]));
+        //render.camera.translation_by_xyz(Vector::from_1darray([0.0, 0.005, -0.00]));
+        //render.camera.translation_by_xyz(Vector::from_1darray([0.0, 0.005, -0.001]));
+        //render.camera.translation_by_xyz(Vector::from_1darray([0.0, a*0.01, -0.001]));
         
-        // // forwards testing
-        // //render.camera.translate_relative_to_the_target(-0.05, 0., 0.0)?;
-        // //render.camera.translate_relative_to_the_target(-0.05, 0.00, 0.0)?;
-        // //render.camera.camera_position += Vector::from_1darray([0.0, 0., 0.05]);
-        // 
-        // // right testing
-        // //render.camera.translate_relative_to_the_target(0., 0.05, 0.0)?;
-        // //render.camera.translate_relative_to_the_target(0., 0.5, 0.0)?;
-        // 
-        // // up testing
-        // //render.camera.translate_relative_to_the_target(0., 0.0, 0.05)?;
+        // forwards testing
+        //render.camera.translate_relative_to_the_target(0.05, 0., 0.0)?;
+        //println!("{}", render.camera.camera_info_matrix.get_camera(CameraVector::Right));
+        //render.camera.translate_relative_to_the_target(0.05, 0.00, 0.0)?;
+        
+        // right testing
+        //render.camera.translate_relative_to_the_target(0., 0.05, 0.0)?;
+        //render.camera.translate_relative_to_the_target(0., 0.5, 0.0)?;
+        
+        // up testing
+        //render.camera.translate_relative_to_the_target(0., 0.0, 0.05)?;
+        //println!("{}", render.camera.camera_info_matrix.get_camera_view_vector().magnitude());
 
-        //render.camera.rotation_relative_to_the_origin(Vector::from_1darray([0.0, 0.0, 0.0]))?;
+        //render.camera.rotation_about_origin_on_xyz(Vector::from_1darray([0.0, 0.0, 0.0]))?;
+        //render.camera.rotation_about_origin_on_xyz(Vector::from_1darray([0.0, 0.0, a]))?;
+        //render.camera.rotation_about_origin_on_xyz(Vector::from_1darray([0.0, 0.0, 0.05]))?;
+        //render.camera.rotation_about_origin_on_xyz(Vector::from_1darray([0.0, 0.05, 0.0]))?;
+        //render.camera.rotation_about_origin_on_xyz(Vector::from_1darray([0.05, 0.0, 0.0]))?;
 
-        render.camera.rotation_relative_to_the_origin(Vector::from_1darray([0.0, 0.0, a]))?;
-        //render.camera.rotation_relative_to_the_origin(Vector::from_1darray([0.0, 0.0, 0.05]))?;
-        //render.camera.rotation_relative_to_the_origin(Vector::from_1darray([0.0, 0.05, 0.0]))?;
-        //render.camera.rotation_relative_to_the_origin(Vector::from_1darray([0.05, 0.0, 0.0]))?;
 
+        //render.camera.rotation_about_origin(Vector::from_1darray([1., 1., 1.]), 0.5)?;
+        //render.camera.rotation_about_origin(Vector::from_1darray([1., 1., 1.]), 0.1)?;
+
+
+        //render.camera.rotation_about_target(CameraAxis::Up, 0.1)?;
+        //render.camera.rotation_about_target(CameraAxis::Right, 0.1)?;
+        //render.camera.rotation_about_target(CameraAxis::Forward, 1.)?;
+        //render.camera.rotation_about_target(CameraAxis::Forward, a)?;
+        //render.camera.rotation_about_target(CameraAxis::Up, 90.)?;
 
 
         render.end_render_actions()?;
