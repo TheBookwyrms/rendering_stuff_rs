@@ -1,3 +1,6 @@
 /target
-*.jpg
-*.jpeg
+/*images
+!/images/awesomeface.png
+!/images/bluefaces.png
+!/images/container.jpg
+!/images/wall.jpg

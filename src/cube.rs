@@ -1,19 +1,34 @@
 use numeracy::matrices::Matrix;
 
-fn arr7d(pos:[f32; 3], col:[f32; 3], a:f32) -> [f32; 7] {
+fn arr7(pos:[f32; 3], col:[f32; 3], a:f32) -> [f32; 7] {
     [pos[0], pos[1], pos[2], col[0], col[1], col[2], a]
 }
 
-fn arr3_of_arr7_from_arr3_of_arr3(positions:[[f32;3];3], col:[f32;3], a:f32) -> [[f32;7];3] {
+fn arr5(a3:[f32; 3], a2:[f32; 2]) -> [f32; 5] {
+    [a3[0], a3[1], a3[2], a2[0], a2[1]]
+}
+
+fn arr10(pos:[f32; 3], col:[f32; 3], a:f32, norm:[f32;3]) -> [f32; 10] {
+    [pos[0], pos[1], pos[2], col[0], col[1], col[2], a, norm[0], norm[1], norm[2]]
+}
+
+fn arr3_of_arr7(positions:[[f32;3];3], col:[f32;3], a:f32) -> [[f32;7];3] {
     [
-        arr7d(positions[0], col, a),
-        arr7d(positions[1], col, a),
-        arr7d(positions[2], col, a),
+        arr7(positions[0], col, a),
+        arr7(positions[1], col, a),
+        arr7(positions[2], col, a),
     ]
 }
 
-//pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32, v:bool) -> [[f32; 7]; 8] {
-pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32, v:bool) -> [[f32; 3]; 8] {
+fn arr3_of_arr10(positions:[[f32;3];3], col:[f32;3], a:f32, norm:[f32;3]) -> [[f32;10];3] {
+    [
+        arr10(positions[0], col, a, norm),
+        arr10(positions[1], col, a, norm),
+        arr10(positions[2], col, a, norm),
+    ]
+}
+
+pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32) -> [[f32; 3]; 8] {
     let (x, y, z) = centre;
 
     let top_front_right    = [x+side_len/2.0, y+side_len/2.0, z+side_len/2.0];
@@ -25,49 +40,25 @@ pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32, v:bool) -> [[f
     let bottom_front_left  = [x-side_len/2.0, y-side_len/2.0, z+side_len/2.0];
     let bottom_back_left   = [x-side_len/2.0, y-side_len/2.0, z-side_len/2.0];
 
-    let c0 = [1.0, 0.0, 0.0];
-    let c1 = [0.0, 1.0, 0.0];
-    let c2 = [0.0, 1.0, 1.0];
-    let c3 = [1.0, 0.0, 0.0];
-    let c4 = [1.0, 1.0, 1.0];
-    let c5 = [0.0, 0.0, 1.0];
-    //let [c0, c1, c2, c3] = if v {
-    //    [[1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]
-    //} else {
-    //    [[0.2, 0.4, 0.6], [0.4, 0.6, 0.8], [0.6, 0.8, 0.2], [0.8, 0.2, 0.4]]
-    //    //[[0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0], [0.0, 1.0, 0.0]]
-    //};
 
-    let a = 1.0;
-
-    let cb = [0.0; 3];
-
-    //let tbr = arr7d(top_back_right,     c0, a);
-    //let tfr = arr7d(top_front_right,    c1, a);
-    //let tfl = arr7d(top_front_left,     c2, a);
-    //let tbl = arr7d(top_back_left,      c3, a);
-    //let bbr = arr7d(bottom_back_right,  c2, a);
-    //let bfr = arr7d(bottom_front_right, c3, a);
-    //let bfl = arr7d(bottom_front_left,  c0, a);
-    //let bbl = arr7d(bottom_back_left,   c1, a);
-    let tbr = top_back_right;
-    let tfr = top_front_right;
-    let tfl = top_front_left;
-    let tbl = top_back_left;
-    let bbr = bottom_back_right;
-    let bfr = bottom_front_right;
-    let bfl = bottom_front_left;
-    let bbl = bottom_back_left;
-
-    [tbr, tfr, tfl, tbl, bbr, bfr, bfl, bbl]
+    [
+        top_back_right,
+        top_front_right,
+        top_front_left,
+        top_back_left,
+        bottom_back_right,
+        bottom_front_right,
+        bottom_front_left,
+        bottom_back_left,
+    ]
 }
 
 
-pub fn ebo_cube(centre:(f32, f32, f32), side_len:f32) -> (Matrix<f32>, Matrix<i32>) {
+pub fn _might_not_even_work_untested_ebo_cube(centre:(f32, f32, f32), side_len:f32) -> (Matrix<f32>, Matrix<i32>) {
 
     let vertices_matrix = Matrix {
-        shape:vec![7, 8],
-        array:create_cube_vertices(centre, side_len, true).concat(),
+        shape:vec![3, 8],
+        array:create_cube_vertices(centre, side_len).concat(),
     };
 
     let indices_arr = [
@@ -98,11 +89,11 @@ pub fn ebo_cube(centre:(f32, f32, f32), side_len:f32) -> (Matrix<f32>, Matrix<i3
 
  
 
-pub fn cube(centre:(f32, f32, f32), side_len:f32) -> Matrix<f32> {
+pub fn colour_cube(centre:(f32, f32, f32), side_len:f32, include_normals:bool) -> Matrix<f32> {
     
     let [
         tbr, tfr, tfl, tbl, bbr, bfr, bfl, bbl
-    ] = create_cube_vertices(centre, side_len, false);
+    ] = create_cube_vertices(centre, side_len);
 
     
     let c0 = [1.0, 0.0, 0.0];
@@ -112,40 +103,126 @@ pub fn cube(centre:(f32, f32, f32), side_len:f32) -> Matrix<f32> {
     let c4 = [1.0, 0.0, 1.0];
     let c5 = [0.0, 1.0, 1.0];
 
-    let top1     = arr3_of_arr7_from_arr3_of_arr3([tbr, tbl, tfr], c0, 1.0);
-    let top2     = arr3_of_arr7_from_arr3_of_arr3([tfl, tbl, tfr], c0, 1.0);
-    let front1   = arr3_of_arr7_from_arr3_of_arr3([tfl, bfl, tfr], c1, 1.0);
-    let front2   = arr3_of_arr7_from_arr3_of_arr3([bfr, bfl, tfr], c1, 1.0);
-    let bottom1  = arr3_of_arr7_from_arr3_of_arr3([bfr, bfl, bbr], c2, 1.0);
-    let bottom2  = arr3_of_arr7_from_arr3_of_arr3([bbl, bfl, bbr], c2, 1.0);
-    let back1    = arr3_of_arr7_from_arr3_of_arr3([bbl, tbl, bbr], c3, 1.0);
-    let back2    = arr3_of_arr7_from_arr3_of_arr3([tbr, tbl, bbr], c3, 1.0);
-    let right1   = arr3_of_arr7_from_arr3_of_arr3([tbr, tfr, bbr], c4, 1.0);
-    let right2   = arr3_of_arr7_from_arr3_of_arr3([bfr, tfr, bbr], c4, 1.0);
-    let left1    = arr3_of_arr7_from_arr3_of_arr3([tfl, tbl, bfl], c5, 1.0);
-    let left2    = arr3_of_arr7_from_arr3_of_arr3([bbl, tbl, bfl], c5, 1.0);
+    let c0 = [1., 1., 1.];
+    let c1 = [1., 1., 1.];
+    let c2 = [1., 1., 1.];
+    let c3 = [1., 1., 1.];
+    let c4 = [1., 1., 1.];
+    let c5 = [1., 1., 1.];
 
+    let cube = if !include_normals {
+        let top1     = arr3_of_arr7([tbr, tbl, tfr], c0, 1.0);
+        let top2     = arr3_of_arr7([tfl, tbl, tfr], c0, 1.0);
+        let front1   = arr3_of_arr7([tfl, bfl, tfr], c1, 1.0);
+        let front2   = arr3_of_arr7([bfr, bfl, tfr], c1, 1.0);
+        let bottom1  = arr3_of_arr7([bfr, bfl, bbr], c2, 1.0);
+        let bottom2  = arr3_of_arr7([bbl, bfl, bbr], c2, 1.0);
+        let back1    = arr3_of_arr7([bbl, tbl, bbr], c3, 1.0);
+        let back2    = arr3_of_arr7([tbr, tbl, bbr], c3, 1.0);
+        let right1   = arr3_of_arr7([tbr, tfr, bbr], c4, 1.0);
+        let right2   = arr3_of_arr7([bfr, tfr, bbr], c4, 1.0);
+        let left1    = arr3_of_arr7([tfl, tbl, bfl], c5, 1.0);
+        let left2    = arr3_of_arr7([bbl, tbl, bfl], c5, 1.0);
+        
+        vec![
+            top1.concat(),
+            top2.concat(),
+            front1.concat(),
+            front2.concat(),
+            bottom1.concat(),
+            bottom2.concat(),
+            back1.concat(),
+            back2.concat(),
+            right1.concat(),
+            right2.concat(),
+            left1.concat(),
+            left2.concat(),
+        ]
+    } else {
+        let top1     = arr3_of_arr10([tbr, tbl, tfr], c0, 1.0, [ 0.,  1.,  0.]);
+        let top2     = arr3_of_arr10([tfl, tbl, tfr], c0, 1.0, [ 0.,  1.,  0.]);
+        let front1   = arr3_of_arr10([tfl, bfl, tfr], c1, 1.0, [ 0.,  0.,  1.]);
+        let front2   = arr3_of_arr10([bfr, bfl, tfr], c1, 1.0, [ 0.,  0.,  1.]);
+        let bottom1  = arr3_of_arr10([bfr, bfl, bbr], c2, 1.0, [ 0., -1.,  0.]);
+        let bottom2  = arr3_of_arr10([bbl, bfl, bbr], c2, 1.0, [ 0., -1.,  0.]);
+        let back1    = arr3_of_arr10([bbl, tbl, bbr], c3, 1.0, [ 0.,  0., -1.]);
+        let back2    = arr3_of_arr10([tbr, tbl, bbr], c3, 1.0, [ 0.,  0., -1.]);
+        let right1   = arr3_of_arr10([tbr, tfr, bbr], c4, 1.0, [ 1.,  0.,  0.]);
+        let right2   = arr3_of_arr10([bfr, tfr, bbr], c4, 1.0, [ 1.,  0.,  0.]);
+        let left1    = arr3_of_arr10([tfl, tbl, bfl], c5, 1.0, [-1.,  0.,  0.]);
+        let left2    = arr3_of_arr10([bbl, tbl, bfl], c5, 1.0, [-1.,  0.,  0.]);
+        
+        vec![
+            top1.concat(),
+            top2.concat(),
+            front1.concat(),
+            front2.concat(),
+            bottom1.concat(),
+            bottom2.concat(),
+            back1.concat(),
+            back2.concat(),
+            right1.concat(),
+            right2.concat(),
+            left1.concat(),
+            left2.concat(),
+        ]
+    }.concat();
 
-    let mut cube = vec![];
-
-    // y-axis squares
-    cube.extend(top1.concat());
-    cube.extend(top2.concat());
-    cube.extend(bottom1.concat());
-    cube.extend(bottom2.concat());
-
-    // z-axis squares
-    cube.extend(front1.concat());
-    cube.extend(front2.concat());
-    cube.extend(back1.concat());
-    cube.extend(back2.concat());
-
-    // x-axis squares
-    cube.extend(right1.concat());
-    cube.extend(right2.concat());
-    cube.extend(left1.concat());
-    cube.extend(left2.concat());
-
-
-    Matrix { shape: vec![7, cube.len()/7], array: cube }
+    Matrix { shape: vec![10, cube.len()/10], array: cube }
 }
+
+
+
+
+
+
+pub fn texture_cube(centre:(f32, f32, f32), side_len:f32, texture_size:f32) -> (Matrix<f32>) {
+        
+    let [
+        tbr, tfr, tfl, tbl, bbr, bfr, bfl, bbl
+    ] = create_cube_vertices(centre, side_len);
+
+
+    let tex_tr = [texture_size, texture_size]; // texture top right
+    let tex_br = [texture_size,          0.0]; // texture bottom right
+    let tex_bl = [         0.0,          0.0]; // texture bottom left
+    let tex_tl = [         0.0, texture_size]; // texture top left
+
+
+    // original
+    let top1    = [arr5(tbr, tex_tr), arr5(tbl, tex_tl), arr5(tfr, tex_br)];
+    let top2    = [arr5(tfl, tex_bl), arr5(tbl, tex_tl), arr5(tfr, tex_br)];
+    let front1  = [arr5(tfl, tex_tl), arr5(bfl, tex_bl), arr5(tfr, tex_tr)];
+    let front2  = [arr5(bfr, tex_br), arr5(bfl, tex_bl), arr5(tfr, tex_tr)];
+    let bottom1 = [arr5(bfr, tex_tr), arr5(bfl, tex_tl), arr5(bbr, tex_br)];
+    let bottom2 = [arr5(bbl, tex_bl), arr5(bfl, tex_tl), arr5(bbr, tex_br)];
+    let back1   = [arr5(bbl, tex_tl), arr5(tbl, tex_bl), arr5(bbr, tex_tr)];
+    let back2   = [arr5(tbr, tex_br), arr5(tbl, tex_bl), arr5(bbr, tex_tr)];
+    let right1  = [arr5(tbr, tex_tr), arr5(tfr, tex_tl), arr5(bbr, tex_br)];
+    let right2  = [arr5(bfr, tex_bl), arr5(tfr, tex_tl), arr5(bbr, tex_br)];
+    let left1   = [arr5(tfl, tex_tr), arr5(tbl, tex_tl), arr5(bfl, tex_br)];
+    let left2   = [arr5(bbl, tex_bl), arr5(tbl, tex_tl), arr5(bfl, tex_br)];
+
+    let cube = vec![
+        top1.concat(),
+        top2.concat(),
+        front1.concat(),
+        front2.concat(),
+        bottom1.concat(),
+        bottom2.concat(),
+        back1.concat(),
+        back2.concat(),
+        right1.concat(),
+        right2.concat(),
+        left1.concat(),
+        left2.concat(),
+    ].concat();
+
+
+    let mut cube_matrix = Matrix { shape: vec![5, cube.len()/5], array: cube };
+
+
+    cube_matrix
+}
+
+ 
