@@ -29,14 +29,14 @@ use numeracy::vectors::Vector;
 use std::ffi::{CStr, CString};
 use std::io::Read;
 use std::os::raw::c_void;
+use std::{time::{SystemTime, UNIX_EPOCH, Duration}, thread};
 
 use crate::image_processing::Image;
-use crate::ntree::QuadTree;
+use crate::ntree::PointThing;
 use crate::ntree::Point;
-use crate::ntree::QuadTreeV2;
+use crate::ntree::QuadTree;
 use crate::ntree::RelativePointPos;
 use crate::ntree::SquareBounds;
-//use crate::ntree::TreeItem;
 use atmospheric::materials::Material;
 
 //use ppm_viewer;
@@ -51,69 +51,53 @@ fn error(msg:String) {
 }
 
 
+pub fn pseudo_randf64(min:f64, max:f64, microsecond_delay:u8) -> f64 {
+    let num_zero_to_ten_thousand = (
+        SystemTime::now().duration_since(UNIX_EPOCH).unwrap().subsec_nanos()%10000
+    ) as f64;
+    let old_max = 10000.;
+    let old_min = 0.;
+    let old_range = (old_max - old_min);
+    let new_range = (max - min);
+    let rescaled_value = ( (num_zero_to_ten_thousand - old_min) / (old_range) ) * (new_range) + min;
+    thread::sleep(Duration::from_micros(microsecond_delay as u64)); // to allow direct re-uses
+    rescaled_value
+}
+
+
+
 fn main() -> Result<(), ContextError> {
 
 
-    // //let a = QuadTree {item: &TreeItem::Value(2)};
-    // let z = QuadTree::init_value(0);
-    // let a = QuadTree::init_value(2);
-    // let mut b = a.subdivide_value([
-    //     QuadTree::init_value(3),
-    //     QuadTree::init_value(4),
-    //     QuadTree::init_value(5),
-    //     QuadTree::init_value(6)
-    //     ]).unwrap();
-    // let mut c = z.subdivide_value([
-    //     QuadTree::init_value(66),
-    //     QuadTree::init_value(77),
-    //     QuadTree::init_value(88),
-    //     QuadTree::init_value(99),
-    // ]).unwrap();
-    // let d = b.subdivide_item(ntree::TreeIndex::Two, [
-    //     QuadTree::init_value(66),
-    //     c.clone(),
-    //     QuadTree::init_value(88),
-    //     QuadTree::init_value(99),
-    // ]).unwrap();
-// 
-    // println!("{:?}", a);
-    // println!("{:?}", b);
-    // println!("{}", c);
-    // println!("{}", d);
-// 
-// 
-    // let sq = SquareBounds::new(-2., 2., -2., 2.);
-    // let qp = Point::new(0.5, 0.5);
-    // 
-    // let qtree = QuadTree::init_value(sq);
-
-    let p0 = Point::new(0., 0.);
-    let p1 = Point::new(1., 0.9);
-    let p2 = Point::new(1., 1.5);
-    let p3 = Point::new(1.4, 1.75);
-    let p4 = Point::new(-1., 1.);
-    let p5 = Point::new(-3., 0.);
-
+    let mut points = vec![];
+    for i in 0..299 {
+        let x = pseudo_randf64(-2., 2., 100) as f32;
+        let y = pseudo_randf64(-2., 2., 100) as f32;
+        points.push(PointThing::new(x, y));
+    }
 
     let full_square_bounds = SquareBounds::new_simple_on_origin(-2.0, 2.0);
-    let mut q1 = QuadTreeV2::new(full_square_bounds);
-    println!("{:#?}", q1);
-    //let q2 = q1.insert(vec![p0, p1,p2,p3,p4,p5]).unwrap();
-    let mut q2 = q1.insert(vec![p1,p2]).unwrap();
-    println!("{:#?}", q2);
-    let q3 = q2.subdivide_node(RelativePointPos::TopRight).unwrap();
-    println!("{:#?}", q3);
+    let mut q1 = QuadTree::new(full_square_bounds);
+    let mut q2 = q1.insert(points, 5).unwrap();
+    
+
+    let quadtree_final = q2;
+    let qtl = quadtree_final.get_all_lines();
+    let qtp = quadtree_final.get_all_points();
+    let quadtree_lines  = Matrix { shape: vec![7, qtl.len()/7], array: qtl };
+    let quadtree_points = Matrix { shape: vec![7, qtp.len()/7], array: qtp };
 
 
-
-
-    panic!();
 
 
 
 
     let mut render = Context::default()?;
     render.setup_render();
+
+
+    let (qtl_vao, qtl_vbo) = render.create_vao_vbo(&quadtree_lines, DataFormat::Position3Colour3Alpha1)?;
+    let (qtp_vao, qtp_vbo) = render.create_vao_vbo(&quadtree_points, DataFormat::Position3Colour3Alpha1)?;
 
     
     let cube = cube::colour_cube((0.0, 0.0, 0.0), 5.0, true);
@@ -225,22 +209,13 @@ fn main() -> Result<(), ContextError> {
         let fragment_text = std::fs::read("src/two_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
         let shader_id = render.compile_custom_program(vertex_text.as_str(), fragment_text.as_str())?;
 
-        let mut count = 0;
     while !render.render_over() {
-        count += 1;
         render.begin_render_actions()?;
 
         let time = render.window.get_time_since_glfw_init();
         let sin_t = time.sin();
         let cos_t = time.cos();
         
-        //render.use_program(ProgramSelect::SelectSimpleOrthographic);
-        //let with_relevant = WithObject::existing(&render.window.opengl, opengl::enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1);
-        //render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &cube)?;
-
-        //render.use_program(ProgramSelect::SelectBlinnPhongOrthographic);
-        //let with_relevant = WithObject::existing(&render.window.opengl, opengl::enums::Object::VAO, t_vao, DataFormat::Position3Colour3Alpha1Normal3);
-        //render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &triangle)?;
 
         render.use_program(ProgramSelect::SelectSimpleTexture);
         &render.textures.activate(
@@ -283,121 +258,86 @@ fn main() -> Result<(), ContextError> {
 //
 //
         render.use_program(ProgramSelect::SelectSimpleOrthographic)?;
-////
-    //    //// origin, x, y, and z points
-    //    //let with_zero = WithObject::existing(&render.window.opengl, enums::Object::VAO, zero_vao, DataFormat::Position3Colour3Alpha1);
-    //    //render.programs.draw(with_zero, DrawCall::Arrays, DrawMode::GlPoints, &zero)?;
-    //    //let with_x = WithObject::existing(&render.window.opengl, enums::Object::VAO, x_vao, DataFormat::Position3Colour3Alpha1);
-    //    //render.programs.draw(with_x, DrawCall::Arrays, DrawMode::GlPoints, &x)?;
-    //    //let with_y = WithObject::existing(&render.window.opengl, enums::Object::VAO, y_vao, DataFormat::Position3Colour3Alpha1);
-    //    //render.programs.draw(with_y, DrawCall::Arrays, DrawMode::GlPoints, &y)?;
-    //    //let with_z = WithObject::existing(&render.window.opengl, enums::Object::VAO, z_vao, DataFormat::Position3Colour3Alpha1);
-    //    //render.programs.draw(with_z, DrawCall::Arrays, DrawMode::GlPoints, &z)?;
-        //let with_target = WithObject::existing(&render.window.opengl, enums::Object::VAO, target_vao, DataFormat::Position3Colour3Alpha1)
-        //         .add(Object::VBO, target_vbo)?;
-        //let data = target_to_matrix(render.camera.camera_info_matrix.get_camera(CameraVector::Target), (1.0, 1.0, 1.0), 1.0);
-        //with_target.buffer_sub_data(&data, Object::VBO)?;
-        //render.programs.draw(with_target, DrawCall::Arrays, DrawMode::GlPoints, &data)?;
-        
 
-        render.lighting.light_diffuse_colour.0 = f32::sin(0.75*time as f32);
-        render.lighting.light_diffuse_colour.1 = f32::sin(0.25*time as f32);
-        render.lighting.light_diffuse_colour.2 = f32::sin(0.65*time as f32);
+
+        let with_qtl = WithObject::existing(&render.window.opengl, enums::Object::VAO, qtl_vao, DataFormat::Position3Colour3Alpha1);
+        render.programs.draw(with_qtl, DrawCall::Arrays, DrawMode::GlLines, &quadtree_lines)?;
+        let with_qtp = WithObject::existing(&render.window.opengl, enums::Object::VAO, qtp_vao, DataFormat::Position3Colour3Alpha1);
+        render.programs.draw(with_qtp, DrawCall::Arrays, DrawMode::GlPoints, &quadtree_points)?;
 
 
 
-        let lighting_material = Material::Default;
-        let lighting_material_qualities = lighting_material.get_material_qualities();
-
-        render.programs.set_uniform(&render.window.opengl,"object_material.ambient_reflected_colour", UniformType::Vec3,
-            Matrix::from_1darray(lighting_material_qualities.get_ambient()))?;
-        render.programs.set_uniform(&render.window.opengl,"object_material.diffuse_reflected_colour", UniformType::Vec3,
-            Matrix::from_1darray(lighting_material_qualities.get_diffuse()))?;
-        render.programs.set_uniform(&render.window.opengl,"object_material.specular_reflected_colour", UniformType::Vec3,
-            Matrix::from_1darray(lighting_material_qualities.get_specular()))?;
-        render.programs.set_uniform(&render.window.opengl,"object_material.shininess", UniformType::Float,
-            Matrix::from_scalar(lighting_material_qualities.get_shininess()))?;
-
-            
-//lightingShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-//lightingShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
-//lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-//lightingShader.setFloat("material.shininess", 32.0f);
 
 
-        let with_light_source = WithObject::existing(&render.window.opengl, enums::Object::VAO, light_vao, DataFormat::Position3Colour3Alpha1)
-                 .add(Object::VBO, light_vbo)?;
-        let data = get_light_matrix(&render);
-        with_light_source.buffer_sub_data(&data, Object::VBO)?;
-        render.programs.draw(with_light_source, DrawCall::Arrays, DrawMode::GlPoints, &data)?;
-        //drop(with_light_source);
-
-        render.lighting.light_source_pos.0 += 0.005 * sin_t as f32 * cos_t as f32;
-        render.lighting.light_source_pos.1 -= 0.015 * sin_t as f32 * cos_t as f32;
-        render.lighting.light_source_pos.2 += 0.005 * sin_t as f32 * cos_t as f32;
-
-        
-        //render.lighting.light_source_pos.0 += 0.1 * sin_t as f32 * cos_t as f32;
-        //render.lighting.light_source_pos.1 -= 0.15 * sin_t as f32 * cos_t as f32;
-        //render.lighting.light_source_pos.2 += 0.15 * sin_t as f32 * cos_t as f32;
 
 
-        //if count % 15 == 13 {
-        //render.lighting.light_source_pos.0 += 1. * sin_t as f32 * cos_t as f32;
-        //render.lighting.light_source_pos.1 -= 1.5 * sin_t as f32 * cos_t as f32;
-        //render.lighting.light_source_pos.2 += 1.5 * sin_t as f32 * cos_t as f32;
-        //}
-
-        ////        
-        
-        
-        render.use_program(ProgramSelect::SelectBlinnPhongOrthographic)?;
 
 
-        let default_material = Material::Default;
-        let custom_material = Material::Custom(
-            MaterialLightQualities::assign(
-                [1.0, 0.5, 0.31],
-                [1.0, 0.5, 0.31],
-                [0.5, 0.5,  0.5],
-                32.,
-            )
-        );
-        let black_rubber = Material::BlackRubber;
-        let brass = Material::Brass;
-        let gold = Material::Gold;
-        let polished_gold = Material::PolishedGold;
-
-        let material_qualities = default_material.get_material_qualities();
-        let material_qualities = custom_material.get_material_qualities();
-        //let material_qualities = black_rubber.get_material_qualities();
-        //let material_qualities = brass.get_material_qualities();
-        //let material_qualities = gold.get_material_qualities();
-        //let material_qualities = polished_gold.get_material_qualities();
-
-        render.programs.set_uniform(&render.window.opengl,"object_material.ambient_reflected_colour", UniformType::Vec3,
-            Matrix::from_1darray(material_qualities.get_ambient()))?;
-        render.programs.set_uniform(&render.window.opengl,"object_material.diffuse_reflected_colour", UniformType::Vec3,
-            Matrix::from_1darray(material_qualities.get_diffuse()))?;
-        render.programs.set_uniform(&render.window.opengl,"object_material.specular_reflected_colour", UniformType::Vec3,
-            Matrix::from_1darray(material_qualities.get_specular()))?;
-        render.programs.set_uniform(&render.window.opengl,"object_material.shininess", UniformType::Float,
-            Matrix::from_scalar(material_qualities.get_shininess()))?;
 
 
-    //    // // cube 1
-    //    
-         let with_cube = WithObject::existing(&render.window.opengl, enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1Normal3);
-         render.programs.draw(with_cube, DrawCall::Arrays, DrawMode::GlTriangles, &cube)?;
-    //    // 
-    //    // // cube 2
-    //    // let tr = Matrix::translate(Vector::from_1darray([-16.0, 0.0, 0.0]));
-    //    // render.programs.set_uniform(&render.window.opengl, "world_transform", UniformType::Mat4,
-    //    //     Matrix::opengl_to_right_handed().matmul(&tr).unwrap())?;
-    //    // let with_cube = WithObject::existing(&render.window.opengl, enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1);
-    //    // render.programs.draw(with_cube, DrawCall::Arrays, DrawMode::GlTriangles, &cube)?;
-////
-//
+        /// LIGHTING TESTING
+        /// LIGHTING TESTING
+        /// LIGHTING TESTING
+        /// LIGHTING TESTING
+        /// LIGHTING TESTING
+        /// LIGHTING TESTING
+        /// 
+        // render.use_program(ProgramSelect::SelectSimpleOrthographic)?;
+// 
+        // render.lighting.light_diffuse_colour.0 = f32::sin(0.75*time as f32);
+        // render.lighting.light_diffuse_colour.1 = f32::sin(0.25*time as f32);
+        // render.lighting.light_diffuse_colour.2 = f32::sin(0.65*time as f32);
+// 
+        // let with_light_source = WithObject::existing(&render.window.opengl, enums::Object::VAO, light_vao, DataFormat::Position3Colour3Alpha1)
+        //          .add(Object::VBO, light_vbo)?;
+        // let data = get_light_matrix(&render);
+        // with_light_source.buffer_sub_data(&data, Object::VBO)?;
+        // render.programs.draw(with_light_source, DrawCall::Arrays, DrawMode::GlPoints, &data)?;
+// 
+        // render.lighting.light_source_pos.0 += 0.005 * sin_t as f32 * cos_t as f32;
+        // render.lighting.light_source_pos.1 -= 0.015 * sin_t as f32 * cos_t as f32;
+        // render.lighting.light_source_pos.2 += 0.005 * sin_t as f32 * cos_t as f32;
+        // 
+        // 
+        // render.use_program(ProgramSelect::SelectBlinnPhongOrthographic)?;
+// 
+// 
+        // let default_material = Material::Default;
+        // let custom_material = Material::Custom(
+        //     MaterialLightQualities::assign(
+        //         [1.0, 0.5, 0.31],
+        //         [1.0, 0.5, 0.31],
+        //         [0.5, 0.5,  0.5],
+        //         32.,
+        //     )
+        // );
+        // let black_rubber = Material::BlackRubber;
+        // let brass = Material::Brass;
+        // let gold = Material::Gold;
+        // let polished_gold = Material::PolishedGold;
+// 
+        // let material_qualities = default_material.get_material_qualities();
+        // let material_qualities = custom_material.get_material_qualities();
+        // //let material_qualities = black_rubber.get_material_qualities();
+        // //let material_qualities = brass.get_material_qualities();
+        // //let material_qualities = gold.get_material_qualities();
+        // //let material_qualities = polished_gold.get_material_qualities();
+// 
+        // render.programs.set_uniform(&render.window.opengl,"object_material.ambient_reflected_colour", UniformType::Vec3,
+        //     Matrix::from_1darray(material_qualities.get_ambient()))?;
+        // render.programs.set_uniform(&render.window.opengl,"object_material.diffuse_reflected_colour", UniformType::Vec3,
+        //     Matrix::from_1darray(material_qualities.get_diffuse()))?;
+        // render.programs.set_uniform(&render.window.opengl,"object_material.specular_reflected_colour", UniformType::Vec3,
+        //     Matrix::from_1darray(material_qualities.get_specular()))?;
+        // render.programs.set_uniform(&render.window.opengl,"object_material.shininess", UniformType::Float,
+        //     Matrix::from_scalar(material_qualities.get_shininess()))?;
+// 
+        //  let with_cube = WithObject::existing(&render.window.opengl, enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1Normal3);
+        //  render.programs.draw(with_cube, DrawCall::Arrays, DrawMode::GlTriangles, &cube)?;
+// 
+
+
+
         render.end_render_actions()?;
     }
 
