@@ -6,7 +6,10 @@
 
 mod cube;
 mod thing;
+mod quadtree;
+mod octree;
 mod ntree;
+//mod quadtreev2;
 
 
 use atmospheric::enums::Object;
@@ -27,16 +30,16 @@ use numeracy::vectors::Vector;
 
 
 use std::ffi::{CStr, CString};
+use std::fs::exists;
 use std::io::Read;
 use std::os::raw::c_void;
 use std::{time::{SystemTime, UNIX_EPOCH, Duration}, thread};
 
 use crate::image_processing::Image;
-use crate::ntree::PointThing;
-use crate::ntree::Point;
-use crate::ntree::QuadTree;
-use crate::ntree::RelativePointPos;
-use crate::ntree::SquareBounds;
+use crate::octree::{Octree};
+use crate::ntree::{Point, PointThing};
+use crate::quadtree::{QuadTree};
+//use crate::quadtreev2::{QuadTree as QuadTreeV2, SquareBounds as SquareBoundsV2, Tree};
 use atmospheric::materials::Material;
 
 //use ppm_viewer;
@@ -73,12 +76,13 @@ fn main() -> Result<(), ContextError> {
     for i in 0..299 {
         let x = pseudo_randf64(-2., 2., 100) as f32;
         let y = pseudo_randf64(-2., 2., 100) as f32;
-        points.push(PointThing::new(x, y));
+        let z = pseudo_randf64(-2., 2., 100) as f32;
+        points.push(PointThing::new(x, y, z));
     }
 
-    let full_square_bounds = SquareBounds::new_simple_on_origin(-2.0, 2.0);
-    let mut q1 = QuadTree::new(full_square_bounds);
-    let mut q2 = q1.insert(points, 5).unwrap();
+    let q1 = Octree::new_on_origin(4.);
+    //let q1 = QuadTree::new_on_origin(4.);
+    let q2 = q1.insert(points, 5).unwrap();
     
 
     let quadtree_final = q2;
@@ -110,6 +114,37 @@ fn main() -> Result<(), ContextError> {
     
     let tex_cube = cube::texture_cube((0.0, 0.0, 0.0), 14.0, 1.0);
     let (tc_vao, tc_vbo) = render.create_vao_vbo(&tex_cube, DataFormat::Position3Texture2)?;
+    
+    let tex_col_cube = cube::texture_colour_cube((0.0, 0.0, 0.0), 6.0, 1.0);
+    let (tcc_vao, tcc_vbo) = render.create_vao_vbo(&tex_col_cube, DataFormat::Position3Colour3Alpha1Normal3Texture2)?;
+
+    let mut base = cube::texture_colour_cube((0.0, 0.0, 0.0), 6.0, 1.0);    
+    let spawn_range = 25.;
+    for i in 0..100 {
+        let tx = pseudo_randf64(-spawn_range, spawn_range, 100) as f32;
+        let ty = pseudo_randf64(-spawn_range, spawn_range, 100) as f32;
+        let tz = pseudo_randf64(-spawn_range, spawn_range, 100) as f32;
+        let rx = pseudo_randf64(-45., 45., 100) as f32;
+        let ry = pseudo_randf64(-45., 45., 100) as f32;
+        let rz = pseudo_randf64(-45., 45., 100) as f32;
+
+
+        let mut tcc_cube_i = cube::texture_colour_cube((0., 0., 0.), 5., 1.);
+        let rotate = Matrix::rotate(Vector::from_1darray([rx, ry, rz]))?;
+        let translate = Matrix::translate(Vector::from_1darray([tx, ty, tz]));
+
+        let pos = tcc_cube_i.get_submatrix([0..3, 0..36])?;
+        let rest = tcc_cube_i.get_submatrix([3..12, 0..36])?;
+        let pos4 = pos.expand_along_axis(Matrix { shape: vec![1, 36], array: [1.; 36].to_vec() }, 0)?;
+        let np4 = pos4.matmul(&rotate)?;
+        let np5 = np4.matmul(&translate.transpose()?)?;
+        let npos = np5.get_submatrix([0..3, 0..36])?;
+        let new = npos.expand_along_axis(rest, 0)?;
+
+        base = base.expand_along_axis(new, 1)?;
+    }
+    let (tcc_vaos, tcc_vbos) = render.create_vao_vbo(&base, DataFormat::Position3Colour3Alpha1Normal3Texture2)?;
+
 
 
     let triangle = Matrix::from_2darray([
@@ -173,6 +208,9 @@ fn main() -> Result<(), ContextError> {
     let container   = Image::decode_from_path("images/container.jpg", ImageFormat::JPEG, true);
     let wall        = Image::decode_from_path("images/wall.jpg", ImageFormat::JPEG, true);
     let ppm         = Image::decode_from_path("ray_tracer/test.txt", ImageFormat::PPMP3, true);
+    let container_diffuse_map    = Image::decode_from_path("images/container_diffuse_map.png", ImageFormat::PNG, true);
+    let container_specular_map   = Image::decode_from_path("images/container_specular_map.png", ImageFormat::PNG, true);
+
 
 
     let prepared_bluefaces = TextureSetup::get_prepared(
@@ -202,13 +240,30 @@ fn main() -> Result<(), ContextError> {
         TextureWrapping::Repeat, TextureWrapping::Repeat,
         TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear,
         0);
+    let prepared_container_diffuse_map = TextureSetup::get_prepared(
+        &render.window.opengl, TextureTarget::Texture2D,
+        container_diffuse_map,
+        TextureWrapping::Repeat, TextureWrapping::Repeat,
+        TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear,
+        0);
+    let prepared_container_specular_map = TextureSetup::get_prepared(
+        &render.window.opengl, TextureTarget::Texture2D,
+        container_specular_map,
+        TextureWrapping::Repeat, TextureWrapping::Repeat,
+        TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear,
+        0);
 
 
 
-        let vertex_text   = std::fs::read("src/two_texture_vertex.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
-        let fragment_text = std::fs::read("src/two_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+        //let vertex_text   = std::fs::read("src/two_texture_vertex.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+        //let fragment_text = std::fs::read("src/two_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+        let vertex_text   = std::fs::read("../atmospheric/shaders_glsl/phong_texture_vertex.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+        let fragment_text = std::fs::read("../atmospheric/shaders_glsl/phong_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
         let shader_id = render.compile_custom_program(vertex_text.as_str(), fragment_text.as_str())?;
+                
 
+        let mut sign = true;
+        let mut time_last_changed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
     while !render.render_over() {
         render.begin_render_actions()?;
 
@@ -217,53 +272,118 @@ fn main() -> Result<(), ContextError> {
         let cos_t = time.cos();
         
 
-        render.use_program(ProgramSelect::SelectSimpleTexture);
-        &render.textures.activate(
-            &render.window.opengl, OpenglTexture::Texture0, &prepared_container, &render.programs
-        )?;
-
-
-        // panic!();
-        // /// fix this to use WithObject.draw() by passing render.programs to it
-        // /// that way you just call draw on the object itself
-        // /// and then just move the one DataFormat check into WithObject
-        // panic!();
-        // let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tc_vao, DataFormat::Position3Texture2);
-        // render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &tex_cube)?;
-
-
-    //    render.use_custom_program(shader_id);
-    //    render.set_orthographic_camera_uniforms()?;
-    //    //render.set_custom_uniform(sa, uniform, value)
-//
-    //    
-    //    &render.textures.activate(
-    //        &render.window.opengl, OpenglTexture::Texture0, &prepared_bluefaces, &render.programs
-    //    )?;
-    //    &render.textures.activate(
-    //        &render.window.opengl, OpenglTexture::Texture1, &prepared_ppm, &render.programs
-    //    )?;
-    //    //&render.textures.activate(
-    //    //    &render.window.opengl, OpenglTexture::Texture2, &prepared_awesomeface, &render.programs
-    //    //)?;
-    //
-//
-//
-    //    let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tex_vao, DataFormat::Position3Texture2)
-    //                                                    .add(enums::Object::EBO, tex_ebo)?;
-    //                                                    //.add(opengl::enums::Object::Texture2D, texture_id)?;
-    //    render.programs.draw(with_relevant, DrawCall::Elements, DrawMode::GlTriangles, &triangle_indices)?;
-//
-//
-//
-//
+        
+        // simple shader for light source
         render.use_program(ProgramSelect::SelectSimpleOrthographic)?;
 
+        // // light source's diffuse colour changes over time
+         render.lighting.light_diffuse_colour.0 = f32::sin(0.75*time as f32);
+         render.lighting.light_diffuse_colour.1 = f32::sin(0.25*time as f32);
+         render.lighting.light_diffuse_colour.2 = f32::sin(0.65*time as f32);
 
-        let with_qtl = WithObject::existing(&render.window.opengl, enums::Object::VAO, qtl_vao, DataFormat::Position3Colour3Alpha1);
-        render.programs.draw(with_qtl, DrawCall::Arrays, DrawMode::GlLines, &quadtree_lines)?;
-        let with_qtp = WithObject::existing(&render.window.opengl, enums::Object::VAO, qtp_vao, DataFormat::Position3Colour3Alpha1);
-        render.programs.draw(with_qtp, DrawCall::Arrays, DrawMode::GlPoints, &quadtree_points)?;
+        // draw light source
+        let with_light_source = WithObject::existing(&render.window.opengl, enums::Object::VAO, light_vao, DataFormat::Position3Colour3Alpha1)
+                 .add(Object::VBO, light_vbo)?;
+        let data = get_light_matrix(&render);
+        with_light_source.buffer_sub_data(&data, Object::VBO)?;
+        render.programs.draw(with_light_source, DrawCall::Arrays, DrawMode::GlPoints, &data)?;
+        
+        // // move light source
+         //render.lighting.light_source_pos.0 += 0.005 * sin_t as f32 * cos_t as f32;
+         //render.lighting.light_source_pos.1 -= 0.015 * sin_t as f32 * cos_t as f32;
+         //render.lighting.light_source_pos.2 += 0.005 * sin_t as f32 * cos_t as f32;
+         //render.lighting.light_source_pos.0 += 0.15 * sin_t as f32 * cos_t as f32;
+         //render.lighting.light_source_pos.1 -= 0.15 * sin_t as f32 * cos_t as f32;
+         //render.lighting.light_source_pos.2 += 0.15 * sin_t as f32 * cos_t as f32;
+         //render.lighting.light_source_pos.0 += 0.05 * sin_t as f32;
+         //render.lighting.light_source_pos.1 += 0.05 * sin_t as f32;
+         render.lighting.light_source_pos.0 = 0.;
+         render.lighting.light_source_pos.1 = 0.;
+         let pz = render.lighting.light_source_pos.2;
+         fn gettime() -> Duration {
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap()
+         }
+         let change = 0.005 * 2.*sin_t.abs() as f32;
+         if ((pz > 100.) || (pz < 0.)) && (
+            Duration::abs_diff(time_last_changed, gettime()).as_secs_f64() > 1.
+        ) {
+            sign = !sign;
+            time_last_changed = gettime();
+        }
+         if sign {
+            render.lighting.light_source_pos.2 += change;
+         } else {
+            render.lighting.light_source_pos.2 -= change;
+         }
+
+         //render.lighting.light_source_pos.2 = 5.5;
+        
+        
+
+
+        // cube with diffuse and specular colour maps
+        render.use_program(ProgramSelect::SelectPhongTexture);
+        &render.textures.activate(
+            &render.window.opengl, OpenglTexture::Texture0, &prepared_container_diffuse_map, &render.programs
+        )?;
+        &render.textures.activate(
+            &render.window.opengl, OpenglTexture::Texture1, &prepared_container_specular_map, &render.programs
+        )?;
+        render.programs.set_uniform(&render.window.opengl,"object_material.shininess", UniformType::Float,
+        //Matrix::from_scalar(16.0))?;
+        Matrix::from_scalar(56.0))?;
+        //let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tcc_vao, DataFormat::Position3Colour3Alpha1Normal3Texture2);
+        //render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &tex_col_cube)?;
+        let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tcc_vaos, DataFormat::Position3Colour3Alpha1Normal3Texture2);
+        render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &base)?;
+        &render.textures.deactivate_all(&render.window.opengl);
+
+
+
+
+
+
+         //// cube with textures on all sides testing
+         //render.use_program(ProgramSelect::SelectSimpleTexture);
+         //&render.textures.activate(
+         //    &render.window.opengl, OpenglTexture::Texture0, &prepared_container, &render.programs
+         //)?;
+         //// panic!();
+         //// /// fix this to use WithObject.draw() by passing render.programs to it
+         //// /// that way you just call draw on the object itself
+         //// /// and then just move the one DataFormat check into WithObject
+         //// panic!();
+         //let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tc_vao, DataFormat::Position3Texture2);
+         //render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &tex_cube)?;
+
+
+        //// mixing two textures testing
+        //render.use_custom_program(shader_id);
+        //render.set_orthographic_camera_uniforms()?;       
+        //&render.textures.activate(
+        //    &render.window.opengl, OpenglTexture::Texture0, &prepared_bluefaces, &render.programs
+        //)?;
+        //&render.textures.activate(
+        //    &render.window.opengl, OpenglTexture::Texture1, &prepared_ppm, &render.programs
+        //)?;
+        //&render.textures.activate(
+        //    &render.window.opengl, OpenglTexture::Texture2, &prepared_awesomeface, &render.programs
+        //)?;
+        //let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tex_vao, DataFormat::Position3Texture2)
+        //                                                .add(enums::Object::EBO, tex_ebo)?;
+        //                                                //.add(opengl::enums::Object::Texture2D, texture_id)?;
+        //render.programs.draw(with_relevant, DrawCall::Elements, DrawMode::GlTriangles, &triangle_indices)?;
+
+
+
+
+
+        // quadtree and octree testing
+        //render.use_program(ProgramSelect::SelectSimpleOrthographic)?;
+        //let with_qtl = WithObject::existing(&render.window.opengl, enums::Object::VAO, qtl_vao, DataFormat::Position3Colour3Alpha1);
+        //render.programs.draw(with_qtl, DrawCall::Arrays, DrawMode::GlLines, &quadtree_lines)?;
+        //let with_qtp = WithObject::existing(&render.window.opengl, enums::Object::VAO, qtp_vao, DataFormat::Position3Colour3Alpha1);
+        //render.programs.draw(with_qtp, DrawCall::Arrays, DrawMode::GlPoints, &quadtree_points)?;
 
 
 
@@ -275,66 +395,77 @@ fn main() -> Result<(), ContextError> {
 
 
 
-        /// LIGHTING TESTING
-        /// LIGHTING TESTING
-        /// LIGHTING TESTING
-        /// LIGHTING TESTING
-        /// LIGHTING TESTING
-        /// LIGHTING TESTING
-        /// 
-        // render.use_program(ProgramSelect::SelectSimpleOrthographic)?;
-// 
-        // render.lighting.light_diffuse_colour.0 = f32::sin(0.75*time as f32);
-        // render.lighting.light_diffuse_colour.1 = f32::sin(0.25*time as f32);
-        // render.lighting.light_diffuse_colour.2 = f32::sin(0.65*time as f32);
-// 
-        // let with_light_source = WithObject::existing(&render.window.opengl, enums::Object::VAO, light_vao, DataFormat::Position3Colour3Alpha1)
-        //          .add(Object::VBO, light_vbo)?;
-        // let data = get_light_matrix(&render);
-        // with_light_source.buffer_sub_data(&data, Object::VBO)?;
-        // render.programs.draw(with_light_source, DrawCall::Arrays, DrawMode::GlPoints, &data)?;
-// 
-        // render.lighting.light_source_pos.0 += 0.005 * sin_t as f32 * cos_t as f32;
-        // render.lighting.light_source_pos.1 -= 0.015 * sin_t as f32 * cos_t as f32;
-        // render.lighting.light_source_pos.2 += 0.005 * sin_t as f32 * cos_t as f32;
-        // 
-        // 
-        // render.use_program(ProgramSelect::SelectBlinnPhongOrthographic)?;
-// 
-// 
-        // let default_material = Material::Default;
-        // let custom_material = Material::Custom(
-        //     MaterialLightQualities::assign(
-        //         [1.0, 0.5, 0.31],
-        //         [1.0, 0.5, 0.31],
-        //         [0.5, 0.5,  0.5],
-        //         32.,
-        //     )
-        // );
-        // let black_rubber = Material::BlackRubber;
-        // let brass = Material::Brass;
-        // let gold = Material::Gold;
-        // let polished_gold = Material::PolishedGold;
-// 
-        // let material_qualities = default_material.get_material_qualities();
-        // let material_qualities = custom_material.get_material_qualities();
-        // //let material_qualities = black_rubber.get_material_qualities();
-        // //let material_qualities = brass.get_material_qualities();
-        // //let material_qualities = gold.get_material_qualities();
-        // //let material_qualities = polished_gold.get_material_qualities();
-// 
-        // render.programs.set_uniform(&render.window.opengl,"object_material.ambient_reflected_colour", UniformType::Vec3,
-        //     Matrix::from_1darray(material_qualities.get_ambient()))?;
-        // render.programs.set_uniform(&render.window.opengl,"object_material.diffuse_reflected_colour", UniformType::Vec3,
-        //     Matrix::from_1darray(material_qualities.get_diffuse()))?;
-        // render.programs.set_uniform(&render.window.opengl,"object_material.specular_reflected_colour", UniformType::Vec3,
-        //     Matrix::from_1darray(material_qualities.get_specular()))?;
-        // render.programs.set_uniform(&render.window.opengl,"object_material.shininess", UniformType::Float,
-        //     Matrix::from_scalar(material_qualities.get_shininess()))?;
-// 
-        //  let with_cube = WithObject::existing(&render.window.opengl, enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1Normal3);
-        //  render.programs.draw(with_cube, DrawCall::Arrays, DrawMode::GlTriangles, &cube)?;
-// 
+        ///// LIGHTING TESTING
+        ///// LIGHTING TESTING
+        ///// LIGHTING TESTING
+        ///// LIGHTING TESTING
+        ///// LIGHTING TESTING
+        ///// LIGHTING TESTING
+        ///// 
+//
+        //// simple shader for light source
+        //render.use_program(ProgramSelect::SelectSimpleOrthographic)?;
+//
+        //// light source's diffuse colour changes over time
+        //render.lighting.light_diffuse_colour.0 = f32::sin(0.75*time as f32);
+        //render.lighting.light_diffuse_colour.1 = f32::sin(0.25*time as f32);
+        //render.lighting.light_diffuse_colour.2 = f32::sin(0.65*time as f32);
+//
+        //// draw light source
+        //let with_light_source = WithObject::existing(&render.window.opengl, enums::Object::VAO, light_vao, DataFormat::Position3Colour3Alpha1)
+        //         .add(Object::VBO, light_vbo)?;
+        //let data = get_light_matrix(&render);
+        //with_light_source.buffer_sub_data(&data, Object::VBO)?;
+        //render.programs.draw(with_light_source, DrawCall::Arrays, DrawMode::GlPoints, &data)?;
+        //
+        //// move light source
+        //render.lighting.light_source_pos.0 += 0.005 * sin_t as f32 * cos_t as f32;
+        //render.lighting.light_source_pos.1 -= 0.015 * sin_t as f32 * cos_t as f32;
+        //render.lighting.light_source_pos.2 += 0.005 * sin_t as f32 * cos_t as f32;
+        //
+        //
+//        // 
+////
+//        //// phong shader for objects hit by light 
+ //       render.use_program(ProgramSelect::SelectBlinnPhongOrthographic)?;
+//
+//        // get Materials
+//        let default_material = Material::Default;
+//        let custom_material = Material::Custom(
+//            MaterialLightQualities::assign(
+//                [1.0, 0.5, 0.31],
+//                [1.0, 0.5, 0.31],
+//                [0.5, 0.5,  0.5],
+//                32.,
+//            )
+//        );
+//        let black_rubber = Material::BlackRubber;
+  //      let brass = Material::Brass;
+//        let gold = Material::Gold;
+//        let polished_gold = Material::PolishedGold;
+//
+//        // get material qualities to use
+//        //let material_qualities = default_material.get_material_qualities();
+//        //let material_qualities = custom_material.get_material_qualities();
+//        //let material_qualities = black_rubber.get_material_qualities();
+   //     let material_qualities = brass.get_material_qualities();
+//        //let material_qualities = gold.get_material_qualities();
+//        //let material_qualities = polished_gold.get_material_qualities();
+//
+//        // set material qualities uniforms
+   //     render.programs.set_uniform(&render.window.opengl,"object_material.ambient_reflected_colour", UniformType::Vec3,
+   //         Matrix::from_1darray(material_qualities.get_ambient()))?;
+   //     render.programs.set_uniform(&render.window.opengl,"object_material.diffuse_reflected_colour", UniformType::Vec3,
+   //         Matrix::from_1darray(material_qualities.get_diffuse()))?;
+   //     render.programs.set_uniform(&render.window.opengl,"object_material.specular_reflected_colour", UniformType::Vec3,
+   //         Matrix::from_1darray(material_qualities.get_specular()))?;
+   //     render.programs.set_uniform(&render.window.opengl,"object_material.shininess", UniformType::Float,
+   //         Matrix::from_scalar(material_qualities.get_shininess()))?;
+//
+//        // draw object
+  //      let with_cube = WithObject::existing(&render.window.opengl, enums::Object::VAO, c_vao, DataFormat::Position3Colour3Alpha1Normal3);
+  //      render.programs.draw(with_cube, DrawCall::Arrays, DrawMode::GlTriangles, &cube)?;
+//
 
 
 
