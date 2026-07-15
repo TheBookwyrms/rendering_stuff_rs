@@ -12,9 +12,14 @@ mod ntree;
 //mod quadtreev2;
 
 
+use atmospheric::config::RenderInitialConfig;
+use atmospheric::enums::CameraMode;
 use atmospheric::enums::Object;
 use atmospheric::image_processing;
 use atmospheric::enums;
+use atmospheric::lighting::LightCounter;
+use atmospheric::lighting::LightingGenerator;
+use atmospheric::lighting::{PointLight, DirectionalLight, SpotLight};
 use atmospheric::materials::MaterialLightQualities;
 use atmospheric::opengl;
 //use atmospheric::opengl::abstractions::{self, TextureSetup, Textures, WithObject};
@@ -24,11 +29,12 @@ use atmospheric::opengl::{gl, intermediate_opengl, raw_opengl};
 use atmospheric::enums::ContextError;
 use atmospheric::enums::ImageFormat;
 use atmospheric::context::Context;
-use atmospheric::enums::{DataFormat, DrawCall, DrawMode, GlError, OpenglTexture, ProgramSelect, TextureTarget, UniformType};
+use atmospheric::enums::{DataFormat, DrawCall, DrawMode, GlError, OpenglTexture, ProgramSelect, TextureTarget, UniformType, LightForm};
 use numeracy::matrices::Matrix;
 use numeracy::vectors::Vector;
 
 
+use std::f32::consts::PI;
 use std::ffi::{CStr, CString};
 use std::fs::exists;
 use std::io::Read;
@@ -68,6 +74,14 @@ pub fn pseudo_randf64(min:f64, max:f64, microsecond_delay:u8) -> f64 {
 }
 
 
+static intial_config : RenderInitialConfig = RenderInitialConfig {
+    window_name   : "hello, window!",
+    window_height : 1080,
+    window_width  : 1920,
+    camera_mode   : CameraMode::Encompassing,
+    max_lights    : LightCounter::new_from(1, 1, 1),
+};
+
 
 fn main() -> Result<(), ContextError> {
 
@@ -92,12 +106,26 @@ fn main() -> Result<(), ContextError> {
     let quadtree_points = Matrix { shape: vec![7, qtp.len()/7], array: qtp };
 
 
+    let mut lighting_generator = LightingGenerator::init(&intial_config.max_lights);
 
 
 
-
-    let mut render = Context::default()?;
+    let mut render = Context::default(intial_config)?;
     render.setup_render();
+
+    
+    let mut point_light = lighting_generator.generate_point_light(&render, [0., 0., 10.], [0.75, 0.95, 0.65])?;
+    let mut dir_light = lighting_generator.generate_directional_light([0., 0., 1.], [0.75, 0.95, 0.65])?;
+    let mut spot_light = lighting_generator.generate_spot_light([0., 0., 10.], [0., 0., -1.], [0.75, 0.95, 0.65], PI/16., PI/8.)?;
+
+    //let mut point_light = PointLight::new([0., 0., 10.], [0.75, 0.95, 0.65]);
+    //let mut dir_light = DirectionalLight::new();
+    //let mut spot_light = SpotLight::new();
+
+    //let mut lighting_manager = LightingManager::instantiate(
+    //    &render, Vector::from_scalar(point_light),
+    //    Vector::from_scalar(dir_light), Vector::from_scalar(spot_light)
+    //)?;
 
 
     let (qtl_vao, qtl_vbo) = render.create_vao_vbo(&quadtree_lines, DataFormat::Position3Colour3Alpha1)?;
@@ -193,13 +221,7 @@ fn main() -> Result<(), ContextError> {
         DataFormat::Position3Colour3Alpha1
     )?;
 
-    fn get_light_matrix(render:&Context) -> Matrix<f32> {
-        let (p0, p1, p2) = render.lighting.light_source_pos;
-        let (c0, c1, c2) = render.lighting.light_diffuse_colour;
-        let light_source    = Matrix::from_2darray([[p0, p1, p2, c0, c1, c2, 1.0]]);
-        light_source
-    }
-    let (light_vao, light_vbo) = render.create_vao_vbo(&get_light_matrix(&render), DataFormat::Position3Colour3Alpha1)?;
+    let (light_vao, light_vbo) = render.create_vao_vbo(&point_light.get_vertex_data(), DataFormat::Position3Colour3Alpha1)?;
 
     
 
@@ -213,110 +235,98 @@ fn main() -> Result<(), ContextError> {
 
 
 
-    let prepared_bluefaces = TextureSetup::get_prepared(
-        &render.window.opengl, TextureTarget::Texture2D,
-        bluefaces,
-        TextureWrapping::MirroredRepeat, TextureWrapping::MirroredRepeat,
-        TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear,
-        0);
+    let prepared_bluefaces = TextureSetup::get_prepared_default(
+        &render.window.opengl, bluefaces
+    );
 
-    let prepared_ppm = TextureSetup::get_prepared(
-        &render.window.opengl, TextureTarget::Texture2D,
-        ppm,
-        TextureWrapping::Repeat, TextureWrapping::Repeat,
-        TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear,
-        0);
+    let prepared_ppm = TextureSetup::get_prepared_default(
+        &render.window.opengl, ppm
+    );
 
-    let prepared_awesomeface = TextureSetup::get_prepared(
-        &render.window.opengl, TextureTarget::Texture2D,
-        awesomeface,
-        TextureWrapping::Repeat, TextureWrapping::Repeat,
-        TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear,
-        0);
+    let prepared_awesomeface = TextureSetup::get_prepared_default(
+        &render.window.opengl, awesomeface
+    );
 
-    let prepared_container = TextureSetup::get_prepared(
-        &render.window.opengl, TextureTarget::Texture2D,
-        container,
-        TextureWrapping::Repeat, TextureWrapping::Repeat,
-        TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear,
-        0);
-    let prepared_container_diffuse_map = TextureSetup::get_prepared(
-        &render.window.opengl, TextureTarget::Texture2D,
-        container_diffuse_map,
-        TextureWrapping::Repeat, TextureWrapping::Repeat,
-        TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear,
-        0);
-    let prepared_container_specular_map = TextureSetup::get_prepared(
-        &render.window.opengl, TextureTarget::Texture2D,
-        container_specular_map,
-        TextureWrapping::Repeat, TextureWrapping::Repeat,
-        TextureMinFilter::LinearMipmapNearest, TextureMagFilter::Linear,
-        0);
+    let prepared_container = TextureSetup::get_prepared_default(
+        &render.window.opengl, container
+    );
+    let prepared_container_diffuse_map = TextureSetup::get_prepared_default(
+        &render.window.opengl, container_diffuse_map
+    );
+    let prepared_container_specular_map = TextureSetup::get_prepared_default(
+        &render.window.opengl, container_specular_map
+    );
 
 
 
-        //let vertex_text   = std::fs::read("src/two_texture_vertex.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
-        //let fragment_text = std::fs::read("src/two_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
-        let vertex_text   = std::fs::read("../atmospheric/shaders_glsl/phong_texture_vertex.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
-        let fragment_text = std::fs::read("../atmospheric/shaders_glsl/phong_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
-        let shader_id = render.compile_custom_program(vertex_text.as_str(), fragment_text.as_str())?;
-                
 
-        let mut sign = true;
-        let mut time_last_changed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    //let vertex_text   = std::fs::read("src/two_texture_vertex.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+    //let fragment_text = std::fs::read("src/two_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+    let vertex_text   = std::fs::read("../atmospheric/shaders_glsl/phong_texture_vertex.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+    let fragment_text = std::fs::read("../atmospheric/shaders_glsl/phong_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+    let shader_id = render.compile_custom_program(vertex_text.as_str(), fragment_text.as_str())?;
+            
+
+    let mut sign = true;
+    let mut time_last_changed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    
+
+    //fn light_loop_rule(lighting_manager: &mut LightingManager) {
+    //    let time = (SystemTime::now().duration_since(UNIX_EPOCH)
+    //                                      .unwrap().as_secs_f32()/1000.) as f32;
+    //    lighting_manager.point_lights[0].set_light(LightForm::Diffuse, [
+    //        f32::sin(0.75*time), f32::sin(0.25*time), f32::sin(0.65*time),
+    //    ]);
+    //    println!("{}", time);
+    //}
+    
     while !render.render_over() {
+
         render.begin_render_actions()?;
 
-        let time = render.window.get_time_since_glfw_init();
+        let time = render.window.get_time_since_glfw_init() as f32;
         let sin_t = time.sin();
         let cos_t = time.cos();
         
+        //lighting_manager.per_loop_rule(light_loop_rule);
 
         
         // simple shader for light source
         render.use_program(ProgramSelect::SelectSimpleOrthographic)?;
 
         // // light source's diffuse colour changes over time
-         render.lighting.light_diffuse_colour.0 = f32::sin(0.75*time as f32);
-         render.lighting.light_diffuse_colour.1 = f32::sin(0.25*time as f32);
-         render.lighting.light_diffuse_colour.2 = f32::sin(0.65*time as f32);
+        point_light.set_light(LightForm::Diffuse, [
+            f32::sin(0.75*time), f32::sin(0.25*time), f32::sin(0.65*time),
+        ]);
 
-        // draw light source
-        let with_light_source = WithObject::existing(&render.window.opengl, enums::Object::VAO, light_vao, DataFormat::Position3Colour3Alpha1)
-                 .add(Object::VBO, light_vbo)?;
-        let data = get_light_matrix(&render);
-        with_light_source.buffer_sub_data(&data, Object::VBO)?;
-        render.programs.draw(with_light_source, DrawCall::Arrays, DrawMode::GlPoints, &data)?;
+        point_light.draw(&render)?;
+        //lighting_manager.draw_point_lights(&render)?;
+
+        //// draw light source
+        //let with_light_source = WithObject::existing(&render.window.opengl, enums::Object::VAO, light_vao, DataFormat::Position3Colour3Alpha1)
+        //         .add(Object::VBO, light_vbo)?;
+        //let data = point_light.get_vertex_data();
+        //with_light_source.buffer_sub_data(&data, Object::VBO)?;
+        //render.programs.draw(with_light_source, DrawCall::Arrays, DrawMode::GlPoints, &data)?;
         
         // // move light source
-         //render.lighting.light_source_pos.0 += 0.005 * sin_t as f32 * cos_t as f32;
-         //render.lighting.light_source_pos.1 -= 0.015 * sin_t as f32 * cos_t as f32;
-         //render.lighting.light_source_pos.2 += 0.005 * sin_t as f32 * cos_t as f32;
-         //render.lighting.light_source_pos.0 += 0.15 * sin_t as f32 * cos_t as f32;
-         //render.lighting.light_source_pos.1 -= 0.15 * sin_t as f32 * cos_t as f32;
-         //render.lighting.light_source_pos.2 += 0.15 * sin_t as f32 * cos_t as f32;
-         //render.lighting.light_source_pos.0 += 0.05 * sin_t as f32;
-         //render.lighting.light_source_pos.1 += 0.05 * sin_t as f32;
-         render.lighting.light_source_pos.0 = 0.;
-         render.lighting.light_source_pos.1 = 0.;
-         let pz = render.lighting.light_source_pos.2;
-         fn gettime() -> Duration {
-            SystemTime::now().duration_since(UNIX_EPOCH).unwrap()
-         }
-         let change = 0.005 * 2.*sin_t.abs() as f32;
-         if ((pz > 100.) || (pz < 0.)) && (
+        let pz = point_light.get_position()[2];
+        fn gettime() -> Duration {
+           SystemTime::now().duration_since(UNIX_EPOCH).unwrap()
+        }
+        let change = 0.005 * 2.*sin_t.abs() as f32;
+        if ((pz > 100.) || (pz < 0.)) && (
             Duration::abs_diff(time_last_changed, gettime()).as_secs_f64() > 1.
         ) {
             sign = !sign;
             time_last_changed = gettime();
         }
          if sign {
-            render.lighting.light_source_pos.2 += change;
+            point_light.translate([0., 0., change]);
          } else {
-            render.lighting.light_source_pos.2 -= change;
+            point_light.translate([0., 0., -change]);
          }
 
-         //render.lighting.light_source_pos.2 = 5.5;
         
         
 
@@ -329,9 +339,20 @@ fn main() -> Result<(), ContextError> {
         &render.textures.activate(
             &render.window.opengl, OpenglTexture::Texture1, &prepared_container_specular_map, &render.programs
         )?;
-        render.programs.set_uniform(&render.window.opengl,"object_material.shininess", UniformType::Float,
+        render.programs.set_uniform::<f32>(&render.window.opengl,"object_shininess", UniformType::Float,
         //Matrix::from_scalar(16.0))?;
         Matrix::from_scalar(56.0))?;
+
+        ////render.programs.set_uniform::<i32>(&render.window.opengl,"test", UniformType::Int,
+        ////Matrix::from_scalar(2))?;
+        //render.programs.set_uniform::<f32>(&render.window.opengl,"hi[0]", UniformType::Int,
+        //Matrix::from_scalar(0.))?;
+        //render.programs.set_uniform::<f32>(&render.window.opengl,"hi[1]", UniformType::Int,
+        //Matrix::from_scalar(1.))?;
+
+        point_light.set_lighting_uniforms(&render)?;
+        dir_light.set_lighting_uniforms(&render)?;
+        spot_light.set_lighting_uniforms(&render)?;
         //let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tcc_vao, DataFormat::Position3Colour3Alpha1Normal3Texture2);
         //render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &tex_col_cube)?;
         let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tcc_vaos, DataFormat::Position3Colour3Alpha1Normal3Texture2);
@@ -407,9 +428,9 @@ fn main() -> Result<(), ContextError> {
         //render.use_program(ProgramSelect::SelectSimpleOrthographic)?;
 //
         //// light source's diffuse colour changes over time
-        //render.lighting.light_diffuse_colour.0 = f32::sin(0.75*time as f32);
-        //render.lighting.light_diffuse_colour.1 = f32::sin(0.25*time as f32);
-        //render.lighting.light_diffuse_colour.2 = f32::sin(0.65*time as f32);
+        //point_light.light_diffuse_colour.0 = f32::sin(0.75*time as f32);
+        //point_light.light_diffuse_colour.1 = f32::sin(0.25*time as f32);
+        //point_light.light_diffuse_colour.2 = f32::sin(0.65*time as f32);
 //
         //// draw light source
         //let with_light_source = WithObject::existing(&render.window.opengl, enums::Object::VAO, light_vao, DataFormat::Position3Colour3Alpha1)
@@ -419,9 +440,9 @@ fn main() -> Result<(), ContextError> {
         //render.programs.draw(with_light_source, DrawCall::Arrays, DrawMode::GlPoints, &data)?;
         //
         //// move light source
-        //render.lighting.light_source_pos.0 += 0.005 * sin_t as f32 * cos_t as f32;
-        //render.lighting.light_source_pos.1 -= 0.015 * sin_t as f32 * cos_t as f32;
-        //render.lighting.light_source_pos.2 += 0.005 * sin_t as f32 * cos_t as f32;
+        //point_light.light_source_pos.0 += 0.005 * sin_t as f32 * cos_t as f32;
+        //point_light.light_source_pos.1 -= 0.015 * sin_t as f32 * cos_t as f32;
+        //point_light.light_source_pos.2 += 0.005 * sin_t as f32 * cos_t as f32;
         //
         //
 //        // 
