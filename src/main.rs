@@ -23,16 +23,18 @@ use atmospheric::lighting::{PointLight, DirectionalLight, SpotLight};
 use atmospheric::materials::MaterialLightQualities;
 use atmospheric::opengl;
 //use atmospheric::opengl::abstractions::{self, TextureSetup, Textures, WithObject};
-use atmospheric::opengl::abstractions2::{self, TextureSetup, Textures, WithObject};
+use atmospheric::opengl::abstractions::{self, TextureSetup, Textures, WithObject};
 use atmospheric::enums::{InternalFormat, TextureMagFilter, TextureMinFilter, TextureWrapping, CameraAxis, CameraVector};
 use atmospheric::opengl::{gl, intermediate_opengl, raw_opengl};
 use atmospheric::enums::ContextError;
 use atmospheric::enums::ImageFormat;
 use atmospheric::context::Context;
 use atmospheric::enums::{DataFormat, DrawCall, DrawMode, GlError, OpenglTexture, ProgramSelect, TextureTarget, UniformType, LightForm};
-use numeracy::matrices::Matrix;
+//use numeracy::matrices::Matrix;
+use numeracy::matrices2::Matrix;
 use numeracy::vectors::Vector;
 
+mod object;
 
 use std::f32::consts::PI;
 use std::ffi::{CStr, CString};
@@ -42,6 +44,7 @@ use std::os::raw::c_void;
 use std::{time::{SystemTime, UNIX_EPOCH, Duration}, thread};
 
 use crate::image_processing::Image;
+use crate::object::InstancingTestObject;
 use crate::octree::{Octree};
 use crate::ntree::{Point, PointThing};
 use crate::quadtree::{QuadTree};
@@ -79,7 +82,7 @@ static intial_config : RenderInitialConfig = RenderInitialConfig {
     window_height : 1080,
     window_width  : 1920,
     camera_mode   : CameraMode::Encompassing,
-    max_lights    : LightCounter::new_from(1, 1, 1),
+    max_lights    : LightCounter::max_values(1, 18, 1),
 };
 
 
@@ -102,8 +105,8 @@ fn main() -> Result<(), ContextError> {
     let quadtree_final = q2;
     let qtl = quadtree_final.get_all_lines();
     let qtp = quadtree_final.get_all_points();
-    let quadtree_lines  = Matrix { shape: vec![7, qtl.len()/7], array: qtl };
-    let quadtree_points = Matrix { shape: vec![7, qtp.len()/7], array: qtp };
+    let quadtree_lines  = Matrix { shape: [7, qtl.len()/7], array: qtl };
+    let quadtree_points = Matrix { shape: [7, qtp.len()/7], array: qtp };
 
 
     let mut lighting_generator = LightingGenerator::init(&intial_config.max_lights);
@@ -115,8 +118,10 @@ fn main() -> Result<(), ContextError> {
 
     
     let mut point_light = lighting_generator.generate_point_light(&render, [0., 0., 10.], [0.75, 0.95, 0.65])?;
+    let mut point_light2 = lighting_generator.generate_point_light(&render, [-10., 0., 0.], [0.75, 0.95, 0.65])?;
+    let mut point_light3 = lighting_generator.generate_point_light(&render, [0., -10., 0.], [0.75, 0.95, 0.65])?;
     let mut dir_light = lighting_generator.generate_directional_light([0., 0., 1.], [0.75, 0.95, 0.65])?;
-    let mut spot_light = lighting_generator.generate_spot_light([0., 0., 10.], [0., 0., -1.], [0.75, 0.95, 0.65], PI/16., PI/8.)?;
+    let mut spot_light = lighting_generator.generate_spot_light([0., 0., 10.], [0., 0., -1.], [0.75, 0.95, 0.65], PI/6., PI/3.)?;
 
     //let mut point_light = PointLight::new([0., 0., 10.], [0.75, 0.95, 0.65]);
     //let mut dir_light = DirectionalLight::new();
@@ -146,9 +151,18 @@ fn main() -> Result<(), ContextError> {
     let tex_col_cube = cube::texture_colour_cube((0.0, 0.0, 0.0), 6.0, 1.0);
     let (tcc_vao, tcc_vbo) = render.create_vao_vbo(&tex_col_cube, DataFormat::Position3Colour3Alpha1Normal3Texture2)?;
 
+    let base_original = cube::texture_colour_cube((0.0, 0.0, 0.0), 6.0, 1.0);    
     let mut base = cube::texture_colour_cube((0.0, 0.0, 0.0), 6.0, 1.0);    
+    const NUM_INSTANCES:usize = 100;
     let spawn_range = 25.;
-    for i in 0..100 {
+
+    let mut all_x = [0.; NUM_INSTANCES];
+    let mut all_y = [0.; NUM_INSTANCES];
+    let mut all_z = [0.; NUM_INSTANCES];
+    
+    let bases = vec![cube::texture_colour_cube((0.0, 0.0, 0.0), 6.0, 1.0); NUM_INSTANCES];
+    let mut transformation_matrices = vec![];
+    for i in 0..NUM_INSTANCES {
         let tx = pseudo_randf64(-spawn_range, spawn_range, 100) as f32;
         let ty = pseudo_randf64(-spawn_range, spawn_range, 100) as f32;
         let tz = pseudo_randf64(-spawn_range, spawn_range, 100) as f32;
@@ -156,20 +170,62 @@ fn main() -> Result<(), ContextError> {
         let ry = pseudo_randf64(-45., 45., 100) as f32;
         let rz = pseudo_randf64(-45., 45., 100) as f32;
 
+        all_x[i] = tx;
+        all_y[i] = ty;
+        all_z[i] = tz;
 
-        let mut tcc_cube_i = cube::texture_colour_cube((0., 0., 0.), 5., 1.);
         let rotate = Matrix::rotate(Vector::from_1darray([rx, ry, rz]))?;
         let translate = Matrix::translate(Vector::from_1darray([tx, ty, tz]));
+        let translate_transposed = translate.transpose();
+        let rotate_transposed = rotate.transpose();
 
-        let pos = tcc_cube_i.get_submatrix([0..3, 0..36])?;
-        let rest = tcc_cube_i.get_submatrix([3..12, 0..36])?;
-        let pos4 = pos.expand_along_axis(Matrix { shape: vec![1, 36], array: [1.; 36].to_vec() }, 0)?;
-        let np4 = pos4.matmul(&rotate)?;
-        let np5 = np4.matmul(&translate.transpose()?)?;
-        let npos = np5.get_submatrix([0..3, 0..36])?;
-        let new = npos.expand_along_axis(rest, 0)?;
 
-        base = base.expand_along_axis(new, 1)?;
+        //let t_r = translate.matmul(&rotate)?; // NOPE
+        //let t_r = rotate.matmul(&translate)?; // NOPE
+        let t_r = translate_transposed.matmul(&rotate)?;
+        let t_r = rotate.matmul(&translate_transposed)?;
+        //let t_r = translate.matmul(&rotate_transposed)?; // NOPE
+        //let t_r = rotate_transposed.matmul(&translate)?; // NOPE
+        let t_r = translate_transposed.matmul(&rotate_transposed)?;
+        let t_r = rotate_transposed.matmul(&translate_transposed)?;
+        
+        //let t_r = translate_transposed.matmul(&rotate)?;
+        //let t_r = rotate.matmul(&translate_transposed)?;
+        //let t_r = rotate.matmul(&translate)?;
+
+
+        transformation_matrices.push(t_r);
+    }
+
+    let mut low_x = 0;
+    let mut mid_x = 0;
+    let mut high_x = 0;
+    let mut low_y = 0;
+    let mut mid_y = 0;
+    let mut high_y = 0;
+    let mut low_z = 0;
+    let mut mid_z = 0;
+    let mut high_z = 0;
+
+    all_x.map(|p| {if p <= -12.5 {low_x+=1} else if p >= 12.5 {high_x+=1} else {mid_x+=1}});
+    all_y.map(|p| {if p <= -12.5 {low_y+=1} else if p >= 12.5 {high_y+=1} else {mid_y+=1}});
+    all_z.map(|p| {if p <= -12.5 {low_z+=1} else if p >= 12.5 {high_z+=1} else {mid_z+=1}});
+
+    println!("low x {}, mid x {}, high x {}", low_x, mid_x, high_x);
+    println!("low y {}, mid y {}, high y {}", low_y, mid_y, high_y);
+    println!("low z {}, mid z {}, high z {}", low_z, mid_z, high_z);
+
+
+    for i in 0..NUM_INSTANCES {
+
+        let pos  = bases[i].get_submatrix([0..3, 0..36])?;
+        let rest = bases[i].get_submatrix([3..12, 0..36])?;
+        let pos4 = pos.expand_horizontally(Matrix { shape: [1, 36], array: [1.; 36].to_vec() })?;
+        let translated_rotated = pos4.matmul(&transformation_matrices[i])?;
+        let new_pos = translated_rotated.get_submatrix([0..3, 0..36])?;
+        let new_full = new_pos.expand_horizontally(rest)?;
+
+        base = base.expand_vertically(new_full)?;
     }
     let (tcc_vaos, tcc_vbos) = render.create_vao_vbo(&base, DataFormat::Position3Colour3Alpha1Normal3Texture2)?;
 
@@ -207,11 +263,11 @@ fn main() -> Result<(), ContextError> {
     let (z_vao, z_vbo) = render.create_vao_vbo(&z, DataFormat::Position3Colour3Alpha1)?;
     
 
-    fn target_to_matrix(target:Vector<f32>, col:(f32, f32, f32), a:f32) -> Matrix<f32> {
+    fn target_to_matrix(target:Vector<f32>, col:(f32, f32, f32), a:f32) -> Matrix<f32, 2> {
         let (r, g, b) = col;
         let mut new_arr = target.multiply_by_constant(1.0).array;
         new_arr.extend(&[r, g, b, a]);
-        Matrix { shape: vec![7, 1], array: new_arr }
+        Matrix { shape: [7, 1], array: new_arr }
     }
     let (target_vao, target_vbo) = render.create_vao_vbo(
         &target_to_matrix(
@@ -262,10 +318,22 @@ fn main() -> Result<(), ContextError> {
 
     //let vertex_text   = std::fs::read("src/two_texture_vertex.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
     //let fragment_text = std::fs::read("src/two_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
-    let vertex_text   = std::fs::read("../atmospheric/shaders_glsl/phong_texture_vertex.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
-    let fragment_text = std::fs::read("../atmospheric/shaders_glsl/phong_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+    //let vertex_text   = std::fs::read("../atmospheric/shaders_glsl/phong_texture_vertex.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+    //let fragment_text = std::fs::read("../atmospheric/shaders_glsl/phong_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+        let dir_max   = &intial_config.max_lights.get_light_count(enums::LightSourceForm::Directional);
+        let point_max = &intial_config.max_lights.get_light_count(enums::LightSourceForm::Point);
+        let spot_max  = &intial_config.max_lights.get_light_count(enums::LightSourceForm::Spot);
+
+    let vertex_text   = std::fs::read("src/instancing_phong_texture_vertex.glsl").unwrap().iter().map(|a| *a as char).collect::<String>();
+    let fragment_text = std::fs::read("src/instancing_phong_texture_fragment.glsl").unwrap().iter().map(|a| *a as char).collect::<String>()
+                .replace("find_and_replace_with_max_number_of_point_lights", &point_max.to_string())
+                .replace("find_and_replace_with_max_number_of_directional_lights", &dir_max.to_string())
+                .replace("find_and_replace_with_max_number_of_spot_lights", &spot_max.to_string());;
     let shader_id = render.compile_custom_program(vertex_text.as_str(), fragment_text.as_str())?;
-            
+        
+    let testing_instancing_object = InstancingTestObject::new(
+        &render.window.opengl, base_original, transformation_matrices
+    );
 
     let mut sign = true;
     let mut time_last_changed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
@@ -279,6 +347,7 @@ fn main() -> Result<(), ContextError> {
     //    ]);
     //    println!("{}", time);
     //}
+    let mut time_prior = render.window.get_time_since_glfw_init() as f32;
     
     while !render.render_over() {
 
@@ -287,6 +356,9 @@ fn main() -> Result<(), ContextError> {
         let time = render.window.get_time_since_glfw_init() as f32;
         let sin_t = time.sin();
         let cos_t = time.cos();
+
+        let delta_time = time-time_prior;
+        time_prior = time;
         
         //lighting_manager.per_loop_rule(light_loop_rule);
 
@@ -299,8 +371,22 @@ fn main() -> Result<(), ContextError> {
             f32::sin(0.75*time), f32::sin(0.25*time), f32::sin(0.65*time),
         ]);
 
-        point_light.draw(&render)?;
+        point_light2.set_light(LightForm::Diffuse, [
+            f32::sin(2.*0.75*time), f32::sin(2.*0.25*time), f32::sin(2.*0.65*time),
+        ]);
+        point_light2.set_position([10.*f32::sin(time), 10.*f32::cos(time), 10.]);
+
+        point_light3.set_light(LightForm::Diffuse, [
+            f32::sin(2.*0.65*time), f32::sin(2.*0.75*time), f32::sin(2.*0.25*time),
+        ]);
+        point_light3.set_position([-10.*f32::cos(time), -10.*f32::sin(time), 10.]);
+
+        //point_light.draw(&render)?;
+        point_light2.draw(&render)?;
+        point_light3.draw(&render)?;
         //lighting_manager.draw_point_lights(&render)?;
+
+        spot_light.rotate([0., -0.75, 0.])?;
 
         //// draw light source
         //let with_light_source = WithObject::existing(&render.window.opengl, enums::Object::VAO, light_vao, DataFormat::Position3Colour3Alpha1)
@@ -331,33 +417,83 @@ fn main() -> Result<(), ContextError> {
         
 
 
+        // // cube with diffuse and specular colour maps
+        // render.use_program(ProgramSelect::SelectPhongTexture);
+        // &render.textures.activate(
+        //     &render.window.opengl, OpenglTexture::Texture0, &prepared_container_diffuse_map, &render.programs
+        // )?;
+        // &render.textures.activate(
+        //     &render.window.opengl, OpenglTexture::Texture1, &prepared_container_specular_map, &render.programs
+        // )?;
+        // render.programs.set_uniform::<f32>(&render.window.opengl,"object_shininess", UniformType::Float,
+        // //Matrix::from_scalar(16.0))?;
+        // Matrix::from_2darray([[56.0]]))?;
+//
+        // ////render.programs.set_uniform::<i32>(&render.window.opengl,"test", UniformType::Int,
+        // ////Matrix::from_scalar(2))?;
+        // //render.programs.set_uniform::<f32>(&render.window.opengl,"hi[0]", UniformType::Int,
+        // //Matrix::from_scalar(0.))?;
+        // //render.programs.set_uniform::<f32>(&render.window.opengl,"hi[1]", UniformType::Int,
+        // //Matrix::from_scalar(1.))?;
+//
+        // //point_light.set_lighting_uniforms(&render)?;
+        // //point_light2.set_lighting_uniforms(&render)?;
+        // //point_light3.set_lighting_uniforms(&render)?;
+        // //dir_light.set_lighting_uniforms(&render)?;
+        // spot_light.set_lighting_uniforms(&render)?;
+        // //let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tcc_vao, DataFormat::Position3Colour3Alpha1Normal3Texture2);
+        // //render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &tex_col_cube)?;
+        // let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tcc_vaos, DataFormat::Position3Colour3Alpha1Normal3Texture2);
+        // render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &base)?;
+        // &render.textures.deactivate_all(&render.window.opengl);
+
+
+
+
+
+
+
+
         // cube with diffuse and specular colour maps
-        render.use_program(ProgramSelect::SelectPhongTexture);
+        render.use_custom_program(shader_id);
         &render.textures.activate(
             &render.window.opengl, OpenglTexture::Texture0, &prepared_container_diffuse_map, &render.programs
         )?;
         &render.textures.activate(
             &render.window.opengl, OpenglTexture::Texture1, &prepared_container_specular_map, &render.programs
         )?;
-        render.programs.set_uniform::<f32>(&render.window.opengl,"object_shininess", UniformType::Float,
-        //Matrix::from_scalar(16.0))?;
-        Matrix::from_scalar(56.0))?;
+        render.programs.set_uniform::<f32, 2>(
+            &render.window.opengl,
+            "object_shininess",
+            UniformType::Float,
+            Matrix::from_2darray([[56.0]])
+        )?;
 
-        ////render.programs.set_uniform::<i32>(&render.window.opengl,"test", UniformType::Int,
-        ////Matrix::from_scalar(2))?;
-        //render.programs.set_uniform::<f32>(&render.window.opengl,"hi[0]", UniformType::Int,
-        //Matrix::from_scalar(0.))?;
-        //render.programs.set_uniform::<f32>(&render.window.opengl,"hi[1]", UniformType::Int,
-        //Matrix::from_scalar(1.))?;
 
-        point_light.set_lighting_uniforms(&render)?;
-        dir_light.set_lighting_uniforms(&render)?;
+
+        render.set_orthographic_camera_uniforms()?;
+        render.set_blinn_phong_uniforms()?;
+        
+        //point_light.set_lighting_uniforms(&render)?;
+        point_light2.set_lighting_uniforms(&render)?;
+        point_light3.set_lighting_uniforms(&render)?;
+        //dir_light.set_lighting_uniforms(&render)?;
         spot_light.set_lighting_uniforms(&render)?;
         //let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tcc_vao, DataFormat::Position3Colour3Alpha1Normal3Texture2);
         //render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &tex_col_cube)?;
-        let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tcc_vaos, DataFormat::Position3Colour3Alpha1Normal3Texture2);
-        render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &base)?;
+        testing_instancing_object.draw(&render.window.opengl).unwrap();
+        //let with_relevant = WithObject::existing(&render.window.opengl, enums::Object::VAO, tcc_vaos, DataFormat::Position3Colour3Alpha1Normal3Texture2);
+        //render.programs.draw(with_relevant, DrawCall::Arrays, DrawMode::GlTriangles, &base)?;
         &render.textures.deactivate_all(&render.window.opengl);
+
+
+
+
+
+
+
+
+
 
 
 

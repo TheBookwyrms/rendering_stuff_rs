@@ -1,4 +1,5 @@
-use numeracy::matrices::Matrix;
+//use numeracy::matrices::Matrix;
+use numeracy::matrices2::Matrix;
 
 fn arr7(pos:[f32; 3], col:[f32; 3], a:f32) -> [f32; 7] {
     [pos[0], pos[1], pos[2], col[0], col[1], col[2], a]
@@ -85,10 +86,10 @@ pub fn create_cube_vertices(centre:(f32, f32, f32), side_len:f32) -> [[f32; 3]; 
 }
 
 
-pub fn _might_not_even_work_untested_ebo_cube(centre:(f32, f32, f32), side_len:f32) -> (Matrix<f32>, Matrix<i32>) {
+pub fn _might_not_even_work_untested_ebo_cube(centre:(f32, f32, f32), side_len:f32) -> (Matrix<f32, 2>, Matrix<i32, 2>) {
 
     let vertices_matrix = Matrix {
-        shape:vec![3, 8],
+        shape:[3, 8],
         array:create_cube_vertices(centre, side_len).concat(),
     };
 
@@ -108,7 +109,7 @@ pub fn _might_not_even_work_untested_ebo_cube(centre:(f32, f32, f32), side_len:f
     ];
 
     let indices_matrix = Matrix {
-        shape:vec![3, 12],
+        shape:[3, 12],
         array:indices_arr.to_vec(),
     };
 
@@ -120,7 +121,7 @@ pub fn _might_not_even_work_untested_ebo_cube(centre:(f32, f32, f32), side_len:f
 
  
 
-pub fn colour_cube(centre:(f32, f32, f32), side_len:f32, include_normals:bool) -> Matrix<f32> {
+pub fn colour_cube(centre:(f32, f32, f32), side_len:f32, include_normals:bool) -> Matrix<f32, 2> {
     
     let [
         tbr, tfr, tfl, tbl, bbr, bfr, bfl, bbl
@@ -187,7 +188,7 @@ pub fn colour_cube(centre:(f32, f32, f32), side_len:f32, include_normals:bool) -
         ]
     }.concat();
 
-    Matrix { shape: vec![10, cube.len()/10], array: cube }
+    Matrix { shape: [10, cube.len()/10], array: cube }
 }
 
 
@@ -195,7 +196,7 @@ pub fn colour_cube(centre:(f32, f32, f32), side_len:f32, include_normals:bool) -
 
 
 
-pub fn texture_cube(centre:(f32, f32, f32), side_len:f32, texture_size:f32) -> (Matrix<f32>) {
+pub fn texture_cube(centre:(f32, f32, f32), side_len:f32, texture_size:f32) -> (Matrix<f32, 2>) {
         
     let [
         tbr, tfr, tfl, tbl, bbr, bfr, bfl, bbl
@@ -235,7 +236,7 @@ pub fn texture_cube(centre:(f32, f32, f32), side_len:f32, texture_size:f32) -> (
     ].concat();
 
 
-    let mut cube_matrix = Matrix { shape: vec![5, cube.len()/5], array: cube };
+    let mut cube_matrix = Matrix { shape: [5, cube.len()/5], array: cube };
 
 
     cube_matrix
@@ -245,7 +246,7 @@ pub fn texture_cube(centre:(f32, f32, f32), side_len:f32, texture_size:f32) -> (
 
 
 
-pub fn texture_colour_cube(centre:(f32, f32, f32), side_len:f32, texture_size:f32) -> Matrix<f32> {
+pub fn texture_colour_cube(centre:(f32, f32, f32), side_len:f32, texture_size:f32) -> Matrix<f32, 2> {
 
     let [
         tbr, tfr, tfl, tbl, bbr, bfr, bfl, bbl
@@ -346,7 +347,7 @@ let norm_left2 = [-1.,  0.,  0.];
     ].concat();
 
     
-    let mut cube_matrix = Matrix { shape: vec![12, cube.len()/12], array: cube };
+    let mut cube_matrix = Matrix { shape: [12, cube.len()/12], array: cube };
 
     cube_matrix
 }
