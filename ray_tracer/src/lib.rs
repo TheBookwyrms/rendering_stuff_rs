@@ -1,7 +1,7 @@
 use std::io::{Error, Write};
 
 //use numeracy::matrices::Matrix;
-use numeracy::matrices2::Matrix;
+use numeracy::matrices::Matrix;
 use atmospheric::image_processing::PPM;
 use atmospheric::enums::PPMType;
 
