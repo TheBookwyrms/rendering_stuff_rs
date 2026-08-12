@@ -3,7 +3,7 @@ use atmospheric::enums::{AttributeLoc::{self, At}, OpenglTexture};
 use atmospheric::enums::UpdateVertexAttrib::{PerInstance, PerVertex};
 use atmospheric::image_processing::Image;
 use atmospheric::materials::Material;
-use numeracy::matrices::{Matrix, S1, S2, ShapeTrait};
+use numeracy::matrices::{Matrix, S1, S2, S3, ShapeTrait};
 
 use crate::c_void;
 
@@ -15,9 +15,12 @@ use atmospheric::opengl::{raw_opengl, intermediate_opengl};
 use atmospheric::opengl::abstractions::{PreparedTexture, Programs, TextureSetup, Textures, WithEbo, WithVao, WithVaoEbo, WithVaoVbo, WithVbo};
 use atmospheric::opengl::gl::Gl;
 
- pub enum ObjectColour<const NUM_VERTICES:usize> {
+
+
+ pub enum ObjectColour<const NUM_INSTANCES:usize, const NUM_VERTICES:usize> {
     None,
     Constant( Matrix<f32, 2, S2<4, 1>>),
+    ConstantPerInstance([Matrix<f32, 2, S2<4, 1>>;NUM_INSTANCES]),
     PerVertex(Matrix<f32, 2, S2<4, NUM_VERTICES>>),
  }
 
@@ -32,16 +35,17 @@ use atmospheric::opengl::gl::Gl;
  }
  
  
- pub struct ObjectForVaoDraws<const NUM_VERTICES:usize> {
+ pub struct ObjectForVaoDraws<const NUM_INSTANCES:usize, const NUM_VERTICES:usize> {
     position_matrix:Matrix<f32, 2, S2<3, NUM_VERTICES>>,
     normals_matrix:Matrix<f32, 2, S2<3, NUM_VERTICES>>,
     
-    colour_matrix:ObjectColour<NUM_VERTICES>,
+    colour_matrix:ObjectColour<NUM_INSTANCES, NUM_VERTICES>,
     //texture_coords_matrix:ObjectTextureCoords<NUM_VERTICES>,
     materials_matrix:ObjectMaterials<NUM_VERTICES>,
 
     /// vec of mat4, length N, for position and normals
-    transformation_matrices:Vec<Matrix<f32, 2, S2<4, 4>>>,
+    //transformation_matrices:Vec<Matrix<f32, 2, S2<4, 4>>>,
+    transformation_matrices:[Matrix<f32, 2, S2<4, 4>>;NUM_INSTANCES],
     
     object_vao:u32,
     position_matrix_vbo:u32,
@@ -55,30 +59,39 @@ use atmospheric::opengl::gl::Gl;
     specular_texture:PreparedTexture,
  }
  
- impl<const NUM_VERTICES:usize> ObjectForVaoDraws<NUM_VERTICES> {
+impl<const NUM_INSTANCES:usize, const NUM_VERTICES:usize> ObjectForVaoDraws<NUM_INSTANCES, NUM_VERTICES> {
 
     pub fn assert_vaos_vbos_set(&self) { 
          assert_ne!(
              self.object_vao * self.position_matrix_vbo * self.colour_matrix_vbo *
              self.texture_matrix_vbo * self.normals_matrix_vbo * self.materials_matrix_vbo, 0
          );
-     }
+    }
 
-    fn get_matrix_of_transformation_matrices(transformations:&Vec<Matrix<f32, 2, S2<4, 4>>>) -> Matrix<f32, 1, S1<1>> {
+    fn concat_matrices<const M:usize, const N:usize>(matrices:&Vec<Matrix<f32, 2, S2<M, N>>>) -> Matrix<f32, 1, S1<1>> {
         const FAKE_LEN:usize = 1;
-        let vec_of_items = transformations.iter()
+        let vec_of_items = matrices.iter()
                                              .map(|m| m.get_view_of_array())
                                              .collect::<Vec<&[f32]>>()
                                              .concat();
         let mat: Matrix<f32, 1, S1<FAKE_LEN>> = Matrix::from_vec(vec_of_items);
         mat        
     }
+    //fn get_matrix_of_transformation_matrices(transformations:&Vec<Matrix<f32, 2, S2<4, 4>>>) -> Matrix<f32, 1, S1<1>> {
+    //    const FAKE_LEN:usize = 1;
+    //    let vec_of_items = transformations.iter()
+    //                                         .map(|m| m.get_view_of_array())
+    //                                         .collect::<Vec<&[f32]>>()
+    //                                         .concat();
+    //    let mat: Matrix<f32, 1, S1<FAKE_LEN>> = Matrix::from_vec(vec_of_items);
+    //    mat        
+    //}
 
     pub fn new(
         opengl:&Gl,
         positions:Matrix<f32, 2, S2<3, NUM_VERTICES>>,
         normals:Matrix<f32, 2, S2<3, NUM_VERTICES>>,
-        colour:ObjectColour<NUM_VERTICES>,
+        colour:ObjectColour<NUM_INSTANCES, NUM_VERTICES>,
         // //texture_coords:ObjectTextureCoords<NUM_VERTICES>,
         materials:ObjectMaterials<NUM_VERTICES>,
         texture:ObjectTexture<NUM_VERTICES>,
@@ -86,7 +99,7 @@ use atmospheric::opengl::gl::Gl;
         // specular_texture:ObjectTexture<NUM_VERTICES>,
         // //diffuse_image:Option<Image>,
         // //specular_image:Option<Image>,
-        transformations:Vec<Matrix<f32, 2, S2<4, 4>>>,
+        transformations:[Matrix<f32, 2, S2<4, 4>>;NUM_INSTANCES],
      ) -> Self {
  
 
@@ -107,8 +120,23 @@ use atmospheric::opengl::gl::Gl;
             ObjectColour::Constant(ref mat) => {
                 with_colours_vbo.buffer_data(&mat, DrawType::DynamicDraw);
                 DataFormat::Colour4(At(1), PerInstance(transformations.len() as u32)).set_vertex_attribs(opengl, dtype_size);
-
             },
+            ObjectColour::ConstantPerInstance(ref vec_mat) => {
+                /// just completely lyinh about the length of this array
+                let mut arrs = Vec::with_capacity(NUM_INSTANCES);
+                vec_mat.iter().enumerate().for_each(|(i, m)| arrs.push(m.get_view_of_array()));
+                //let a = vec_mat.into_iter().map(|m| m.array).collect::<Vec<Vec<f32>>>();
+                //let b = a.to_vec().concat();
+                let colours = Matrix::from_vec_with_shape(
+                    arrs.concat()
+                    ,//.concat(),
+                    S3::<4, 1, NUM_INSTANCES>
+                );
+                //let colour_data = Self::concat_matrices(vec_mat);
+                //with_colours_vbo.buffer_data(&colour_data, DrawType::DynamicDraw);
+                with_colours_vbo.buffer_data(&colours, DrawType::DynamicDraw);
+                DataFormat::Colour4(At(1), PerInstance(1)).set_vertex_attribs(opengl, dtype_size);
+            }
             ObjectColour::PerVertex(ref mat) => {
                 with_colours_vbo.buffer_data(&mat, DrawType::DynamicDraw);
                 DataFormat::Colour4(At(1), PerVertex).set_vertex_attribs(opengl, dtype_size);
@@ -195,7 +223,26 @@ use atmospheric::opengl::gl::Gl;
             },
         }
 
-        let transformation_data = Self::get_matrix_of_transformation_matrices(&transformations);
+        //let transformation_data = Self::get_matrix_of_transformation_matrices(&transformations);
+        //let transformation_data = Self::concat_matrices(&transformations);
+        let mut arrs = Vec::with_capacity(NUM_INSTANCES);
+        transformations.iter().enumerate().for_each(|(i, m)| arrs.push(m.get_view_of_array()));
+        //let a = vec_mat.into_iter().map(|m| m.array).collect::<Vec<Vec<f32>>>();
+        //let b = a.to_vec().concat();
+        let transformation_data = Matrix::from_vec_with_shape(
+            arrs.concat()
+            ,//.concat(),
+            S3::<4, 4, NUM_INSTANCES>
+        );
+        //let transformation_data = Matrix::from_vec_with_shape(
+        //    transformations.map(|ref m| m.get_view_of_array())
+        //           .concat(),
+        //    S3::<4, 4, NUM_INSTANCES>
+        //);
+        //let transformation_data = Matrix::from_vec(
+        //    transformations.map(|m| m.get_view_of_array())
+        //                   .concat()
+        //);
         let with_transformations_vbo = WithVbo::new(opengl);
         with_transformations_vbo.buffer_data(&transformation_data, DrawType::DynamicDraw);
         /// takes up locations 8, 9, 10, 11

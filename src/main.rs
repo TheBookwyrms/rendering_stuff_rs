@@ -189,16 +189,31 @@ fn main() -> Result<(), ContextError> {
     let mut all_x = [0.; NUM_INSTANCES];
     let mut all_y = [0.; NUM_INSTANCES];
     let mut all_z = [0.; NUM_INSTANCES];
-    
+        
+    //let a: [Matrix<f32, 2, S2<2, 2>>; 4] = [const { Matrix::null(S2::<2, 2>) } ; 4];
+    let mut matrices = Matrix::array_of::<NUM_INSTANCES>(Matrix::null(S2::<2, 2>));
+    matrices[0] = Matrix::from_2darray([[1., 2.], [3., 4.]]);
+
     let bases = vec![cube::texture_colour_cube((0.0, 0.0, 0.0), 6.0, 1.0); NUM_INSTANCES];
-    let mut transformation_matrices = vec![];
+    //let mut transformation_matrices = vec![];
+    let mut colour_matrices = Matrix::array_of::<NUM_INSTANCES>(Matrix::null(S2::<4, 1>));
+    let mut transformation_matrices = Matrix::array_of::<NUM_INSTANCES>(Matrix::null(S2::<4, 4>));
     for i in 0..NUM_INSTANCES {
         let tx = pseudo_randf64(-spawn_range, spawn_range, 100) as f32;
         let ty = pseudo_randf64(-spawn_range, spawn_range, 100) as f32;
         let tz = pseudo_randf64(-spawn_range, spawn_range, 100) as f32;
+        
         let rx = pseudo_randf64(-45., 45., 100) as f32;
         let ry = pseudo_randf64(-45., 45., 100) as f32;
         let rz = pseudo_randf64(-45., 45., 100) as f32;
+        
+        let cx = pseudo_randf64(0., 1., 100) as f32;
+        let cy = pseudo_randf64(0., 1., 100) as f32;
+        let cz = pseudo_randf64(0., 1., 100) as f32;
+        let ca = pseudo_randf64(0., 1., 100) as f32;
+        let ca = 1.;
+        //colour_matrices.push(Matrix::from_2darray([[cx, cy, cz, ca]]));
+        colour_matrices[i] = Matrix::from_2darray([[cx, cy, cz, ca]]);
 
         all_x[i] = tx;
         all_y[i] = ty;
@@ -226,7 +241,8 @@ fn main() -> Result<(), ContextError> {
         //let t_r = rotate.matmul(&translate)?;
 
 
-        transformation_matrices.push(t_r);
+        //transformation_matrices.push(t_r);
+        transformation_matrices[i] = t_r;
     }
 
     //let mut low_x = 0;
@@ -373,7 +389,7 @@ fn main() -> Result<(), ContextError> {
         //panic!();
     
     let testing_instancing_object = InstancingTestObject::new(
-        &render.window.opengl, base_original, transformation_matrices.clone()
+        &render.window.opengl, base_original, transformation_matrices.to_vec().clone()
     );//?;
 
 
@@ -383,10 +399,11 @@ fn main() -> Result<(), ContextError> {
         ccnt_pos,
         ccnt_norm,
         //ObjectColour::None,
-        ObjectColour::PerVertex(ccnt_col),
+        ObjectColour::ConstantPerInstance(colour_matrices),
+        //ObjectColour::PerVertex(ccnt_col),
         //ObjectTextureCoords::PerVertex(ccnt_tex),
-        //ObjectMaterials::None,
-        ObjectMaterials::Constant(Material::Emerald),
+        ObjectMaterials::None,
+        //ObjectMaterials::Constant(Material::Emerald),
         //ObjectTexture::None,
         ObjectTexture::PerVertex(container_diffuse_map, container_specular_map, ccnt_tex),
         // //Some(container_diffuse_map),
