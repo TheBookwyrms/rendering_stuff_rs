@@ -260,7 +260,7 @@ impl<const NUM_INSTANCES:usize, const NUM_VERTICES:usize> ObjectForVaoDraws<NUM_
 
 
 
- 
+
  
         Self {
             position_matrix: positions,

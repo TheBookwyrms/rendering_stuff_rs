@@ -17,6 +17,7 @@ in pkgs.mkShell {
     #pkgs.glfw3
     pkgs.wayland
     pkgs.libx11
+    pkgs.git
   ];
 
 
@@ -25,8 +26,9 @@ in pkgs.mkShell {
       pkgs.libGL
       pkgs.glfw
       #pkgs.glfw3
-    pkgs.wayland
-    pkgs.libx11
+      pkgs.wayland
+      pkgs.libx11
+      pkgs.git
     ];
 #
   ##LD_LIBRARY_PATH = "${pkgs.stdenv.cc.cc.lib}/lib";
@@ -39,6 +41,7 @@ in pkgs.mkShell {
     pkgs.libGL
     pkgs.stdenv.cc.cc.lib
     pkgs.libx11
+    pkgs.git
   ];
 
   packages = [
