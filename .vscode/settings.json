@@ -1,0 +1,5 @@
+{
+    "nixEnvSelector.suggestion": true,
+    "nixEnvSelector.useFlakes": false,
+    "nixEnvSelector.nixFile": "${workspaceFolder}/shell.nix",
+}

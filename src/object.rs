@@ -15,6 +15,12 @@ use atmospheric::opengl::{raw_opengl, intermediate_opengl};
 use atmospheric::opengl::abstractions::{PreparedTexture, Programs, TextureSetup, Textures, WithEbo, WithVao, WithVaoEbo, WithVaoVbo, WithVbo};
 use atmospheric::opengl::gl::Gl;
 
+use std::sync::OnceLock;
+
+//static MAT_ONES:Matrix<f32, 2, S2<4, 1>> = Matrix::from_2darray([[1.0; 4]]);
+//const MAT_ONES:Matrix<f32, 2, S2<4, 1>> = Matrix { shape:S2::<4, 1>, array:vec![1., 1., 1., 1.] };
+const MAT_ONES_ONCELOCK:OnceLock<Matrix<f32, 2, S2<4, 1>>> = OnceLock::new();
+
 
 
  pub enum ObjectColour<const NUM_INSTANCES:usize, const NUM_VERTICES:usize> {
@@ -114,7 +120,8 @@ impl<const NUM_INSTANCES:usize, const NUM_VERTICES:usize> ObjectForVaoDraws<NUM_
         let with_colours_vbo = WithVbo::new(opengl);
         match colour {
             ObjectColour::None => {
-                with_colours_vbo.buffer_data(&Matrix::from_1darray([1.0; 4]), DrawType::DynamicDraw);
+                // OnceLock as otherwise memory seems to be dropped inconveniently
+                with_colours_vbo.buffer_data(&MAT_ONES_ONCELOCK.get_or_init(|| Matrix::from_2darray([[1.; 4]])), DrawType::DynamicDraw);
                 DataFormat::Colour4(At(1), PerInstance(transformations.len() as u32)).set_vertex_attribs(opengl, dtype_size);
             },
             ObjectColour::Constant(ref mat) => {
@@ -192,10 +199,11 @@ impl<const NUM_INSTANCES:usize, const NUM_VERTICES:usize> ObjectForVaoDraws<NUM_
         let with_materials_vbo = WithVbo::new(opengl);
         match materials {
             ObjectMaterials::None => {
-                let data = Matrix::from_1darray([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 32.0]);
-                //let data = Matrix::from_1darray([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 32.0]);
-                //let data = Matrix::from_1darray([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 32.0]);
-                with_materials_vbo.buffer_data(&data, DrawType::DynamicDraw);
+                // let data = Matrix::from_1darray([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 32.0]);
+                // //let data = Matrix::from_1darray([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 32.0]);
+                // //let data = Matrix::from_1darray([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 32.0]);
+                // with_materials_vbo.buffer_data(&data, DrawType::DynamicDraw);
+                with_materials_vbo.buffer_data(&Matrix::from_1darray(Material::Default.get_material_qualities().get_components_array()), DrawType::DynamicDraw);
                 /// takes up locations 4, 5, 6, 7
                 DataFormat::Material3331(At(4), PerInstance(transformations.len() as u32)).set_vertex_attribs(opengl, dtype_size);
             },

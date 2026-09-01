@@ -6,6 +6,7 @@ version = 4
 name = "atmospheric"
 version = "2.0.0"
 dependencies = [
+ "constcat",
  "gl_generator",
  "glfw",
  "numeracy",
@@ -18,6 +19,12 @@ name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
+
+[[package]]
+name = "constcat"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "136d3e02915a2cea4d74caa8681e2d44b1c3254bdbf17d11d41d587ff858832c"
 
 [[package]]
 name = "gl_generator"

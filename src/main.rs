@@ -87,6 +87,7 @@ pub fn pseudo_randf64(min:f64, max:f64, microsecond_delay:u8) -> f64 {
 static intial_config : RenderInitialConfig = RenderInitialConfig {
     window_name   : "hello, window!",
     window_height : 1080,
+    //window_height : 1200,
     window_width  : 1920,
     camera_mode   : CameraMode::Encompassing,
     max_lights    : LightCounter::max_values(1, 18, 1),
@@ -398,12 +399,14 @@ fn main() -> Result<(), ContextError> {
         &render.window.opengl,
         ccnt_pos,
         ccnt_norm,
-        //ObjectColour::None,
-        ObjectColour::ConstantPerInstance(colour_matrices),
+        ObjectColour::None,
+        //ObjectColour::Constant(Matrix::from_2darray([[1., 1., 1., 1.]])),
+        //ObjectColour::ConstantPerInstance(colour_matrices),
         //ObjectColour::PerVertex(ccnt_col),
         //ObjectTextureCoords::PerVertex(ccnt_tex),
         ObjectMaterials::None,
         //ObjectMaterials::Constant(Material::Emerald),
+        //ObjectMaterials::Constant(Material::Silver),
         //ObjectTexture::None,
         ObjectTexture::PerVertex(container_diffuse_map, container_specular_map, ccnt_tex),
         // //Some(container_diffuse_map),
@@ -533,10 +536,10 @@ fn main() -> Result<(), ContextError> {
             render.set_blinn_phong_uniforms()?;
             
             //point_light.set_lighting_uniforms(&render)?;
-            //point_light2.set_lighting_uniforms(&render)?;
-            //point_light3.set_lighting_uniforms(&render)?;
-            //spot_light.set_lighting_uniforms(&render)?;
-            dir_light.set_lighting_uniforms(&render)?;
+            point_light2.set_lighting_uniforms(&render)?;
+            point_light3.set_lighting_uniforms(&render)?;
+            spot_light.set_lighting_uniforms(&render)?;
+            //dir_light.set_lighting_uniforms(&render)?;
 
             real_instancing_object.draw(&render.window.opengl, &mut render.textures, &render.programs)?;
 

@@ -81,6 +81,7 @@ out vec4 fragment_colour;
 LightComponents calculate_directional_light(DirectionalLight light, vec3 norm, vec3 view_direction) {
     vec3 light_dir = normalize(-light.direction);
     float diffuse_magnitude = max(dot(norm, light_dir), 0);
+
     vec3 reflect_dir = reflect(-light_dir, norm);
     //float specular_magnitude = pow(max(dot(view_direction, reflect_dir), 0.0), point_material.shininess);
 
